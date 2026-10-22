@@ -52,7 +52,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .scroller{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px}
 table{border-collapse:collapse;width:100%;table-layout:fixed}
 th,td{border-bottom:1px solid var(--line);padding:5px 8px;vertical-align:top;text-align:left}
-thead th{font-family:var(--display);font-size:17px;font-weight:700;border-bottom:2px solid var(--ink);overflow-wrap:anywhere}
+thead th{font-family:var(--display);font-size:17px;font-weight:700;border-bottom:2px solid var(--ink);overflow-wrap:break-word;hyphens:none}
 th.ab{position:sticky;left:0;background:var(--surface);z-index:1;width:6.6em;font-family:var(--display);font-size:15px}
 th.ab small{display:block;font-family:var(--body);font-size:11px;color:var(--muted);letter-spacing:.04em;font-weight:400}
 tr.current th.ab, tr.current td{background:var(--band)}
@@ -69,7 +69,8 @@ td.cell{min-width:0}
 .ex{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;font-size:12.5px;color:var(--muted)}
 .ex input{width:3.4em;font-size:15px}
 .cellbtns{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
-.pname{display:flex;align-items:center;gap:6px}
+.pname{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pname>span:first-child{min-width:0}
 .pname form{display:flex;gap:4px;align-items:center}
 .pname form{flex-wrap:wrap}
 .pname input[type=text]{font:600 15px var(--body);width:100%;max-width:9em;padding:3px 6px}
@@ -83,7 +84,8 @@ select.race{max-width:8.5em;text-overflow:ellipsis}
 .link{font:12.5px var(--body);background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .link:hover{color:var(--accent)}
 .x{font:14px var(--body);background:none;border:0;color:var(--muted);cursor:pointer;padding:0 2px}
-.confirm{font:12px var(--body);display:flex;gap:4px;align-items:center;font-family:var(--body);letter-spacing:0}
+.confirm{font:12px var(--body);display:flex;gap:4px;align-items:center;font-family:var(--body);letter-spacing:0;font-variant:normal;white-space:nowrap;flex-basis:100%}
+.confirm .btn{white-space:nowrap}
 .classes{display:flex;flex-wrap:wrap;gap:3px}
 .chip{font-size:11.5px;border-radius:999px;padding:0 6px;border:1px solid currentColor;white-space:nowrap}
 .chip.ok{color:var(--good)}
@@ -322,7 +324,7 @@ function cell(p,k){
     i.onblur=()=>{if(i.value.trim()!==""&&document.body.contains(i))save(false)};
     f.append(i,mkBtn("Enter","btn small ghost",()=>f.requestSubmit()));sc.append(f);td.append(sc);
     const b=f;
-    b.append((x=>{x.title="Roll 3d6 on the board";return x})(mkBtn("or roll","link",()=>{const r=[rnd(6),rnd(6),rnd(6)];const s=r[0]+r[1]+r[2];delete drafts[key];lastRolls[key]=r.join("+");fresh.add(key);api.update(p.id,{scores:{[k]:s}})})));
+
     return td}
   const vb=document.createElement("button");vb.type="button";vb.className="val"+(v==null?" empty":"")+(fresh.has(p.id+k)?" fresh":"");
   vb.textContent=v==null?"—":(k==="str"&&v===18&&p.str18!=null)?"18/"+fmtPct(p.str18):v;vb.disabled=!can;vb.setAttribute("aria-label",`${p.name} ${k}: ${v??"not rolled"}. Edit`);
@@ -339,8 +341,8 @@ function cell(p,k){
     i.setAttribute("aria-label","Exceptional Strength percentile; 00 means 100");i.oninput=()=>{drafts[key]=i.value};
     f.onsubmit=e=>{e.preventDefault();const n=pct(i.value);if(n==null){showMsg("Percentile runs 01 to 00 (00 is 100).");return}
       showMsg("");delete drafts[key];fresh.add(p.id+k);api.update(p.id,{str18:n})};
-    f.append(lab,i,mkBtn("Enter","btn small ghost",()=>f.requestSubmit()),
-      mkBtn("or roll","link",()=>{delete drafts[key];fresh.add(p.id+k);api.update(p.id,{str18:rnd(100)})}));
+    f.append(lab,i,mkBtn("Enter","btn small ghost",()=>f.requestSubmit()));
+
     f.title="Exceptional Strength counts only for fighters, paladins and rangers";td.append(f)}
   return td
 }
@@ -366,8 +368,8 @@ function rerollCell(p){
     showMsg("");const st=sel.value;fresh.add(p.id+st);delete drafts["rrv"+p.id];delete drafts["rrs"+p.id];
     api.update(p.id,{reroll:{stat:st,from:p.scores[st],to:n},scores:{[st]:n}})};
   f.append(i,mkBtn("Enter","btn small ghost",()=>f.requestSubmit()));w.append(f);
-  f.append(mkBtn("or roll","link",()=>{const st=sel.value;const r=[rnd(6),rnd(6)];const to=r[0]+r[1]+6;lastRolls[p.id+st]=`${r[0]}+${r[1]}+6`;fresh.add(p.id+st);
-    delete drafts["rrv"+p.id];delete drafts["rrs"+p.id];api.update(p.id,{reroll:{stat:st,from:p.scores[st],to},scores:{[st]:to}})}));
+
+
   return w
 }
 
