@@ -11,6 +11,7 @@ html,body{margin:0;background:transparent;color:var(--ink);font:14px/1.4 system-
 main{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
 h1{font:700 17px Georgia,serif;margin:0}
 p{margin:0;color:var(--muted);font-size:13px}
+button.ghost{background:transparent;color:var(--accent)}
 button{font:600 14px system-ui,sans-serif;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:4px;padding:8px 12px;cursor:pointer}
 </style>
 <script src="obr-sdk.js"></script>
@@ -19,7 +20,8 @@ button{font:600 14px system-ui,sans-serif;border:1px solid var(--accent);backgro
 <main>
   <h1>Haranshire Roll Board</h1>
   <p id="summary">3d6 down the line, shared with the whole room.</p>
-  <button type="button" id="open">Open the board</button>
+  <button type="button" id="open">Open beside the dice</button>
+  <button type="button" id="full" class="ghost">Open full screen</button>
 </main>
 <script>
 const KEY="rodeo.haranshire.rollboard/";
@@ -27,9 +29,20 @@ const NAMES={str:"Strength",dex:"Dexterity",con:"Constitution",int:"Intelligence
 function summarize(m){m=m||{};const n=Object.keys(m).filter(k=>k.startsWith(KEY+"p/")&&m[k]).length;
   const cur=(m[KEY+"state"]&&m[KEY+"state"].current)||"str";
   document.getElementById("summary").textContent=n?`${n} at the table · now rolling ${NAMES[cur]||"Strength"}`:"No one at the table yet.";}
-document.getElementById("open").onclick=()=>{
+const url=()=>new URL("board.html",location.href).href;
+document.getElementById("open").onclick=async()=>{
   if(!(window.OBR&&OBR.isAvailable))return;
-  OBR.modal.open({id:KEY+"modal",url:new URL("board.html",location.href).href,fullScreen:true});
+  const vw=await OBR.viewport.getWidth(), vh=await OBR.viewport.getHeight();
+  const gap=Math.min(430,Math.round(vw*0.36));           // room on the left for the dice tray
+  await OBR.popover.open({id:KEY+"panel",url:url()+"?mode=panel",width:Math.max(600,vw-gap-16),height:Math.max(400,vh-76),
+    anchorReference:"POSITION",anchorPosition:{left:vw-8,top:64},
+    anchorOrigin:{horizontal:"RIGHT",vertical:"TOP"},transformOrigin:{horizontal:"RIGHT",vertical:"TOP"},
+    disableClickAway:true,marginThreshold:8});
+  OBR.action.close();
+};
+document.getElementById("full").onclick=()=>{
+  if(!(window.OBR&&OBR.isAvailable))return;
+  OBR.modal.open({id:KEY+"modal",url:url()+"?mode=modal",fullScreen:true});
   OBR.action.close();
 };
 if(window.OBR&&OBR.isAvailable){OBR.onReady(async()=>{

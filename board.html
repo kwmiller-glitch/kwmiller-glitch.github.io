@@ -100,6 +100,14 @@ select.race{max-width:8.5em;text-overflow:ellipsis}
 .notes p{margin:0}
 .msg{font-size:13px;color:var(--bad)}
 @media (prefers-reduced-motion: no-preference){ .val.fresh{animation:pop .5s ease-out} @keyframes pop{0%{transform:scale(1.35)}100%{transform:scale(1)}} }
+.panel body{padding:10px 12px 16px;font-size:14px}
+.panel h1{font-size:22px}
+.panel .sub{display:none}
+.panel .val{font-size:21px}
+.panel .mods{font-size:11px}
+.panel td.cell,.panel th{padding:4px 6px}
+.panel th.ab{width:5.6em;font-size:14px}
+.panel thead th{font-size:15px}
 </style>
 <script src="obr-sdk.js"></script>
 </head>
@@ -372,7 +380,9 @@ if(window.OBR&&OBR.isAvailable){
     try{applyTheme(await OBR.theme.getTheme());OBR.theme.onChange(applyTheme)}catch(_){}
     try{myName=await OBR.player.getName()}catch(_){}
     OBR.player.onChange(p=>{if(p&&p.name)myName=p.name});
-    $("closeBtn").hidden=false;$("closeBtn").onclick=()=>OBR.modal.close(MODAL_ID);
+    const mode=new URLSearchParams(location.search).get("mode");
+    $("closeBtn").hidden=false;$("closeBtn").onclick=()=>mode==="panel"?OBR.popover.close(KEY+"panel"):OBR.modal.close(MODAL_ID);
+    if(mode==="panel")document.documentElement.classList.add("panel");
     live=true;setStatus();
     fromMeta(await OBR.room.getMetadata());
     OBR.room.onMetadataChange(fromMeta);
