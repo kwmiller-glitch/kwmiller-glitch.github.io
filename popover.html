@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roll Board</title>
+<style>
+:root{--ink:#e3e9e4;--muted:#98a59d;--accent:#e07a62;--accent-ink:#1a0f0b}
+:root[data-theme="light"]{--ink:#1d2420;--muted:#5b6862;--accent:#8a2e1e;--accent-ink:#fff8f2}
+html,body{margin:0;background:transparent;color:var(--ink);font:14px/1.4 system-ui,"Segoe UI",sans-serif}
+main{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+h1{font:700 17px Georgia,serif;margin:0}
+p{margin:0;color:var(--muted);font-size:13px}
+button{font:600 14px system-ui,sans-serif;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:4px;padding:8px 12px;cursor:pointer}
+</style>
+<script src="obr-sdk.js"></script>
+</head>
+<body>
+<main>
+  <h1>Haranshire Roll Board</h1>
+  <p id="summary">3d6 down the line, shared with the whole room.</p>
+  <button type="button" id="open">Open the board</button>
+</main>
+<script>
+const KEY="rodeo.haranshire.rollboard/";
+const NAMES={str:"Strength",dex:"Dexterity",con:"Constitution",int:"Intelligence",wis:"Wisdom",cha:"Charisma",reroll:"Rerolls"};
+function summarize(m){m=m||{};const n=Object.keys(m).filter(k=>k.startsWith(KEY+"p/")&&m[k]).length;
+  const cur=(m[KEY+"state"]&&m[KEY+"state"].current)||"str";
+  document.getElementById("summary").textContent=n?`${n} at the table · now rolling ${NAMES[cur]||"Strength"}`:"No one at the table yet.";}
+document.getElementById("open").onclick=()=>{
+  if(!(window.OBR&&OBR.isAvailable))return;
+  OBR.modal.open({id:KEY+"modal",url:new URL("board.html",location.href).href,fullScreen:true});
+  OBR.action.close();
+};
+if(window.OBR&&OBR.isAvailable){OBR.onReady(async()=>{
+  try{const t=await OBR.theme.getTheme();document.documentElement.dataset.theme=t.mode==="DARK"?"dark":"light"}catch(_){}
+  summarize(await OBR.room.getMetadata());OBR.room.onMetadataChange(summarize);
+})}
+</script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Haranshire Roll Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya:wght@500;700&display=swap">
+<style>
+/* Layout: a gaming ledger — abilities run down the side, players across, the ability being rolled lit as a band. */
+:root{
+  --bg:#e7ebe6; --surface:#f6f7f3; --ink:#1d2420; --muted:#5b6862; --line:#c6cec7;
+  --accent:#8a2e1e; --accent-ink:#fff8f2; --band:#efe2c1; --good:#2f6b45; --bad:#9a3b2c; --pending:#8a8f7f;
+  --display:"Alegreya SC", "Palatino Linotype", Georgia, serif;
+  --body:"Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --num:"Alegreya", Georgia, serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101513; --surface:#18201c; --ink:#e3e9e4; --muted:#98a59d; --line:#2e3833;
+  --accent:#e07a62; --accent-ink:#1a0f0b; --band:#2c2717; --good:#7cc496; --bad:#ec8b76; --pending:#7d837a; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#101513; --surface:#18201c; --ink:#e3e9e4; --muted:#98a59d; --line:#2e3833;
+  --accent:#e07a62; --accent-ink:#1a0f0b; --band:#2c2717; --good:#7cc496; --bad:#ec8b76; --pending:#7d837a; color-scheme:dark }
+html,body{background:var(--bg);margin:0}
+body{color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:12px 32px}
+.wrap{max-width:1480px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(24px,3vw,32px);line-height:1;margin:0;letter-spacing:.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;font-size:14px}
+.status{font-size:13px;color:var(--muted)}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.status b{color:var(--ink)}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.now{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.now .lbl{font-family:var(--display);font-size:13px;letter-spacing:.06em;color:var(--muted)}
+.steps{display:flex;flex-wrap:wrap;gap:4px}
+.steps button{font:500 13px var(--body);border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.steps button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+form.add{display:flex;gap:6px;flex-wrap:wrap}
+input[type=text],input[type=number],select{font:15px var(--body);max-width:100%;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{width:4.2em;font-family:var(--num);font-size:20px;text-align:center;padding:2px 4px}
+.btn{font:600 14px var(--body);border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:4px;padding:6px 12px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.small{font-size:12px;padding:2px 8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroller{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;table-layout:fixed}
+th,td{border-bottom:1px solid var(--line);padding:5px 8px;vertical-align:top;text-align:left}
+thead th{font-family:var(--display);font-size:17px;font-weight:700;border-bottom:2px solid var(--ink);overflow-wrap:anywhere}
+th.ab{position:sticky;left:0;background:var(--surface);z-index:1;width:6.6em;font-family:var(--display);font-size:15px}
+th.ab small{display:block;font-family:var(--body);font-size:11px;color:var(--muted);letter-spacing:.04em;font-weight:400}
+tr.current th.ab, tr.current td{background:var(--band)}
+td.cell{min-width:0}
+@media (max-width:760px){table{table-layout:auto;min-width:max-content} td.cell{min-width:10em}}
+.score{display:flex;align-items:baseline;gap:8px}
+.val{font-family:var(--num);font-weight:700;font-size:24px;line-height:1;font-variant-numeric:tabular-nums;background:none;border:0;color:var(--ink);padding:0;cursor:pointer;min-width:1.4em;text-align:left}
+.val.empty{color:var(--pending);font-weight:500;font-size:22px}
+.orig{font-family:var(--num);color:var(--muted);text-decoration:line-through;font-size:15px}
+.tag{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+.mods{font-size:12px;line-height:1.3;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.mods b{color:var(--ink);font-weight:500}
+.dice{font-size:11.5px;color:var(--muted)}
+.ex{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;font-size:12.5px;color:var(--muted)}
+.ex input{width:3.4em;font-size:15px}
+.cellbtns{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.pname{display:flex;align-items:center;gap:6px}
+.pname form{display:flex;gap:4px;align-items:center}
+.pname form{flex-wrap:wrap}
+.pname input[type=text]{font:600 15px var(--body);width:100%;max-width:9em;padding:3px 6px}
+.played{display:block;font-family:var(--body);font-size:12px;font-weight:400;color:var(--muted);letter-spacing:0}
+.raceline{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+select.race,.reroll select{font-size:14px;padding:2px 4px}
+select.race{max-width:8.5em;text-overflow:ellipsis}
+.racewarn{font-size:12px;color:var(--bad);margin-top:3px}
+.entry{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.entry input[type=number]{width:3.3em;font-size:17px;padding:2px}
+.link{font:12.5px var(--body);background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.link:hover{color:var(--accent)}
+.x{font:14px var(--body);background:none;border:0;color:var(--muted);cursor:pointer;padding:0 2px}
+.confirm{font:12px var(--body);display:flex;gap:4px;align-items:center;font-family:var(--body);letter-spacing:0}
+.classes{display:flex;flex-wrap:wrap;gap:3px}
+.chip{font-size:11.5px;border-radius:999px;padding:0 6px;border:1px solid currentColor;white-space:nowrap}
+.chip.ok{color:var(--good)}
+.chip.out{color:var(--bad);text-decoration:line-through;opacity:.75}
+.chip.wait{color:var(--pending);border-style:dashed}
+.reroll{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.reroll .row{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.done{color:var(--muted)}
+.empty-state{padding:28px 16px;text-align:center;color:var(--muted)}
+.empty-state strong{display:block;font-family:var(--display);font-size:20px;color:var(--ink);margin-bottom:4px}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;font-size:13px;color:var(--muted)}
+.notes div{min-width:0}
+.notes h2{font-family:var(--display);font-size:15px;color:var(--ink);margin:0 0 4px;font-weight:700}
+.notes p{margin:0}
+.msg{font-size:13px;color:var(--bad)}
+@media (prefers-reduced-motion: no-preference){ .val.fresh{animation:pop .5s ease-out} @keyframes pop{0%{transform:scale(1.35)}100%{transform:scale(1)}} }
+</style>
+<script src="obr-sdk.js"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Haranshire Roll Board</h1>
+      <p class="sub">3d6 down the line, one ability at a time. One 2d6+6 reroll each.</p>
+    </div>
+    <div class="hdr-right"><div class="status" id="status">Connecting…</div><button class="btn ghost small" type="button" id="closeBtn" hidden>Close</button></div>
+  </header>
+
+  <div class="bar">
+    <div class="now"><span class="lbl">Now rolling</span><div class="steps" id="steps"></div></div>
+    <form class="add" id="addForm">
+      <label for="newName" class="lbl" style="position:absolute;left:-9999px">Player name</label>
+      <input type="text" id="newName" placeholder="Player name (blank adds you)" maxlength="40" autocomplete="off" style="min-width:15em">
+      <button class="btn" type="submit" id="addBtn">Add player</button>
+    </form>
+  </div>
+  <div class="msg" id="msg" hidden></div>
+
+  <div class="scroller" id="board"></div>
+</div>
+
+<script>
+const AB=[["str","Strength"],["dex","Dexterity"],["con","Constitution"],["int","Intelligence"],["wis","Wisdom"],["cha","Charisma"]];
+const STEPS=[...AB,["reroll","Rerolls"]];
+const CLASSES=[["Fighter",{str:9}],["Paladin",{str:12,con:9,wis:13,cha:17}],["Ranger",{str:13,dex:13,con:14,wis:14}],
+ ["Mage",{int:9}],["Cleric",{wis:9}],["Druid",{wis:12,cha:15}],["Thief",{dex:9}],["Bard",{dex:12,int:13,cha:15}]];
+const RACES={Human:{},Dwarf:{con:1,cha:-1},Elf:{dex:1,con:-1},Gnome:{int:1,wis:-1},"Half-elf":{},Halfling:{dex:1,str:-1}};
+const RCLASS={Dwarf:["Fighter","Cleric","Thief"],Elf:["Fighter","Ranger","Mage","Cleric","Thief"],Gnome:["Fighter","Illusionist","Cleric","Thief"],
+ "Half-elf":["Fighter","Ranger","Mage","Cleric","Druid","Thief","Bard"],Halfling:["Fighter","Cleric","Thief"]};
+// PHB Table 7, checked against the scores as rolled (before adjustments)
+const LIMITS={Dwarf:{str:[8,18],dex:[3,17],con:[11,18],int:[3,18],wis:[3,18],cha:[3,17]},
+ Elf:{str:[3,18],dex:[6,18],con:[7,18],int:[8,18],wis:[3,18],cha:[8,18]},
+ Gnome:{str:[6,18],dex:[3,18],con:[8,18],int:[6,18],wis:[3,18],cha:[3,18]},
+ "Half-elf":{str:[3,18],dex:[6,18],con:[6,18],int:[4,18],wis:[3,18],cha:[3,18]},
+ Halfling:{str:[7,18],dex:[7,18],con:[10,18],int:[6,18],wis:[3,17],cha:[3,18]}};
+const SHORT={str:"Str",dex:"Dex",con:"Con",int:"Int",wis:"Wis",cha:"Cha"};
+function raceProblems(p,r){const L=LIMITS[r];if(!L)return [];const out=[];
+  for(const k in L){const v=p.scores?.[k];if(v==null)continue;if(v<L[k][0])out.push(`${SHORT[k]} ${v} (needs ${L[k][0]}+)`);else if(v>L[k][1])out.push(`${SHORT[k]} ${v} (max ${L[k][1]})`)}
+  return out}
+const PLURAL={Dwarf:"dwarves",Elf:"elves",Gnome:"gnomes","Half-elf":"half-elves",Halfling:"halflings"};
+const raceOf=p=>RACES[p.race]?p.race:"Human";
+const radj=(p,k)=>RACES[raceOf(p)][k]||0;
+const adj=(p,k)=>{const r=p.scores?.[k];return r==null?null:r+radj(p,k)};
+const sg=n=>n>0?"+"+n:n<0?"−"+Math.abs(n):"0";
+function strMods(v,ex){
+  let h=0,d=0;
+  if(v<=2){h=-3;d=-2}else if(v<=3){h=-3;d=-1}else if(v<=5){h=-2;d=-1}else if(v<=7){h=-1}else if(v<=15){}else if(v===16){d=1}else if(v===17){h=1;d=1}
+  else{ if(ex){ if(ex<=50){h=1;d=3}else if(ex<=75){h=2;d=3}else if(ex<=90){h=2;d=4}else if(ex<=99){h=2;d=5}else{h=3;d=6} } else {h=1;d=2} }
+  return `Hit <b>${sg(h)}</b> · Dmg <b>${sg(d)}</b>`;
+}
+function dexMods(v){const t={19:[3,-4],3:[-3,4],4:[-2,3],5:[-1,2],6:[0,1],15:[0,-1],16:[1,-2],17:[2,-3],18:[2,-4]}[v]||[0,0];
+  return `Missile & reaction <b>${sg(t[0])}</b> · AC <b>${sg(t[1])}</b>`}
+function conMods(v){const h=v<=3?-2:v<=6?-1:v<=14?0:v===15?1:2;const w=v===17?3:v===18?4:v>=19?5:null;
+  return `HP/die <b>${sg(h)}</b>`+(w?` (warriors <b>${sg(w)}</b>)`:"")}
+function intMods(v){const lang=v<=8?1:{9:2,10:2,11:2,12:3,13:3,14:4,15:4,16:5,17:6,18:7,19:8}[v];
+  if(v<9) return `Languages <b>${lang}</b> · no wizard spells`;
+  const lvl={9:"4th",10:"5th",11:"5th",12:"6th",13:"6th",14:"7th",15:"7th",16:"8th",17:"8th",18:"9th",19:"9th"}[v];
+  const learn={9:35,10:40,11:45,12:50,13:55,14:60,15:65,16:70,17:75,18:85,19:95}[v];
+  return `Languages <b>${lang}</b> · Learn <b>${learn}%</b> · Max <b>${lvl}</b>`}
+function wisMods(v){const md=v<=2?-4:v<=3?-3:v===4?-2:v<=7?-1:v<=14?0:v-14;
+  const fail={2:60,3:50,4:45,5:40,6:35,7:30,8:25,9:20,10:15,11:10,12:5}[v]||0;
+  const b=[];if(v>=13)b.push("1st");if(v>=14)b.push("1st");if(v>=15)b.push("2nd");if(v>=16)b.push("2nd");if(v>=17)b.push("3rd");if(v>=18)b.push("4th");
+  let s=`Magic def <b>${sg(md)}</b>`;if(b.length)s+=` · Bonus <b>${b.join(", ")}</b>`;if(fail)s+=` · Fail <b>${fail}%</b>`;return s}
+function chaMods(v){const t={2:[1,-7,-6],3:[1,-6,-5],4:[1,-5,-4],5:[2,-4,-3],6:[2,-3,-2],7:[3,-2,-1],8:[3,-1,0],12:[5,0,0],13:[5,0,1],14:[6,1,2],15:[7,3,3],16:[8,4,5],17:[10,6,6],18:[15,8,7]}[v]||[4,0,0];
+  return `Reaction <b>${sg(t[2])}</b> · Loyalty <b>${sg(t[1])}</b> · Henchmen <b>${t[0]}</b>`}
+const MODS={str:strMods,dex:dexMods,con:conMods,int:intMods,wis:wisMods,cha:chaMods};
+
+function fmtPct(n){return n>=100?"00":String(n).padStart(2,"0")}
+function pct(raw){raw=String(raw).trim();if(!/^\d{1,3}$/.test(raw))return null;const n=parseInt(raw,10);if(n===0)return 100;return n>=1&&n<=100?n:null}
+function rnd(n){const a=new Uint32Array(1);crypto.getRandomValues(a);return 1+(a[0]%n)}
+
+let players=[], current="str", canWrite=true, live=false, local=false, myName="";
+const KEY="rodeo.haranshire.rollboard/", MODAL_ID=KEY+"modal";
+let editing=null, confirmDel=null, fresh=new Set(), lastRolls={};
+let drafts={}, editingName=null, nameDraft="", focusNext=null;
+const $=id=>document.getElementById(id);
+
+function showMsg(t){const m=$("msg");if(!t){m.hidden=true;return}m.textContent=t;m.hidden=false}
+function setStatus(){ $("status").innerHTML = local ? "<b>Not in Owlbear.</b> Open this from the Roll Board button in your Owlbear room, or nothing is shared." :
+  !live ? "Connecting…" : `<b>Live.</b> Everyone in the room sees changes as they happen.` }
+
+async function write(update){
+  try{ await OBR.room.setMetadata(update) }catch(e){ showMsg("That change didn’t save. Try again in a moment.") }
+}
+function fromMeta(m){
+  m=m||{};
+  players=Object.keys(m).filter(k=>k.startsWith(KEY+"p/")&&m[k]).map(k=>({...m[k],id:k.slice(KEY.length+2)})).sort((a,b)=>a.order-b.order);
+  const st=m[KEY+"state"];current=(st&&st.current)||"str";render();
+}
+function newId(){return Date.now().toString(36)+rnd(1e6).toString(36)}
+function strip(p){const c=JSON.parse(JSON.stringify(p));delete c.id;return c}
+// local fallback store (when opened outside Owlbear)
+const mem={players:new Map(),state:{current:"str"}};
+function emitLocal(){players=[...mem.players.values()].sort((a,b)=>a.order-b.order);current=mem.state.current;render()}
+const api={
+  addPlayer:name=>{const id=newId(),rec={name,order:Date.now(),scores:{},str18:null,reroll:null,race:"Human"};
+    if(local){mem.players.set(id,{id,...rec});emitLocal();return}
+    players=[...players,{id,...rec}];render();return write({[KEY+"p/"+id]:rec})},
+  update:(id,patch)=>{
+    if(local){const p=mem.players.get(id);deepMerge(p,patch);emitLocal();return}
+    const cur=players.find(p=>p.id===id);if(!cur)return;const next=strip(cur);deepMerge(next,patch);
+    players=players.map(p=>p.id===id?{id,...next}:p);render();return write({[KEY+"p/"+id]:next})},
+  remove:id=>{ if(local){mem.players.delete(id);emitLocal();return}
+    players=players.filter(p=>p.id!==id);render();return write({[KEY+"p/"+id]:null}) },
+  setCurrent:c=>{ if(local){mem.state.current=c;emitLocal();return} current=c;render(); return write({[KEY+"state"]:{current:c}}) }
+};
+function deepMerge(t,s){for(const k in s){if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k])&&t[k]&&typeof t[k]==="object")deepMerge(t[k],s[k]);else t[k]=s[k]}}
+
+function classStatus(p){
+  const race=raceOf(p),allow=RCLASS[race];
+  const list=race==="Gnome"?CLASSES.map(c=>c[0]==="Mage"?["Illusionist",{int:9,dex:16}]:c):CLASSES;
+  return list.map(([n,req])=>{if(allow&&!allow.includes(n))return [n,"race"];let out=false,wait=false;
+    for(const k in req){const v=adj(p,k);if(v==null)wait=true;else if(v<req[k])out=true}
+    return [n,out?"out":wait?"wait":"ok"]})
+}
+
+function render(){
+  const act=document.activeElement, keepId=focusNext||(act&&act.id&&act.tagName==="INPUT"?act.id:null);focusNext=null;
+  renderInner();
+  if(keepId&&!editing){const el=document.getElementById(keepId);if(el&&document.activeElement!==el){el.focus()}}
+}
+function renderInner(){
+  $("steps").innerHTML="";
+  STEPS.forEach(([k,label])=>{const b=document.createElement("button");b.type="button";b.textContent=label;
+    b.setAttribute("aria-pressed",String(k===current));b.disabled=!canWrite&&!local;b.onclick=()=>api.setCurrent(k);$("steps").append(b)});
+  $("addBtn").disabled=$("newName").disabled=(!canWrite&&!local);
+  const board=$("board");
+  if(!players.length){board.innerHTML=`<div class="empty-state"><strong>No one at the table yet</strong>Add each player by name above. Their column fills in as the dice come in.</div>`;return}
+  const t=document.createElement("table");
+  const thead=t.createTHead().insertRow();
+  const corner=document.createElement("th");corner.className="ab";corner.textContent="Ability";thead.append(corner);
+  players.forEach(p=>{const th=document.createElement("th");th.scope="col";
+    const w=document.createElement("div");w.className="pname";
+    if(editingName===p.id){const f=document.createElement("form");
+      const i=document.createElement("input");i.type="text";i.maxLength=40;i.id=`nm-${p.id}`;i.value=nameDraft;i.setAttribute("aria-label",`Character name for ${p.name}`);
+      i.oninput=()=>nameDraft=i.value;i.onkeydown=e=>{if(e.key==="Escape"){editingName=null;render()}};
+      f.onsubmit=e=>{e.preventDefault();const v=i.value.trim().slice(0,40);editingName=null;
+        api.update(p.id,{character:(v&&v!==p.name)?v:null})};
+      f.append(i,mkBtn("Save","btn small",()=>f.requestSubmit()),mkBtn("Cancel","btn small ghost",()=>{editingName=null;render()}));
+      w.append(f);th.append(w);
+      const pl=document.createElement("span");pl.className="played";pl.textContent=`Player: ${p.name}. Leave blank to show the player’s name.`;th.append(pl);
+      thead.append(th);setTimeout(()=>{const el=$(`nm-${p.id}`);if(el&&document.activeElement!==el)el.focus()},0);return}
+    const s=document.createElement("span");s.textContent=p.character||p.name;w.append(s);
+    if(canWrite||local){const r=mkBtn("✎","x",()=>{editingName=p.id;nameDraft=p.character||p.name;render()});r.setAttribute("aria-label","Rename "+(p.character||p.name));r.title="Rename";w.append(r)}
+    if(canWrite||local){ if(confirmDel===p.id){const c=document.createElement("span");c.className="confirm";c.append("Remove? ");
+        const y=mkBtn("Yes","btn small",()=>{confirmDel=null;api.remove(p.id)});const n=mkBtn("No","btn small ghost",()=>{confirmDel=null;render()});c.append(y,n);w.append(c)}
+      else {const x=mkBtn("×","x",()=>{confirmDel=p.id;render()});x.setAttribute("aria-label","Remove "+p.name);w.append(x)} }
+    th.append(w);
+    if(p.character){const pl=document.createElement("span");pl.className="played";pl.textContent=p.name;th.append(pl)}
+    thead.append(th)});
+  const tb=t.createTBody();
+  {const tr=tb.insertRow();const th=document.createElement("th");th.className="ab";th.scope="row";th.innerHTML="Race<small>ADJUSTMENTS</small>";tr.append(th);
+   players.forEach(p=>{const td=tr.insertCell();const sel=document.createElement("select");sel.className="race";sel.setAttribute("aria-label",`Race for ${p.character||p.name}`);
+     Object.keys(RACES).forEach(r=>{const o=document.createElement("option");o.value=r;const m=Object.entries(RACES[r]).map(([k,d])=>`${k.charAt(0).toUpperCase()+k.slice(1)} ${sg(d)}`).join(", ");const pr=raceProblems(p,r);o.textContent=pr.length?`${r} (${pr.map(x=>x.split(" (")[0]).join(", ")} out of range)`:r;if(pr.length&&r!==raceOf(p))o.disabled=true;sel.append(o)});
+     sel.value=raceOf(p);sel.disabled=!(canWrite||local);sel.onchange=()=>api.update(p.id,{race:sel.value});
+     const w=document.createElement("div");w.className="raceline";w.append(sel);
+     const m=Object.entries(RACES[raceOf(p)]).map(([k,d])=>`${k.charAt(0).toUpperCase()+k.slice(1)} ${sg(d)}`).join(", ");
+     if(m){const d=document.createElement("span");d.className="dice";d.textContent=m;w.append(d)}td.append(w);
+     const pr=raceProblems(p,raceOf(p));if(pr.length){const e=document.createElement("div");e.className="racewarn";e.textContent=`Not allowed as ${/^[AEIOU]/.test(raceOf(p))?"an":"a"} ${raceOf(p).toLowerCase()}: ${pr.join(", ")}`;td.append(e)}})}
+  AB.forEach(([k,label])=>{const tr=tb.insertRow();if(k===current)tr.className="current";
+    const th=document.createElement("th");th.className="ab";th.scope="row";th.innerHTML=`${label}<small>${k.toUpperCase()}</small>`;tr.append(th);
+    players.forEach(p=>tr.append(cell(p,k)))});
+  // classes
+  const trc=tb.insertRow();const thc=document.createElement("th");thc.className="ab";thc.innerHTML="Classes<small>MINIMUMS</small>";trc.append(thc);
+  players.forEach(p=>{const td=trc.insertCell();const w=document.createElement("div");w.className="classes";
+    classStatus(p).forEach(([n,s])=>{const c=document.createElement("span");c.className="chip "+(s==="race"?"out":s);c.textContent=n;c.title=s==="ok"?"Minimums met":s==="out"?"Ruled out by the scores":s==="race"?`Not open to ${PLURAL[raceOf(p)]}`:"Waiting on a roll";w.append(c)});td.append(w)});
+  // rerolls
+  const trr=tb.insertRow();if(current==="reroll")trr.className="current";
+  const thr=document.createElement("th");thr.className="ab";thr.innerHTML="Reroll<small>2D6+6, ONCE</small>";trr.append(thr);
+  players.forEach(p=>{const td=trr.insertCell();td.append(rerollCell(p))});
+  board.innerHTML="";board.append(t);
+  if(editing){const i=document.getElementById(`ed-${editing.pid}-${editing.stat}`);if(i){i.focus();try{i.setSelectionRange(i.value.length,i.value.length)}catch(_){}}}
+  fresh.clear();
+}
+function mkBtn(text,cls,fn){const b=document.createElement("button");b.type="button";b.className=cls;b.textContent=text;b.onclick=fn;return b}
+
+function cell(p,k){
+  const td=document.createElement("td");td.className="cell";const raw=p.scores?.[k],v=adj(p,k),ra=radj(p,k);const can=canWrite||local;
+  const sc=document.createElement("div");sc.className="score";
+  if(editing&&editing.pid===p.id&&editing.stat===k){
+    const f=document.createElement("form");f.style.display="flex";f.style.gap="4px";
+    const i=document.createElement("input");i.type="number";i.min="3";i.max="18";i.id=`ed-${p.id}-${k}`;i.value=editing.value;i.setAttribute("aria-label",`${p.name} ${k}`);
+    i.oninput=()=>editing.value=i.value;
+    f.onsubmit=e=>{e.preventDefault();const n=parseInt(i.value,10);
+      if(i.value===""){editing=null;api.update(p.id,{scores:{[k]:null}});return}
+      if(!(n>=3&&n<=18)){showMsg("Ability scores run from 3 to 18.");return}
+      const patch={scores:{[k]:n}};
+      if(k==="str"){if(n===18){const x=xi.value.trim();if(x===""){patch.str18=null}else{const q=pct(x);if(q==null){showMsg("Percentile runs 01 to 00 (00 is 100).");return}patch.str18=q}}else patch.str18=null}
+      showMsg("");editing=null;fresh.add(p.id+k);api.update(p.id,patch)};
+    i.onkeydown=e=>{if(e.key==="Escape"){editing=null;render()}else if(e.key==="Enter"){e.preventDefault();f.requestSubmit()}};
+    let xi=null;if(k==="str"){xi=document.createElement("input");xi.type="text";xi.inputMode="numeric";xi.maxLength=3;xi.placeholder="xx";xi.style.width="2.6em";
+      xi.value=editing.pct??(p.str18!=null?fmtPct(p.str18):"");xi.setAttribute("aria-label","Percentile, if 18");xi.oninput=()=>editing.pct=xi.value;xi.onkeydown=i.onkeydown}
+    f.append(i);if(xi){const sl=document.createElement("span");sl.textContent="/";sl.style.alignSelf="center";f.append(sl,xi)}
+    f.append(mkBtn("Save","btn small",()=>f.requestSubmit()));sc.append(f);td.append(sc);return td}
+  if(can&&v==null){
+    const key=p.id+k, f=document.createElement("form");f.className="entry";
+    const i=document.createElement("input");i.type="number";i.min="3";i.max="18";i.inputMode="numeric";i.id=`in-${p.id}-${k}`;i.placeholder="3–18";
+    i.value=drafts[key]??"";i.setAttribute("aria-label",`${p.name} ${k} score`);
+    i.oninput=()=>{drafts[key]=i.value};
+    const save=goNext=>{const raw=i.value.trim();if(raw==="")return;const n=parseInt(raw,10);
+      if(!(n>=3&&n<=18)){if(goNext)showMsg("Ability scores run from 3 to 18.");return}
+      showMsg("");delete drafts[key];fresh.add(key);
+      if(goNext){const idx=players.findIndex(q=>q.id===p.id);const nx=players.slice(idx+1).find(q=>q.scores?.[k]==null);focusNext=nx?`in-${nx.id}-${k}`:null}
+      api.update(p.id,{scores:{[k]:n}})};
+    f.onsubmit=e=>{e.preventDefault();save(true)};
+    i.onblur=()=>{if(i.value.trim()!==""&&document.body.contains(i))save(false)};
+    f.append(i,mkBtn("Enter","btn small ghost",()=>f.requestSubmit()));sc.append(f);td.append(sc);
+    const b=f;
+    b.append((x=>{x.title="Roll 3d6 on the board";return x})(mkBtn("or roll","link",()=>{const r=[rnd(6),rnd(6),rnd(6)];const s=r[0]+r[1]+r[2];delete drafts[key];lastRolls[key]=r.join("+");fresh.add(key);api.update(p.id,{scores:{[k]:s}})})));
+    return td}
+  const vb=document.createElement("button");vb.type="button";vb.className="val"+(v==null?" empty":"")+(fresh.has(p.id+k)?" fresh":"");
+  vb.textContent=v==null?"—":(k==="str"&&v===18&&p.str18!=null)?"18/"+fmtPct(p.str18):v;vb.disabled=!can;vb.setAttribute("aria-label",`${p.name} ${k}: ${v??"not rolled"}. Edit`);
+  vb.onclick=()=>{editing={pid:p.id,stat:k,value:raw??""};render()};sc.append(vb);
+  if(ra&&v!=null){const o=document.createElement("span");o.className="dice";o.textContent=`rolled ${raw}, ${sg(ra)} ${raceOf(p).toLowerCase()}`;sc.append(o)}
+  if(p.reroll&&p.reroll.stat===k){const o=document.createElement("span");o.className="orig";o.textContent=p.reroll.from;const tg=document.createElement("span");tg.className="tag";tg.textContent="rerolled";sc.append(o,tg)}
+  if(lastRolls[p.id+k]){const d=document.createElement("span");d.className="dice";d.textContent=lastRolls[p.id+k];sc.append(d)}
+  td.append(sc);
+  if(v!=null){const m=document.createElement("div");m.className="mods";m.innerHTML=MODS[k](v,p.str18);td.append(m)}
+  if(k==="str"&&v===18&&p.str18==null&&can){
+    const key="ex"+p.id, f=document.createElement("form");f.className="entry ex";
+    const lab=document.createElement("label");lab.htmlFor=`ex-${p.id}`;lab.textContent="18/";
+    const i=document.createElement("input");i.type="text";i.inputMode="numeric";i.maxLength=3;i.id=`ex-${p.id}`;i.placeholder="xx";i.value=drafts[key]??"";
+    i.setAttribute("aria-label","Exceptional Strength percentile; 00 means 100");i.oninput=()=>{drafts[key]=i.value};
+    f.onsubmit=e=>{e.preventDefault();const n=pct(i.value);if(n==null){showMsg("Percentile runs 01 to 00 (00 is 100).");return}
+      showMsg("");delete drafts[key];fresh.add(p.id+k);api.update(p.id,{str18:n})};
+    f.append(lab,i,mkBtn("Enter","btn small ghost",()=>f.requestSubmit()),
+      mkBtn("or roll","link",()=>{delete drafts[key];fresh.add(p.id+k);api.update(p.id,{str18:rnd(100)})}));
+    f.title="Exceptional Strength counts only for fighters, paladins and rangers";td.append(f)}
+  return td
+}
+function rerollCell(p){
+  const w=document.createElement("div");w.className="reroll";const can=canWrite||local;
+  if(p.reroll){const lab=AB.find(a=>a[0]===p.reroll.stat)[1];
+    const d=document.createElement("div");d.className="done";d.textContent=`${lab}: ${p.reroll.from} → ${p.reroll.to}`;w.append(d);
+    if(can)w.append(mkBtn("Undo reroll","btn small ghost",()=>api.update(p.id,{reroll:null,scores:{[p.reroll.stat]:p.reroll.from}})));return w}
+  const all=AB.every(([k])=>p.scores?.[k]!=null);
+  if(!all){const s=document.createElement("div");s.className="done";s.textContent="After all six are rolled";w.append(s);return w}
+  if(!can){const s=document.createElement("div");s.className="done";s.textContent="Not used yet";w.append(s);return w}
+  const row=document.createElement("div");row.className="row";
+  const sel=document.createElement("select");sel.id=`rr-${p.id}`;sel.setAttribute("aria-label",`Ability to reroll for ${p.name}`);
+  AB.forEach(([k,l])=>{const o=document.createElement("option");o.value=k;o.textContent=`${l} (${p.scores[k]})`;sel.append(o)});
+  const lowest=AB.reduce((a,[k])=>p.scores[k]<p.scores[a]?k:a,"str");sel.value=lowest;
+  if(drafts["rrs"+p.id])sel.value=drafts["rrs"+p.id];
+  sel.onchange=()=>{drafts["rrs"+p.id]=sel.value};
+  row.append(sel);w.append(row);
+  const f=document.createElement("form");f.className="entry";
+  const i=document.createElement("input");i.type="number";i.min="8";i.max="18";i.inputMode="numeric";i.id=`rrv-${p.id}`;i.placeholder="8–18";i.value=drafts["rrv"+p.id]??"";
+  i.setAttribute("aria-label","Reroll result rolled in Owlbear");i.oninput=()=>{drafts["rrv"+p.id]=i.value};
+  f.onsubmit=e=>{e.preventDefault();const n=parseInt(i.value,10);if(!(n>=8&&n<=18)){showMsg("A 2d6+6 reroll runs from 8 to 18.");return}
+    showMsg("");const st=sel.value;fresh.add(p.id+st);delete drafts["rrv"+p.id];delete drafts["rrs"+p.id];
+    api.update(p.id,{reroll:{stat:st,from:p.scores[st],to:n},scores:{[st]:n}})};
+  f.append(i,mkBtn("Enter","btn small ghost",()=>f.requestSubmit()));w.append(f);
+  f.append(mkBtn("or roll","link",()=>{const st=sel.value;const r=[rnd(6),rnd(6)];const to=r[0]+r[1]+6;lastRolls[p.id+st]=`${r[0]}+${r[1]}+6`;fresh.add(p.id+st);
+    delete drafts["rrv"+p.id];delete drafts["rrs"+p.id];api.update(p.id,{reroll:{stat:st,from:p.scores[st],to},scores:{[st]:to}})}));
+  return w
+}
+
+$("addForm").addEventListener("submit",e=>{e.preventDefault();const n=$("newName").value.trim()||myName;if(!n)return;$("newName").value="";api.addPlayer(n.slice(0,40))});
+
+render();setStatus();
+function applyTheme(t){if(t&&t.mode)document.documentElement.dataset.theme=t.mode==="DARK"?"dark":"light"}
+if(window.OBR&&OBR.isAvailable){
+  OBR.onReady(async()=>{
+    try{applyTheme(await OBR.theme.getTheme());OBR.theme.onChange(applyTheme)}catch(_){}
+    try{myName=await OBR.player.getName()}catch(_){}
+    OBR.player.onChange(p=>{if(p&&p.name)myName=p.name});
+    $("closeBtn").hidden=false;$("closeBtn").onclick=()=>OBR.modal.close(MODAL_ID);
+    live=true;setStatus();
+    fromMeta(await OBR.room.getMetadata());
+    OBR.room.onMetadataChange(fromMeta);
+  });
+} else { local=true;setStatus();render() }
+</script>
+</body>
+</html>
