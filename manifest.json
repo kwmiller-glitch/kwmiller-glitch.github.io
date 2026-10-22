@@ -1,6 +1,6 @@
 {
   "name": "Haranshire Roll Board",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "manifest_version": 1,
   "description": "Roll AD&D 2e characters together: 3d6 down the line, shared live with everyone in the room.",
   "author": "Haranshire table",
@@ -8,7 +8,7 @@
   "action": {
     "title": "Roll Board",
     "icon": "/icon.svg",
-    "popover": "/popover.html?v=1.3",
+    "popover": "/popover.html?v=1.4",
     "width": 220,
     "height": 90
   }

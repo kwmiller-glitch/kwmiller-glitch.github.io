@@ -24,22 +24,23 @@ button{font:600 14px system-ui,sans-serif;border:1px solid var(--accent);backgro
 // that leaves the left side free for the dice tray. The button is a fallback.
 const KEY="rodeo.haranshire.rollboard/";
 const note=t=>document.getElementById("note").textContent=t;
-async function openPanel(){
+function errText(e){try{return (e&&(e.message||(e.error&&e.error.message)))||JSON.stringify(e)}catch(_){return String(e)}}
+async function openPanel(fromClick){
   try{
     const vw=await OBR.viewport.getWidth(), vh=await OBR.viewport.getHeight();
     const gap=Math.min(430,Math.round(vw*0.36));
-    OBR.popover.open({id:KEY+"panel",url:new URL("board.html?mode=panel&v=1.3",location.href).href,
+    await OBR.popover.open({id:KEY+"panel",url:new URL("board.html?mode=panel&v=1.4",location.href).href,
       width:Math.max(600,vw-gap-16),height:Math.max(400,vh-76),
       anchorReference:"POSITION",anchorPosition:{left:vw-8,top:64},
       anchorOrigin:{horizontal:"RIGHT",vertical:"TOP"},transformOrigin:{horizontal:"RIGHT",vertical:"TOP"},
-      disableClickAway:true,marginThreshold:8}).catch(e=>note("Couldn’t open: "+(e&&e.message||e)));
-    setTimeout(()=>OBR.action.close(),250);
-  }catch(e){note("Couldn’t open: "+(e&&e.message||e))}
+      disableClickAway:true,marginThreshold:8});
+    OBR.action.close();
+  }catch(e){ if(fromClick) note("Couldn’t open: "+errText(e)); }   // the automatic try fails quietly; the button is the fallback
 }
-document.getElementById("open").onclick=()=>{if(window.OBR&&OBR.isAvailable)openPanel()};
+document.getElementById("open").onclick=()=>{note("");if(window.OBR&&OBR.isAvailable)openPanel(true)};
 if(window.OBR&&OBR.isAvailable){OBR.onReady(async()=>{
   try{const t=await OBR.theme.getTheme();document.documentElement.dataset.theme=t.mode==="DARK"?"dark":"light"}catch(_){}
-  setTimeout(openPanel,300);
+  setTimeout(()=>openPanel(false),300);
 })} else note("Open this from inside Owlbear Rodeo.");
 </script>
 </body>
