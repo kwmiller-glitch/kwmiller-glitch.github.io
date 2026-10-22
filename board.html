@@ -128,7 +128,7 @@ select.race{max-width:8.5em;text-overflow:ellipsis}
     <div class="now"><span class="lbl">Now rolling</span><div class="steps" id="steps"></div></div>
     <form class="add" id="addForm">
       <label for="newName" class="lbl" style="position:absolute;left:-9999px">Player name</label>
-      <input type="text" id="newName" placeholder="Player name (blank adds you)" maxlength="40" autocomplete="off" style="min-width:15em">
+      <input type="text" id="newName" placeholder="Name" maxlength="40" autocomplete="off" style="min-width:15em">
       <button class="btn" type="submit" id="addBtn">Add player</button>
     </form>
   </div>
@@ -250,13 +250,13 @@ function renderInner(){
   players.forEach(p=>{const th=document.createElement("th");th.scope="col";
     const w=document.createElement("div");w.className="pname";
     if(editingName===p.id){const f=document.createElement("form");
-      const i=document.createElement("input");i.type="text";i.maxLength=40;i.id=`nm-${p.id}`;i.value=nameDraft;i.setAttribute("aria-label",`Character name for ${p.name}`);
+      const i=document.createElement("input");i.type="text";i.maxLength=40;i.id=`nm-${p.id}`;i.value=nameDraft;i.setAttribute("aria-label",`New name for ${p.character||p.name}`);
       i.oninput=()=>nameDraft=i.value;i.onkeydown=e=>{if(e.key==="Escape"){editingName=null;render()}};
       f.onsubmit=e=>{e.preventDefault();const v=i.value.trim().slice(0,40);editingName=null;
-        api.update(p.id,{character:(v&&v!==p.name)?v:null})};
+        if(!v){render();return}
+        api.update(p.id,{name:v,character:null})};
       f.append(i,mkBtn("Save","btn small",()=>f.requestSubmit()),mkBtn("Cancel","btn small ghost",()=>{editingName=null;render()}));
       w.append(f);th.append(w);
-      const pl=document.createElement("span");pl.className="played";pl.textContent=`Player: ${p.name}. Leave blank to show the player’s name.`;th.append(pl);
       thead.append(th);setTimeout(()=>{const el=$(`nm-${p.id}`);if(el&&document.activeElement!==el)el.focus()},0);return}
     const s=document.createElement("span");s.textContent=p.character||p.name;w.append(s);
     if(canWrite||local){const r=mkBtn("✎","x",()=>{editingName=p.id;nameDraft=p.character||p.name;render()});r.setAttribute("aria-label","Rename "+(p.character||p.name));r.title="Rename";w.append(r)}
@@ -264,7 +264,6 @@ function renderInner(){
         const y=mkBtn("Yes","btn small",()=>{confirmDel=null;api.remove(p.id)});const n=mkBtn("No","btn small ghost",()=>{confirmDel=null;render()});c.append(y,n);w.append(c)}
       else {const x=mkBtn("×","x",()=>{confirmDel=p.id;render()});x.setAttribute("aria-label","Remove "+p.name);w.append(x)} }
     th.append(w);
-    if(p.character){const pl=document.createElement("span");pl.className="played";pl.textContent=p.name;th.append(pl)}
     thead.append(th)});
   const tb=t.createTBody();
   {const tr=tb.insertRow();const th=document.createElement("th");th.className="ab";th.scope="row";th.innerHTML="Race<small>ADJUSTMENTS</small>";tr.append(th);
@@ -373,7 +372,7 @@ function rerollCell(p){
   return w
 }
 
-$("addForm").addEventListener("submit",e=>{e.preventDefault();const n=$("newName").value.trim()||myName;if(!n)return;$("newName").value="";api.addPlayer(n.slice(0,40))});
+$("addForm").addEventListener("submit",e=>{e.preventDefault();const n=$("newName").value.trim();if(!n){$("newName").focus();return}$("newName").value="";api.addPlayer(n.slice(0,40))});
 
 render();setStatus();
 function applyTheme(t){if(t&&t.mode)document.documentElement.dataset.theme=t.mode==="DARK"?"dark":"light"}
