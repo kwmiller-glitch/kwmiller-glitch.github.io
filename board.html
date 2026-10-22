@@ -197,8 +197,13 @@ function showMsg(t){const m=$("msg");if(!t){m.hidden=true;return}m.textContent=t
 function setStatus(){ $("status").innerHTML = local ? "<b>Not in Owlbear.</b> Open this from the Roll Board button in your Owlbear room, or nothing is shared." :
   !live ? "Connecting…" : `<b>Live.</b> Everyone in the room sees changes as they happen.` }
 
+let myRole="PLAYER", gmHere=true;
 async function write(update){
-  try{ await OBR.room.setMetadata(update) }catch(e){ showMsg("That change didn’t save. Try again in a moment.") }
+  try{
+    if(myRole==="GM") await OBR.room.setMetadata(update);
+    else { if(!gmHere){showMsg("The GM isn’t in the room, so rolls can’t be saved right now.");return}
+      await OBR.broadcast.sendMessage(KEY+"write",update,{destination:"REMOTE"}) }   // the GM's copy saves it for everyone
+  }catch(e){ showMsg("That change didn’t save. Try again in a moment.") }
 }
 function fromMeta(m){
   m=m||{};
@@ -384,6 +389,10 @@ if(window.OBR&&OBR.isAvailable){
     const mode=new URLSearchParams(location.search).get("mode");
     $("closeBtn").hidden=false;$("closeBtn").onclick=()=>mode==="panel"?OBR.popover.close(KEY+"panel"):OBR.modal.close(MODAL_ID);
     if(mode==="panel")document.documentElement.classList.add("panel");
+    try{myRole=await OBR.player.getRole()}catch(_){}
+    OBR.player.onChange(p=>{if(p&&p.role)myRole=p.role});
+    const checkGM=ps=>{gmHere=myRole==="GM"||(ps||[]).some(q=>q.role==="GM");if(gmHere)showMsg("");else showMsg("The GM isn’t in the room, so rolls can’t be saved right now.")};
+    try{checkGM(await OBR.party.getPlayers());OBR.party.onChange(checkGM)}catch(_){}
     live=true;setStatus();
     fromMeta(await OBR.room.getMetadata());
     OBR.room.onMetadataChange(fromMeta);

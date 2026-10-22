@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Roll Board background</title><script src="obr-sdk.js"></script></head>
+<body>
+<script>
+// Runs quietly for everyone in the room. Only the GM may save into the room's shared storage,
+// so the GM's copy listens for players' entries and saves them for everyone.
+const KEY="rodeo.haranshire.rollboard/";
+OBR.onReady(()=>{
+  OBR.broadcast.onMessage(KEY+"write",async ev=>{
+    let role="PLAYER";try{role=await OBR.player.getRole()}catch(_){}
+    if(role!=="GM")return;
+    const u=ev.data;if(!u||typeof u!=="object")return;
+    const clean={};for(const k in u){if(k.startsWith(KEY))clean[k]=u[k]}   // only touch the roll board's own keys
+    if(Object.keys(clean).length)try{await OBR.room.setMetadata(clean)}catch(_){}
+  });
+});
+</script>
+</body>
+</html>
