@@ -29,7 +29,7 @@ async function openPanel(fromClick){
   try{
     const vw=await OBR.viewport.getWidth(), vh=await OBR.viewport.getHeight();
     const gap=Math.min(430,Math.round(vw*0.36));
-    await OBR.popover.open({id:KEY+"panel",url:new URL("board.html?mode=panel&v=1.5",location.href).href,
+    await OBR.popover.open({id:KEY+"panel",url:new URL("board.html?mode=panel&v=1.7",location.href).href,
       width:Math.max(600,vw-gap-16),height:Math.max(400,vh-76),
       anchorReference:"POSITION",anchorPosition:{left:vw-8,top:64},
       anchorOrigin:{horizontal:"RIGHT",vertical:"TOP"},transformOrigin:{horizontal:"RIGHT",vertical:"TOP"},

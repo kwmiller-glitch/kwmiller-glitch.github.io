@@ -79,6 +79,8 @@ td.cell{min-width:0}
 select.race,.reroll select{font-size:14px;padding:2px 4px}
 select.race{max-width:8.5em;text-overflow:ellipsis}
 .racewarn{font-size:12px;color:var(--bad);margin-top:3px}
+td.cell{overflow:hidden}
+.editor input[type=text]{width:2.4em;font-size:15px;padding:3px}
 .entry{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
 .entry input[type=number]{width:3.3em;font-size:17px;padding:2px}
 .link{font:12.5px var(--body);background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
@@ -300,7 +302,7 @@ function cell(p,k){
   const td=document.createElement("td");td.className="cell";const raw=p.scores?.[k],v=adj(p,k),ra=radj(p,k);const can=canWrite||local;
   const sc=document.createElement("div");sc.className="score";
   if(editing&&editing.pid===p.id&&editing.stat===k){
-    const f=document.createElement("form");f.style.display="flex";f.style.gap="4px";
+    const f=document.createElement("form");f.className="entry editor";
     const i=document.createElement("input");i.type="number";i.min="3";i.max="18";i.id=`ed-${p.id}-${k}`;i.value=editing.value;i.setAttribute("aria-label",`${p.name} ${k}`);
     i.oninput=()=>editing.value=i.value;
     f.onsubmit=e=>{e.preventDefault();const n=parseInt(i.value,10);
@@ -313,7 +315,10 @@ function cell(p,k){
     let xi=null;if(k==="str"){xi=document.createElement("input");xi.type="text";xi.inputMode="numeric";xi.maxLength=3;xi.placeholder="xx";xi.style.width="2.6em";
       xi.value=editing.pct??(p.str18!=null?fmtPct(p.str18):"");xi.setAttribute("aria-label","Percentile, if 18");xi.oninput=()=>editing.pct=xi.value;xi.onkeydown=i.onkeydown}
     f.append(i);if(xi){const sl=document.createElement("span");sl.textContent="/";sl.style.alignSelf="center";f.append(sl,xi)}
-    f.append(mkBtn("Save","btn small",()=>f.requestSubmit()));sc.append(f);td.append(sc);return td}
+    f.append(mkBtn("Save","btn small",()=>f.requestSubmit()));
+    // clicking away saves too, so clearing the box and clicking elsewhere empties the score
+    f.addEventListener("focusout",e=>{if(e.relatedTarget&&f.contains(e.relatedTarget))return;setTimeout(()=>{if(editing&&document.body.contains(f))f.requestSubmit()},0)});
+    sc.append(f);td.append(sc);return td}
   if(can&&v==null){
     const key=p.id+k, f=document.createElement("form");f.className="entry";
     const i=document.createElement("input");i.type="number";i.min="3";i.max="18";i.inputMode="numeric";i.id=`in-${p.id}-${k}`;i.placeholder="3–18";
