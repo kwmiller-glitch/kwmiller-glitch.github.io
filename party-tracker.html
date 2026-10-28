@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Party Tracker</title>
+<style>
+:root{--blue:#1d4f91;--deep:#143a6c;--ink:#1b1b1b;--muted:#5b6068;--rule:#c4c8ce;--soft:#dde0e5;--page:#fff;--panel:#f1f3f6;--hi:#eaf1fb;--good:#2e7d32;--warn:#b26a00;--bad:#b3261e;
+--head:"Franklin Gothic Medium","Franklin Gothic","Arial Narrow","Segoe UI Semibold","Trebuchet MS",Arial,sans-serif;
+--body:"Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;--ui:"Segoe UI",Tahoma,Verdana,Arial,sans-serif;color-scheme:light}
+*{box-sizing:border-box}html{font-size:17px}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--body);line-height:1.45}
+header{background:var(--blue);color:#fff;padding:0 24px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 28px;border-bottom:4px solid #000}
+header h1{font-family:var(--head);font-weight:500;font-size:1.7rem;margin:12px 0 10px;line-height:1.1}
+header h1 small{display:block;font:italic .8rem var(--body);opacity:.9;margin-top:2px}
+nav{display:flex;gap:4px}nav button{font:1rem var(--head);background:var(--deep);color:#dbe6f5;border:0;padding:9px 18px 8px;border-radius:3px 3px 0 0;cursor:pointer}
+nav button[aria-selected=true]{background:#fff;color:var(--ink)}
+.who{margin-left:auto;align-self:center;font:.85rem var(--ui);display:flex;gap:10px;align-items:center}
+.who button{font:600 .8rem var(--ui);background:none;border:1px solid #9fb6d6;color:#fff;border-radius:3px;padding:3px 8px;cursor:pointer}
+main{padding:18px 24px 40px;max-width:1150px}
+h2{font-family:var(--head);font-weight:500;font-size:1.3rem;margin:0 0 10px;color:var(--deep)}
+h3{font-family:var(--head);font-weight:500;font-size:1.05rem;margin:0 0 6px;color:var(--deep)}
+.hint{font:.84rem var(--ui);color:var(--muted)}
+.btn{font:1rem var(--head);background:var(--blue);color:#fff;border:1px solid var(--deep);padding:8px 14px;border-radius:3px;cursor:pointer}
+.btn:hover{background:var(--deep)}.btn.sec{background:#fff;color:var(--deep)}.btn.sec:hover{background:var(--hi)}.btn.small{font-size:.88rem;padding:4px 10px}
+.btn.armed{background:var(--bad);border-color:var(--bad);color:#fff}
+.link{border:0;background:none;padding:0;color:var(--blue);text-decoration:underline;cursor:pointer;font:600 .9rem var(--ui)}
+label{display:block;font:600 .72rem var(--ui);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+input,select,textarea{font:1rem var(--body);color:var(--ink);background:#fff;border:1px solid #8a919c;border-radius:3px;padding:5px 7px;width:100%}
+input:disabled,textarea:disabled{background:var(--panel);border-color:var(--soft);color:var(--ink);-webkit-text-fill-color:var(--ink)}
+textarea{min-height:90px;resize:vertical;line-height:1.4}
+.card{border:1px solid var(--rule);border-top:4px solid var(--blue);padding:12px 14px;background:#fff}
+.grid{display:grid;gap:10px 14px}
+/* my characters */
+.mylist{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
+.mylist .pick{font:1rem var(--head);border:1px solid var(--deep);background:#fff;color:var(--deep);border-radius:16px;padding:5px 14px;cursor:pointer}
+.mylist .pick[aria-pressed=true]{background:var(--deep);color:#fff}
+/* sheet */
+.sheet{display:grid;gap:14px}
+.ident{grid-template-columns:2.2fr 1.4fr 1fr 1.3fr .7fr 1.2fr 1fr}
+.ident .nm input{font:1.25rem var(--head)}
+.fight{display:grid;grid-template-columns:minmax(260px,1.3fr) repeat(4,minmax(80px,.5fr));gap:14px;align-items:stretch}
+.stat{background:var(--panel);border-left:3px solid var(--blue);padding:8px 10px}
+.stat input{font:700 1.4rem var(--ui);text-align:center;padding:3px}
+.hpbox{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px 8px;align-items:center}
+.hpbox .cur{font:700 2rem var(--ui);text-align:center;padding:2px}
+.hpbox .of{font:600 .9rem var(--ui);color:var(--muted)}
+.hpbox .max{font:600 1.1rem var(--ui);text-align:center}
+.adj{display:flex;gap:6px;align-items:center;grid-column:1/-1}
+.adj input{width:70px;text-align:center;font:600 1rem var(--ui)}
+.adj .btn{padding:4px 10px;font-size:.9rem}
+.bar{height:6px;background:var(--soft);border-radius:3px;grid-column:1/-1;overflow:hidden}.bar i{display:block;height:100%;background:var(--good)}
+.saves{grid-template-columns:repeat(5,minmax(0,1fr))}
+.abil{grid-template-columns:repeat(6,minmax(0,1fr))}
+.saves input,.abil input{text-align:center;font:700 1.15rem var(--ui)}
+.strx{display:flex;gap:4px;align-items:center}.strx span{font:700 1.1rem var(--ui)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+table.rows{width:100%;border-collapse:collapse}
+table.rows th{font:600 .7rem var(--ui);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:left;padding:2px 4px}
+table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
+.x{border:0;background:none;color:var(--muted);font-size:1.05rem;cursor:pointer;padding:2px 6px}
+td.cast{text-align:center;width:52px}td.cast input{width:20px;height:20px}
+tr.used input[type=text]{text-decoration:line-through;color:var(--muted)}
+.money{grid-template-columns:repeat(5,minmax(0,1fr))}.money input{text-align:center;font:600 1rem var(--ui)}
+.foot{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.foot label.tick{display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font:.9rem var(--ui);color:var(--ink)}.foot label.tick input{width:auto}
+#status{font:.82rem var(--ui);color:var(--muted);min-height:1.2em}
+#status.err{color:var(--bad);font-weight:600}
+/* party */
+.party{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.pc h3{margin:0;font-size:1.2rem;cursor:pointer}.pc h3:hover{text-decoration:underline}
+.pc .sub{font:.85rem var(--ui);color:var(--muted);margin-bottom:8px}
+.pcrow{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
+.big{font:700 1.6rem var(--ui);line-height:1}.big small{font-size:.95rem;color:var(--muted);font-weight:600}
+.k{display:block;font:600 .66rem var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pc .bar{margin:6px 0 8px}.pc .line{font:.85rem var(--ui);margin-top:6px}
+.pc .dmadj{display:flex;gap:6px;margin-top:8px}.pc .dmadj input{width:62px;text-align:center;font:600 .95rem var(--ui);padding:3px}
+.down{color:var(--bad)}
+/* setup */
+.setup{max-width:820px}.setup ol{padding-left:22px}.setup li{margin-bottom:14px}
+.setup pre{background:var(--panel);border-left:3px solid var(--blue);padding:10px 12px;font:.8rem/1.4 Consolas,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.setup code{font:.88rem Consolas,Menlo,monospace;background:var(--panel);padding:0 3px}
+.demo{background:#fff6dc;border:1px solid #e3c770;padding:6px 10px;font:.85rem var(--ui);margin-bottom:14px}
+@media(max-width:900px){.ident{grid-template-columns:1fr 1fr 1fr}.ident .nm{grid-column:1/-1}.fight{grid-template-columns:1fr 1fr}.fight .hpwrap{grid-column:1/-1}.two{grid-template-columns:1fr}}
+@media(max-width:560px){main{padding:14px}header{padding:0 14px}.ident{grid-template-columns:1fr 1fr}.saves{grid-template-columns:repeat(2,minmax(0,1fr))}.abil{grid-template-columns:repeat(3,minmax(0,1fr))}.money{grid-template-columns:repeat(3,minmax(0,1fr))}.who{margin-left:0;width:100%;padding-bottom:6px}}
+.lockbar{margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:#fff6dc;border:1px solid #e3c770;padding:8px 12px;font:.9rem var(--ui)}
+.share{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:22px;padding-top:12px;border-top:1px solid var(--soft)}
+.share input{max-width:520px;font:.85rem Consolas,Menlo,monospace}
+.tick{display:flex;gap:6px;align-items:center;font:.9rem var(--ui)}.tick input{width:auto}
+</style>
+<script src="tracker-config.js"></script>
+</head><body>
+<header><h1>Party Tracker<small>Advanced Dungeons &amp; Dragons, 2nd Edition</small></h1>
+<nav id="nav" hidden><button data-v="mine" aria-selected="true">My characters</button><button data-v="party" aria-selected="false">Party</button></nav>
+</header>
+<main id="main"><p class="hint">Loading…</p></main>
+<datalist id="spellnames"><option value="Abjure"><option value="Advanced Illusion"><option value="Aerial Servant"><option value="Affect Normal Fires"><option value="Aid"><option value="Air Walk"><option value="Airy Water"><option value="Alarm"><option value="Alter Self"><option value="Animal Friendship"><option value="Animal Growth"><option value="Animal Summoning I"><option value="Animal Summoning II"><option value="Animal Summoning III"><option value="Animate Dead"><option value="Animate Object"><option value="Animate Rock"><option value="Anti-Animal Shell"><option value="Anti-Magic Shell"><option value="Anti-Plant Shell"><option value="Antipathy-Sympathy"><option value="Armor"><option value="Astral Spell"><option value="Atonement"><option value="Audible Glamer"><option value="Augury"><option value="Avoidance"><option value="Banishment"><option value="Barkskin"><option value="Bigby&#x27;s Clenched Fist"><option value="Bigby&#x27;s Crushing Hand"><option value="Bigby&#x27;s Forceful Hand"><option value="Bigby&#x27;s Grasping Hand"><option value="Bigby&#x27;s Interposing Hand"><option value="Bind"><option value="Binding"><option value="Blade Barrier"><option value="Bless"><option value="Blindness"><option value="Blink"><option value="Blur"><option value="Burning Hands"><option value="Call Lightning"><option value="Call Woodland Beings"><option value="Cantrip"><option value="Chain Lightning"><option value="Change Self"><option value="Changestaff"><option value="Chant"><option value="Chaos"><option value="Chariot of Sustarre"><option value="Charm Monster"><option value="Charm Person"><option value="Charm Person or Mammal"><option value="Charm Plants"><option value="Chill Touch"><option value="Clairaudience"><option value="Clairvoyance"><option value="Cloak of Bravery"><option value="Clone"><option value="Cloudkill"><option value="Color Spray"><option value="Combine"><option value="Command"><option value="Commune"><option value="Commune With Nature"><option value="Comprehend Languages"><option value="Cone of Cold"><option value="Confusion"><option value="Conjure Animals"><option value="Conjure Earth Elemental"><option value="Conjure Elemental"><option value="Conjure Fire Elemental"><option value="Contact Other Plane"><option value="Contagion"><option value="Contingency"><option value="Continual Light"><option value="Control Temperature, 10&#x27; Radius"><option value="Control Undead"><option value="Control Weather"><option value="Control Winds"><option value="Create Food &amp; Water"><option value="Create Water"><option value="Creeping Doom"><option value="Crystalbrittle"><option value="Cure Blindness or Deafness"><option value="Cure Critical Wounds"><option value="Cure Disease"><option value="Cure Light Wounds"><option value="Cure Serious Wounds"><option value="Dancing Lights"><option value="Darkness, 15&#x27; Radius"><option value="Deafness"><option value="Death Fog"><option value="Death Spell"><option value="Deeppockets"><option value="Delayed Blast Fireball"><option value="Delude"><option value="Demand"><option value="Demi-Shadow Magic"><option value="Demi-Shadow Monsters"><option value="Detect Charm"><option value="Detect Evil"><option value="Detect Invisibility"><option value="Detect Lie"><option value="Detect Magic"><option value="Detect Poison"><option value="Detect Scrying"><option value="Detect Snares &amp; Pits"><option value="Detect Undead"><option value="Dig"><option value="Dimension Door"><option value="Disintegrate"><option value="Dismissal"><option value="Dispel Evil"><option value="Dispel Magic"><option value="Distance Distortion"><option value="Divination"><option value="Domination"><option value="Drawmij&#x27;s Instant Summons"><option value="Dream"><option value="Duo-Dimension"><option value="Dust Devil"><option value="ESP"><option value="Earthquake"><option value="Emotion"><option value="Enchant an Item"><option value="Enchanted Weapon"><option value="Endure Cold/Endure Heat"><option value="Energy Drain"><option value="Enervation"><option value="Enlarge"><option value="Ensnarement"><option value="Entangle"><option value="Enthrall"><option value="Erase"><option value="Evard&#x27;s Black Tentacles"><option value="Exaction"><option value="Explosive Runes"><option value="Extension I"><option value="Extension II"><option value="Extension III"><option value="Eyebite"><option value="Fabricate"><option value="Faerie Fire"><option value="False Vision"><option value="Fear"><option value="Feather Fall"><option value="Feeblemind"><option value="Feign Death"><option value="Find Familiar"><option value="Find Traps"><option value="Find the Path"><option value="Finger of Death"><option value="Fire Charm"><option value="Fire Seeds"><option value="Fire Shield"><option value="Fire Storm"><option value="Fire Trap"><option value="Fireball"><option value="Flame Arrow"><option value="Flame Blade"><option value="Flame Strike"><option value="Flame Walk"><option value="Flaming Sphere"><option value="Fly"><option value="Fog Cloud"><option value="Fools&#x27; Gold"><option value="Forbiddance"><option value="Forcecage"><option value="Foresight"><option value="Forget"><option value="Free Action"><option value="Friends"><option value="Fumble"><option value="Gate"><option value="Gaze Reflection"><option value="Geas"><option value="Giant Insect"><option value="Glassee"><option value="Glassteel"><option value="Glitterdust"><option value="Globe of Invulnerability"><option value="Glyph of Warding"><option value="Goodberry"><option value="Grease"><option value="Guards and Wards"><option value="Gust of Wind"><option value="Hallucinatory Forest"><option value="Hallucinatory Terrain"><option value="Haste"><option value="Heal"><option value="Heat Metal"><option value="Heroes&#x27; Feast"><option value="Hold Animal"><option value="Hold Monster"><option value="Hold Person"><option value="Hold Plant"><option value="Hold Portal"><option value="Hold Undead"><option value="Holy Word"><option value="Hypnotic Pattern"><option value="Hypnotism"><option value="Ice Storm"><option value="Identify"><option value="Illusionary Script"><option value="Illusionary Wall"><option value="Imbue With Spell Ability"><option value="Imprisonment"><option value="Improved Invisibility"><option value="Improved Phantasmal Force"><option value="Incendiary Cloud"><option value="Infravision"><option value="Insect Plague"><option value="Invisibility"><option value="Invisibility to Animals"><option value="Invisibility to Undead"><option value="Invisibility, 10&#x27; Radius"><option value="Invisible Stalker"><option value="Irritation"><option value="Item"><option value="Jump"><option value="Knock"><option value="Know Alignment"><option value="Legend Lore"><option value="Leomund&#x27;s Lamentable Belaborment"><option value="Leomund&#x27;s Secret Chest"><option value="Leomund&#x27;s Secure Shelter"><option value="Leomund&#x27;s Tiny Hut"><option value="Leomund&#x27;s Trap"><option value="Levitate"><option value="Light"><option value="Lightning Bolt"><option value="Limited Wish"><option value="Liveoak"><option value="Locate Animals or Plants"><option value="Locate Object"><option value="Lower Water"><option value="Magic Font"><option value="Magic Jar"><option value="Magic Mirror"><option value="Magic Missile"><option value="Magic Mouth"><option value="Magical Stone"><option value="Magical Vestment"><option value="Major Creation"><option value="Mass Charm"><option value="Mass Invisibility"><option value="Mass Suggestion"><option value="Massmorph"><option value="Maze"><option value="Meld Into Stone"><option value="Melf&#x27;s Acid Arrow"><option value="Melf&#x27;s Minute Meteors"><option value="Mending"><option value="Message"><option value="Messenger"><option value="Meteor Swarm"><option value="Mind Blank"><option value="Minor Creation"><option value="Minor Globe of Invulnerability"><option value="Mirage Arcana"><option value="Mirror Image"><option value="Misdirection"><option value="Mislead"><option value="Monster Summoning I"><option value="Monster Summoning II"><option value="Monster Summoning III"><option value="Monster Summoning IV"><option value="Monster Summoning V"><option value="Monster Summoning VI"><option value="Monster Summoning VII"><option value="Moonbeam"><option value="Mordenkainen&#x27;s Disjunction"><option value="Mordenkainen&#x27;s Faithful Hound"><option value="Mordenkainen&#x27;s Lucubration"><option value="Mordenkainen&#x27;s Magnificent Mansion"><option value="Mordenkainen&#x27;s Sword"><option value="Mount"><option value="Move Earth"><option value="Negative Plane Protection"><option value="Neutralize Poison"><option value="Non-Detection"><option value="Nystul&#x27;s Magical Aura"><option value="Obscurement"><option value="Otiluke&#x27;s Freezing Sphere"><option value="Otiluke&#x27;s Resilient Sphere"><option value="Otiluke&#x27;s Telekinetic Sphere"><option value="Otto&#x27;s Irresistible Dance"><option value="Part Water"><option value="Pass Plant"><option value="Pass Without Trace"><option value="Passwall"><option value="Permanency"><option value="Permanent Illusion"><option value="Phantasmal Force"><option value="Phantasmal Killer"><option value="Phantom Steed"><option value="Phase Door"><option value="Plane Shift"><option value="Plant Door"><option value="Plant Growth"><option value="Polymorph Any Object"><option value="Polymorph Other"><option value="Polymorph Self"><option value="Power Word, Blind"><option value="Power Word, Kill"><option value="Power Word, Stun"><option value="Prayer"><option value="Prismatic Sphere"><option value="Prismatic Spray"><option value="Prismatic Wall"><option value="Produce Fire"><option value="Produce Flame"><option value="Programmed Illusion"><option value="Project Image"><option value="Protection From Cantrips"><option value="Protection From Evil"><option value="Protection From Evil, 10&#x27; Radius"><option value="Protection From Fire"><option value="Protection From Lightning"><option value="Protection From Normal Missiles"><option value="Purify Food &amp; Drink"><option value="Pyrotechnics"><option value="Quest"><option value="Rainbow"><option value="Rainbow Pattern"><option value="Raise Dead"><option value="Rary&#x27;s Mnemonic Enhancer"><option value="Ray of Enfeeblement"><option value="Read Magic"><option value="Reflecting Pool"><option value="Regenerate"><option value="Reincarnate"><option value="Reincarnation"><option value="Remove Curse"><option value="Remove Fear"><option value="Remove Paralysis"><option value="Repel Insects"><option value="Repulsion"><option value="Resist Fire/Resist Cold"><option value="Restoration"><option value="Resurrection"><option value="Reverse Gravity"><option value="Rope Trick"><option value="Sanctuary"><option value="Scare"><option value="Screen"><option value="Secret Page"><option value="Seeming"><option value="Sending"><option value="Sepia Snake Sigil"><option value="Sequester"><option value="Serten&#x27;s Spell Immunity"><option value="Shades"><option value="Shadow Door"><option value="Shadow Magic"><option value="Shadow Monsters"><option value="Shadow Walk"><option value="Shape Change"><option value="Shatter"><option value="Shield"><option value="Shillelagh"><option value="Shocking Grasp"><option value="Shout"><option value="Silence, 15&#x27; Radius"><option value="Simulacrum"><option value="Sink"><option value="Sleep"><option value="Slow"><option value="Slow Poison"><option value="Snake Charm"><option value="Snare"><option value="Solid Fog"><option value="Speak With Animals"><option value="Speak With Dead"><option value="Speak With Monsters"><option value="Speak With Plants"><option value="Spectral Force"><option value="Spectral Hand"><option value="Spell Immunity"><option value="Spell Turning"><option value="Spider Climb"><option value="Spike Growth"><option value="Spike Stones"><option value="Spiritual Hammer"><option value="Spook"><option value="Starshine"><option value="Statue"><option value="Sticks to Snakes"><option value="Stinking Cloud"><option value="Stone Shape"><option value="Stone Tell"><option value="Stone to Flesh"><option value="Stoneskin"><option value="Strength"><option value="Succor"><option value="Suggestion"><option value="Summon Insects"><option value="Summon Shadow"><option value="Summon Swarm"><option value="Sunray"><option value="Symbol"><option value="Tasha&#x27;s Uncontrollable Hideous Laughter"><option value="Taunt"><option value="Telekinesis"><option value="Teleport"><option value="Teleport Without Error"><option value="Temporal Stasis"><option value="Tenser&#x27;s Floating Disc"><option value="Tenser&#x27;s Transformation"><option value="Time Stop"><option value="Tongues"><option value="Transmute Metal to Wood"><option value="Transmute Rock to Mud"><option value="Transmute Water to Dust"><option value="Transport Via Plants"><option value="Trap the Soul"><option value="Tree"><option value="Trip"><option value="True Seeing"><option value="Turn Wood"><option value="Unseen Servant"><option value="Vacancy"><option value="Vampiric Touch"><option value="Vanish"><option value="Veil"><option value="Ventriloquism"><option value="Vision"><option value="Wall of Fire"><option value="Wall of Fog"><option value="Wall of Force"><option value="Wall of Ice"><option value="Wall of Iron"><option value="Wall of Stone"><option value="Wall of Thorns"><option value="Warp Wood"><option value="Water Breathing"><option value="Water Walk"><option value="Weather Summoning"><option value="Web"><option value="Weird"><option value="Whispering Wind"><option value="Wind Walk"><option value="Wind Wall"><option value="Wish"><option value="Withdraw"><option value="Wizard Eye"><option value="Wizard Lock"><option value="Wizard Mark"><option value="Word of Recall"><option value="Wraithform"><option value="Wyvern Watch"></datalist>
+<script type="module">
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LS={get:(k,d)=>{ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }, set:(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }};
+const CFG=window.TRACKER_CONFIG||null;
+const DEMO=new URLSearchParams(location.search).has("demo");
+const SAVES=[["sv1","Paralyzation, poison, death magic"],["sv2","Rod, staff or wand"],["sv3","Petrification or polymorph"],["sv4","Breath weapon"],["sv5","Spell"]];
+const ABIL=[["str","Str"],["dex","Dex"],["con","Con"],["int","Int"],["wis","Wis"],["cha","Cha"]];
+const COINS=["pp","gp","ep","sp","cp"];
+const BLANK=()=>({name:"",player:"",race:"",cls:"",level:"1",align:"",xp:"",hp:"",hpmax:"",ac:"10",thac0:"20",move:"12",init:"",
+  sv1:"",sv2:"",sv3:"",sv4:"",sv5:"",str:"",strx:"",dex:"",con:"",int:"",wis:"",cha:"",weapons:[],spells:[],gear:"",notes:"",pp:"",gp:"",ep:"",sp:"",cp:"",hidden:false});
+
+// ---------- the party's private code: from the link, else remembered by this browser ----------
+const codeOk=c=>/^[A-Za-z0-9]{16,40}$/.test(c||"");
+let PARTY=null;
+(()=>{ const m=location.hash.match(/party=([A-Za-z0-9]+)/); if(m&&codeOk(m[1])){ PARTY=m[1]; LS.set("pt-party",PARTY); } else { const r=LS.get("pt-party",null); if(codeOk(r)) PARTY=r; } if(DEMO) PARTY="demo0000000000000000"; })();
+const partyLink=()=>location.href.replace(/[?#].*$/,"")+"#party="+PARTY;
+const newCode=()=>{ const A="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789", r=new Uint32Array(22); crypto.getRandomValues(r); return [...r].map(x=>A[x%A.length]).join(""); };
+
+// ---------- storage: Firebase, or this browser in demo mode ----------
+async function firebaseApi(cfg,party){
+  const B="https://www.gstatic.com/firebasejs/10.12.2/";
+  const [{initializeApp},F]=await Promise.all([import(B+"firebase-app.js"),import(B+"firebase-firestore.js")]);
+  const db=F.getFirestore(initializeApp(cfg.firebase)), col=F.collection(db,"parties",party,"characters"), ref=id=>F.doc(db,"parties",party,"characters",id);
+  return { listen:(fn,err)=>F.onSnapshot(col,s=>fn(s.docs.map(d=>({id:d.id,...d.data()}))),err),
+    create:data=>F.addDoc(col,data).then(r=>r.id), update:(id,p)=>F.updateDoc(ref(id),p), remove:id=>F.deleteDoc(ref(id)) };
+}
+function demoApi(){
+  const KEY="party-tracker-demo"; let all=LS.get(KEY,null);
+  if(!all){ all={}; const s=o=>Object.assign(BLANK(),o);
+    all.d1=s({name:"Brother Aldric",player:"Sam",race:"Human",cls:"Cleric",level:"3",align:"Lawful good",hp:"14",hpmax:"19",ac:"3",thac0:"20",move:"9",sv1:"9",sv2:"13",sv3:"12",sv4:"15",sv5:"14",str:"14",dex:"9",con:"13",int:"10",wis:"16",cha:"12",spells:[{n:"Cure Light Wounds",lv:"1",used:true},{n:"Bless",lv:"1",used:false},{n:"Hold Person",lv:"2",used:false}]});
+    all.d2=s({name:"Tamsin Reed",player:"Jo",race:"Halfling",cls:"Thief",level:"4",align:"Neutral",hp:"3",hpmax:"16",ac:"5",thac0:"19",move:"6",sv1:"9",sv2:"10",sv3:"11",sv4:"14",sv5:"11",str:"10",dex:"17",con:"15",int:"13",wis:"11",cha:"10"}); }
+  let L=null; const save=()=>LS.set(KEY,all), fire=()=>setTimeout(()=>L&&L(Object.entries(all).map(([id,c])=>({id,...JSON.parse(JSON.stringify(c))}))),30);
+  return { listen:fn=>{ L=fn; fire(); return ()=>{L=null;}; }, create:async d=>{ const id="c"+Date.now(); all[id]=d; save(); fire(); return id; },
+    update:async(id,p)=>{ Object.assign(all[id],p); save(); fire(); }, remove:async id=>{ delete all[id]; save(); fire(); }, isDemo:true };
+}
+
+// ---------- app state ----------
+let api=null, chars=[], view="mine", openId=null;
+const MKEY=()=>"pt-mine-"+PARTY; let mine=new Set(LS.get(MKEY(),[])); const saveMine=()=>LS.set(MKEY(),[...mine]);
+const unlocked=new Set(); let dmTools=!!LS.get("pt-dm",false);
+const pending={}; let timer=null;
+const canEdit=c=>!!c&&(mine.has(c.id)||unlocked.has(c.id));
+const num=v=>{ const n=parseInt(String(v).replace(/[^\d-]/g,""),10); return isNaN(n)?null:n; };
+const status=(t,err)=>{ const s=$("#status"); if(s){ s.textContent=t; s.className=err?"err":""; } };
+function failMsg(e){ const c=e&&e.code||""; return c.includes("permission")?"Not saved: the database refused (check the rules from setup step 3).":c.includes("unavailable")?"Not saved yet: no connection. It will go through when you are back online.":"Not saved: "+(e&&e.message||e); }
+function queue(id,patch){ pending[id]=Object.assign(pending[id]||{},patch); const c=chars.find(x=>x.id===id); if(c) Object.assign(c,patch); status("Saving…"); clearTimeout(timer); timer=setTimeout(flush,600); }
+async function flush(){ for(const id of Object.keys(pending)){ const p=pending[id]; delete pending[id]; try{ await api.update(id,Object.assign(p,{updated:Date.now()})); status("Saved."); }catch(e){ status(failMsg(e),true); } } }
+window.addEventListener("beforeunload",ev=>{ if(Object.keys(pending).length){ flush(); ev.preventDefault(); ev.returnValue=""; } });
+
+$("#nav").addEventListener("click",ev=>{ const b=ev.target.closest("button[data-v]"); if(!b) return; setView(b.dataset.v); draw(); });
+const setView=v=>{ view=v; $$("#nav button").forEach(x=>x.setAttribute("aria-selected",x.dataset.v===v)); };
+
+// ---------- screens ----------
+function draw(){ const m=$("#main"); if(!api) return;
+  if(view==="party"){ m.innerHTML=demoNote()+partyHTML(); return; }
+  const my=chars.filter(c=>mine.has(c.id)).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  let c=chars.find(x=>x.id===openId); if(!c&&my.length===1){ c=my[0]; openId=c.id; } if(!c&&openId) openId=null;
+  const picks=my.map(x=>`<button class="pick" data-open="${esc(x.id)}" aria-pressed="${x.id===openId}">${esc(x.name||"Unnamed")}</button>`).join("");
+  const lock=c&&!mine.has(c.id)?`<div class="lockbar"><span>This is <b>${esc(c.player||"another player")}</b>’s character${canEdit(c)?". You are editing it.":", so it is view only."}</span>${canEdit(c)?"":`<button class="btn sec small" id="unlock">Edit it anyway</button>`}<button class="btn sec small" id="claim">It’s mine: remember it on this device</button></div>`:"";
+  const empty=my.length?"<p>Pick a character above.</p>":`<p>No characters on this device yet. Press <b>New character</b> to make one.</p><p class="hint">Made your character on another device? Open the <b>Party</b> tab, click its name, and press “It’s mine”.</p>`;
+  m.innerHTML=demoNote()+`<div class="mylist">${picks}<button class="btn sec small" id="new">＋ New character</button></div>`+(c?lock+sheetHTML(c):empty);
+  if(c) fillSheet(c,true); }
+function demoNote(){ return api.isDemo?`<div class="demo"><b>Demo mode.</b> Everything is saved in this browser only, and two made-up party members are filled in. ${CFG?"":`<a href="?">Set up the real thing</a>.`}</div>`:""; }
+
+function sheetHTML(c){ const dis=canEdit(c)?"":" disabled";
+  const f=(k,l,cls="")=>`<div class="${cls}"><label for="f-${k}">${l}</label><input id="f-${k}" data-f="${k}"${dis} autocomplete="off"></div>`;
+  return `<div class="sheet" id="sheet" data-id="${esc(c.id)}">
+  <div class="grid ident">${f("name","Character","nm")}${f("player","Player")}${f("race","Race")}${f("cls","Class")}${f("level","Level")}${f("align","Alignment")}${f("xp","Experience")}</div>
+  <div class="fight"><div class="stat hpwrap"><label>Hit points</label><div class="hpbox"><span class="hint">Now</span><input class="cur" data-f="hp" aria-label="Hit points now"${dis} inputmode="numeric"><span class="of">of</span><input class="max" data-f="hpmax" aria-label="Maximum hit points"${dis} inputmode="numeric">
+      <div class="bar"><i id="hpbar"></i></div>
+      ${canEdit(c)?`<div class="adj"><input id="hpamt" inputmode="numeric" placeholder="0" aria-label="Amount"><button class="btn small" data-hp="-1">− Damage</button><button class="btn sec small" data-hp="1">+ Heal</button></div>`:""}</div></div>
+    <div class="stat"><label for="f-ac">Armor Class</label><input id="f-ac" data-f="ac"${dis}></div>
+    <div class="stat"><label for="f-thac0">THAC0</label><input id="f-thac0" data-f="thac0"${dis}></div>
+    <div class="stat"><label for="f-move">Movement</label><input id="f-move" data-f="move"${dis}></div>
+    <div class="stat"><label for="f-init">Initiative mod.</label><input id="f-init" data-f="init"${dis}></div></div>
+  <div class="card"><h3>Saving throws</h3><div class="grid saves">${SAVES.map(([k,l])=>f(k,l)).join("")}</div></div>
+  <div class="card"><h3>Ability scores</h3><div class="grid abil">${ABIL.map(([k,l])=>k==="str"?`<div><label for="f-str">Str</label><div class="strx"><input id="f-str" data-f="str"${dis}><span id="strslash">/</span><input data-f="strx" aria-label="Exceptional strength" placeholder="00"${dis}></div></div>`:f(k,l)).join("")}</div></div>
+  <div class="two">
+   <div class="card"><h3>Weapons</h3><div id="weapons"></div>${canEdit(c)?`<button class="link" data-add="weapons">＋ Add a weapon</button>`:""}</div>
+   <div class="card"><h3>Spells memorized</h3><div id="spells"></div>${canEdit(c)?`<div class="foot" style="margin-top:6px"><button class="link" data-add="spells">＋ Add a spell</button><button class="link" id="rest">Rested: clear the cast marks</button></div>`:""}</div></div>
+  <div class="card"><h3>Money</h3><div class="grid money">${COINS.map(k=>f(k,k)).join("")}</div></div>
+  <div class="two"><div class="card"><h3>Equipment</h3><textarea data-f="gear" aria-label="Equipment"${dis}></textarea></div><div class="card"><h3>Notes</h3><textarea data-f="notes" aria-label="Notes"${dis}></textarea></div></div>
+  <div class="foot"><span id="status"></span>${canEdit(c)?`<span style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><label class="tick"><input type="checkbox" data-f="hidden"> Leave out of the party view (retired or dead)</label><button class="btn sec small" id="del">Delete character</button></span>`:""}</div></div>`; }
+
+const rowsSig=a=>JSON.stringify(a||[]);
+function weaponsHTML(c){ const dis=canEdit(c)?"":" disabled", W=c.weapons||[];
+  if(!W.length) return `<p class="hint">None yet.</p>`;
+  return `<table class="rows" data-arr="weapons"><tr><th>Weapon</th><th>To hit</th><th>Dmg S–M</th><th>Dmg L</th><th>Speed</th><th>Notes</th><th></th></tr>${W.map((w,i)=>`<tr data-i="${i}">${["n","hit","sm","l","spd","note"].map(k=>`<td><input type="text" data-k="${k}" value="${esc(w[k])}"${dis} aria-label="${k}"></td>`).join("")}<td>${dis?"":`<button class="x" data-rm="${i}" title="Remove">✕</button>`}</td></tr>`).join("")}</table>`; }
+function spellsHTML(c){ const dis=canEdit(c)?"":" disabled", S=c.spells||[];
+  if(!S.length) return `<p class="hint">None memorized.</p>`;
+  const left=S.filter(s=>!s.used).length;
+  return `<p class="hint" style="margin:0 0 4px">${left} of ${S.length} still ready.</p><table class="rows" data-arr="spells"><tr><th>Spell</th><th>Level</th><th>Cast</th><th></th></tr>${S.map((s,i)=>`<tr data-i="${i}"${s.used?' class="used"':""}><td><input type="text" data-k="n" list="spellnames" value="${esc(s.n)}"${dis} aria-label="Spell"></td><td style="width:64px"><input type="text" data-k="lv" value="${esc(s.lv)}"${dis} aria-label="Level"></td><td class="cast"><input type="checkbox" data-k="used"${s.used?" checked":""}${dis} aria-label="Cast"></td><td>${dis?"":`<button class="x" data-rm="${i}" title="Remove">✕</button>`}</td></tr>`).join("")}</table>`; }
+
+function fillSheet(c,all){ const sh=$("#sheet"); if(!sh) return; const act=document.activeElement;
+  sh.querySelectorAll("[data-f]").forEach(el=>{ if(el===act&&!all) return; const k=el.dataset.f; if(el.type==="checkbox") el.checked=!!c[k]; else if(el.value!==String(c[k]??"")) el.value=c[k]??""; });
+  const hp=num(c.hp), mx=num(c.hpmax), pct=hp!==null&&mx?Math.max(0,Math.min(100,hp/mx*100)):0; const bar=$("#hpbar"); if(bar){ bar.style.width=pct+"%"; bar.style.background=hp!==null&&hp<=0?"var(--bad)":pct<=30?"var(--warn)":"var(--good)"; }
+  const s18=String(c.str).trim()==="18"; $("#strslash").style.visibility=s18?"":"hidden"; sh.querySelector('[data-f="strx"]').style.visibility=s18?"":"hidden";
+  [["weapons",weaponsHTML],["spells",spellsHTML]].forEach(([k,fn])=>{ const box=$("#"+k); if(!box) return; const sig=rowsSig(c[k]); if(box.dataset.sig===sig) return; if(!all&&box.contains(act)&&act.type!=="checkbox") return; box.innerHTML=fn(c); box.dataset.sig=sig; }); }
+function readRows(k){ const t=$(`table[data-arr="${k}"]`); if(!t) return []; return [...t.querySelectorAll("tr[data-i]")].map(tr=>{ const o={}; tr.querySelectorAll("[data-k]").forEach(el=>o[el.dataset.k]=el.type==="checkbox"?el.checked:el.value); return o; }); }
+
+function partyHTML(){ const P=chars.filter(c=>!c.hidden).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  const cards=P.length?`<div class="party">${P.map(c=>{ const hp=num(c.hp), mx=num(c.hpmax), pct=hp!==null&&mx?Math.max(0,Math.min(100,hp/mx*100)):0; const col=hp!==null&&hp<=0?"var(--bad)":pct<=30?"var(--warn)":"var(--good)";
+    const S=c.spells||[]; const left=S.filter(s=>!s.used).length;
+    return `<div class="card pc"><h3 data-open="${esc(c.id)}" title="Open the sheet">${esc(c.name||"Unnamed")}</h3><div class="sub">${esc([c.race,c.cls,c.level&&("level "+c.level)].filter(Boolean).join(" · "))}${c.player?" · "+esc(c.player):""}</div>
+      <div class="pcrow"><div><span class="k">Hit points</span><span class="big${hp!==null&&hp<=0?" down":""}">${hp??"—"}<small> / ${mx??"—"}</small></span></div><div><span class="k">AC</span><span class="big">${esc(c.ac||"—")}</span></div><div><span class="k">THAC0</span><span class="big">${esc(c.thac0||"—")}</span></div><div><span class="k">Move</span><span class="big">${esc(c.move||"—")}</span></div></div>
+      <div class="bar"><i style="width:${pct}%;background:${col}"></i></div>
+      <div class="line"><span class="k">Saves: paralyzation · rod · petrification · breath · spell</span>${SAVES.map(([k])=>esc(c[k]||"—")).join(" · ")}</div>
+      <div class="line"><span class="k">Abilities</span>${ABIL.map(([k,l])=>l+" "+esc(c[k]||"—")+(k==="str"&&String(c.str).trim()==="18"&&c.strx?"/"+esc(c.strx):"")).join(" · ")}</div>
+      ${S.length?`<div class="line"><span class="k">Spells</span>${left} of ${S.length} ready</div>`:""}
+      ${dmTools?`<div class="dmadj"><input data-amt="${esc(c.id)}" inputmode="numeric" placeholder="0" aria-label="Amount"><button class="btn small" data-php="-1" data-id="${esc(c.id)}">− Damage</button><button class="btn sec small" data-php="1" data-id="${esc(c.id)}">+ Heal</button></div>`:""}</div>`; }).join("")}</div>`:`<p>No characters yet.</p>`;
+  return cards+`<div class="share"><label class="tick"><input type="checkbox" id="dmtools"${dmTools?" checked":""}> Show damage and heal buttons on every card (for the DM)</label></div>
+   <div class="share"><span class="hint">Invite players with this link. Anyone who has it can see and change the sheets, so share it only with your group.</span><input id="plink" readonly value="${esc(partyLink())}" aria-label="Party link"><button class="btn sec small" id="copylink">Copy the link</button></div>`; }
+
+function startHTML(){ return `<div class="card" style="max-width:620px"><h2>Start your party</h2>
+  <p>This makes your party’s private link. Send it to your players: they open it, and their browser remembers it from then on. Nobody signs in.</p>
+  <button class="btn" id="startparty">Start a new party</button>
+  <p class="hint" style="margin-top:14px">If you are a player, open the link your DM sent you instead.</p></div>`; }
+
+// ---------- events ----------
+$("#main").addEventListener("click",async ev=>{ const b=ev.target.closest("button,h3[data-open]"); if(!b) return;
+  if(b.id==="startparty"){ PARTY=newCode(); LS.set("pt-party",PARTY); location.hash="party="+PARTY; mine=new Set(LS.get(MKEY(),[])); boot(); return; }
+  if(b.id==="copylink"){ const i=$("#plink"); try{ await navigator.clipboard.writeText(i.value); b.textContent="Copied ✓"; }catch(e){ i.select(); b.textContent="Selected: press Ctrl+C"; } return; }
+  if(b.dataset.open){ openId=b.dataset.open; setView("mine"); draw(); window.scrollTo({top:0}); return; }
+  if(b.id==="new"){ b.disabled=true; try{ const id=await api.create(Object.assign(BLANK(),{created:Date.now(),updated:Date.now()})); mine.add(id); saveMine(); openId=id; if(!chars.some(c=>c.id===id)) chars.push(Object.assign(BLANK(),{id})); draw(); const n=$('[data-f="name"]'); if(n) n.focus(); }catch(e){ b.disabled=false; $("#main").insertAdjacentHTML("afterbegin",`<p class="hint" style="color:var(--bad)">${esc(failMsg(e))}</p>`); } return; }
+  if(b.id==="unlock"){ unlocked.add(openId); draw(); return; }
+  if(b.id==="claim"){ mine.add(openId); saveMine(); draw(); return; }
+  const id=$("#sheet")&&$("#sheet").dataset.id, c=chars.find(x=>x.id===id);
+  if(b.dataset.hp&&c){ const a=num($("#hpamt").value); if(!a){ $("#hpamt").focus(); return; } queue(id,{hp:String((num(c.hp)||0)+a*(+b.dataset.hp))}); $("#hpamt").value=""; fillSheet(c,true); return; }
+  if(b.dataset.php){ const pc=chars.find(x=>x.id===b.dataset.id), inp=document.querySelector(`[data-amt="${CSS.escape(b.dataset.id)}"]`); const a=num(inp.value); if(!a){ inp.focus(); return; } queue(pc.id,{hp:String((num(pc.hp)||0)+a*(+b.dataset.php))}); draw(); return; }
+  if(b.dataset.add&&c){ const k=b.dataset.add; const arr=(c[k]||[]).concat(k==="weapons"?{n:"",hit:"",sm:"",l:"",spd:"",note:""}:{n:"",lv:"",used:false}); queue(id,{[k]:arr}); fillSheet(c,true); const ins=$$(`#${k} tr[data-i]`); const last=ins[ins.length-1]; if(last) last.querySelector("input").focus(); return; }
+  if(b.dataset.rm&&c){ const k=b.closest("[data-arr]").dataset.arr; const arr=readRows(k); arr.splice(+b.dataset.rm,1); queue(id,{[k]:arr}); fillSheet(c,true); return; }
+  if(b.id==="rest"&&c){ queue(id,{spells:(c.spells||[]).map(s=>Object.assign({},s,{used:false}))}); fillSheet(c,true); return; }
+  if(b.id==="del"&&c){ if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Press again to delete "+(c.name||"this character"); setTimeout(()=>{ if(b.isConnected){ b.classList.remove("armed"); b.textContent="Delete character"; } },4000); return; }
+    try{ delete pending[id]; await api.remove(id); mine.delete(id); saveMine(); openId=null; draw(); }catch(e){ status(failMsg(e),true); } return; } });
+$("#main").addEventListener("change",ev=>{ if(ev.target.id==="dmtools"){ dmTools=ev.target.checked; LS.set("pt-dm",dmTools); draw(); } });
+$("#main").addEventListener("input",ev=>{ const el=ev.target, sh=$("#sheet"); if(!sh||!sh.contains(el)) return; const id=sh.dataset.id, c=chars.find(x=>x.id===id); if(!c) return;
+  if(el.dataset.f){ queue(id,{[el.dataset.f]:el.type==="checkbox"?el.checked:el.value}); if(el.dataset.f==="name"){ const pk=document.querySelector(`.pick[data-open="${CSS.escape(id)}"]`); if(pk) pk.textContent=el.value||"Unnamed"; } if(["hp","hpmax","str"].includes(el.dataset.f)) fillSheet(c,false); return; }
+  const t=el.closest("[data-arr]"); if(t){ const k=t.dataset.arr; const arr=readRows(k); queue(id,{[k]:arr}); if(el.type==="checkbox"){ el.closest("tr").classList.toggle("used",el.checked); const p=$("#spells .hint"); if(p) p.textContent=`${arr.filter(s=>!s.used).length} of ${arr.length} still ready.`; } $("#"+k).dataset.sig=rowsSig(arr); } });
+$("#main").addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&ev.target.id==="hpamt") ev.preventDefault(); });
+
+// ---------- setup screen (no tracker-config.js yet) ----------
+const RULES=`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /parties/{party}/characters/{id} {
+      allow get, list, delete: if party.size() >= 16;
+      allow create, update: if party.size() >= 16
+        && request.resource.data.size() < 80;
+    }
+  }
+}`;
+function setupHTML(){ return `<div class="setup"><h2>Set up your party’s tracker</h2>
+<p>This is a one-time job for the DM, about 10 minutes, and free. You make a Google Firebase project to hold the sheets, then put two files on GitHub. Players never sign in: they just open the link you send.</p>
+<p><a href="?demo">Try it first in demo mode</a> (saved in this browser only, with two made-up characters).</p>
+<ol>
+<li><b>Make a Firebase project.</b> Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a>, sign in with your Google account and create a project (any name, such as <code>adnd-party</code>). You can turn Google Analytics off. The free plan is all you need.</li>
+<li><b>Make the database.</b> In the project, open <i>Firestore Database</i>, press <i>Create database</i>, pick the location nearest you and start in <i>production mode</i>.</li>
+<li><b>Paste in the rules.</b> In Firestore, open the <i>Rules</i> tab, replace everything there with the text below and press <i>Publish</i>.
+<pre id="su-rules"></pre><button class="btn sec small" id="su-copy">Copy the rules</button>
+<p class="hint">What they say: anyone with your party’s private link can see and change that party’s sheets, and nobody can list the parties. Firebase may email you that your rules are not secure, because no sign-in is required. That is expected; the private link is the lock.</p></li>
+<li><b>Copy the project’s settings.</b> Open the gear icon, <i>Project settings</i>. Under <i>Your apps</i> press the web button (<code>&lt;/&gt;</code>), give it any nickname and register it (no hosting needed). Copy the block that starts <code>const firebaseConfig = {</code> and paste it here:<br>
+<textarea id="su-cfg" placeholder="const firebaseConfig = { apiKey: &quot;…&quot;, … };" style="font:.85rem Consolas,Menlo,monospace;margin-top:6px"></textarea>
+<button class="btn" id="su-make" style="margin-top:8px">Make tracker-config.js</button> <span class="hint" id="su-msg"></span>
+<p class="hint">These settings are not secret: they only say which project to use.</p></li>
+<li><b>Put both files on GitHub.</b> In your repository press <i>Add file</i>, <i>Upload files</i>, and upload this page (<code>party-tracker.html</code>) together with the <code>tracker-config.js</code> you just saved, then commit. If GitHub Pages is not on yet, open the repository’s <i>Settings</i>, <i>Pages</i>, choose <i>Deploy from a branch</i>, pick <i>main</i> and <i>/ (root)</i>, and save.</li>
+<li><b>Start the party.</b> Open the page at its web address, for example <code>https://yourname.github.io/your-repo/party-tracker.html</code>, and press <i>Start a new party</i>. Make a test character, then copy the party link from the bottom of the <i>Party</i> tab and send it to your players.</li>
+</ol></div>`; }
+function parseCfg(t){ const o={}; for(const k of ["apiKey","authDomain","projectId","storageBucket","messagingSenderId","appId"]){ const m=t.match(new RegExp(k+`\\s*:\\s*["'\`]([^"'\`]+)["'\`]`)); if(m) o[k]=m[1]; } return o; }
+function startSetup(){ $("#main").innerHTML=setupHTML(); const r=$("#su-rules"); r.textContent=RULES;
+  $("#su-copy").addEventListener("click",async()=>{ try{ await navigator.clipboard.writeText(RULES); $("#su-copy").textContent="Copied ✓"; }catch(e){ const s=document.createRange(); s.selectNodeContents(r); getSelection().removeAllRanges(); getSelection().addRange(s); $("#su-copy").textContent="Selected: press Ctrl+C"; } });
+  $("#su-make").addEventListener("click",()=>{ const msg=$("#su-msg"), c=parseCfg($("#su-cfg").value);
+    if(!c.apiKey||!c.projectId||!c.appId){ msg.textContent="That does not look like the firebaseConfig block: it needs at least apiKey, projectId and appId."; msg.style.color="var(--bad)"; return; }
+    const js="// Party Tracker settings, made by the setup page.\nwindow.TRACKER_CONFIG = "+JSON.stringify({firebase:c},null,2)+";\n";
+    const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([js],{type:"text/javascript"})); a.download="tracker-config.js"; document.body.appendChild(a); a.click(); a.remove();
+    msg.style.color=""; msg.textContent="Saved tracker-config.js to your downloads. On to step 5."; }); }
+
+// ---------- start ----------
+let unsub=null;
+async function boot(){
+  if(!CFG&&!DEMO){ startSetup(); return; }
+  if(!PARTY){ $("#main").innerHTML=startHTML(); return; }
+  $("#nav").hidden=false; $("#main").innerHTML=`<p class="hint">Loading the party…</p>`;
+  try{ api=DEMO?demoApi():await firebaseApi(CFG,PARTY); }catch(e){ $("#main").innerHTML=`<div class="card"><h2>Could not reach the database</h2><p>${esc(e&&e.message||e)}</p><p class="hint">Check your internet connection and reload.</p></div>`; return; }
+  if(unsub) unsub(); let first=true;
+  unsub=api.listen(list=>{ list.forEach(c=>{ if(pending[c.id]) Object.assign(c,pending[c.id]); }); chars=list;
+    const sh=$("#sheet"); if(!first&&view==="mine"&&sh&&chars.some(c=>c.id===sh.dataset.id)){ fillSheet(chars.find(c=>c.id===sh.dataset.id),false); return; }
+    if(!first&&view==="party"&&document.activeElement&&document.activeElement.matches("[data-amt]")) return;
+    first=false; draw(); }, e=>{ $("#main").innerHTML=`<div class="card"><h2>The database said no</h2><p>${esc(e&&e.message||e)}</p><p class="hint">Usually the rules from setup step 3 are missing or were not published.</p></div>`; });
+}
+boot();
+</script></body></html>
