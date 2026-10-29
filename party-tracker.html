@@ -70,7 +70,9 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
 .share{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:22px;padding-top:12px;border-top:1px solid var(--soft)}
 .share input{max-width:520px;font:.85rem Consolas,Menlo,monospace}
 .ilist{margin:2px 0 0;padding-left:18px}.ilist li{margin:1px 0}.gear{white-space:pre-wrap;max-height:9em;overflow:auto;margin-top:2px}
-.tick{display:flex;gap:6px;align-items:center;font:.9rem var(--ui)}.tick input{width:auto}
+.tick{display:flex;gap:6px;align-items:center;font:.9rem var(--ui)}
+.tag{font:600 .62rem var(--ui);letter-spacing:.06em;text-transform:uppercase;background:var(--soft);color:var(--muted);border-radius:3px;padding:1px 5px;vertical-align:middle}
+.bin{flex-direction:column;align-items:flex-start}.binrow{display:flex;gap:8px;align-items:center}.tick input{width:auto}
 
 /* record sheet look, sized to fit a laptop screen */
 .rs{display:block}.rsbox{border:2px solid var(--ink);background:#fff}
@@ -102,6 +104,32 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
 .rs input:disabled,.rs textarea:disabled{background:transparent}
 @media(max-width:1100px){.rsgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.rsgrid>.rsbox{grid-column:1/-1}.rshead{grid-template-columns:2fr 1fr 1fr 1fr;row-gap:6px}}
 @media(max-width:640px){.rsbox.fill textarea{min-height:110px}.rsgrid{grid-template-columns:1fr}.rshead{grid-template-columns:1fr 1fr}.rshead .wide{grid-column:1/-1}.ab{grid-template-columns:1fr auto}.ab .abadj{grid-column:1/-1}.coins{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
+/* back of the sheet, and the side switch */
+.pgtabs{margin-left:auto;display:flex;gap:8px;align-items:center}
+.seg2{display:inline-flex;border:1px solid var(--deep);border-radius:3px;overflow:hidden}.seg2 button{border:0;background:#fff;color:var(--deep);padding:3px 14px;font:.92rem var(--head);cursor:pointer}.seg2 button[aria-pressed=true]{background:var(--deep);color:#fff}
+.rsgrid.back{grid-template-columns:repeat(3,minmax(0,1fr));min-height:430px}
+.rsbox.tall{flex:2}
+.ths{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;padding:2px 8px 4px}.ths .sv{grid-template-columns:minmax(0,1fr) 46px}
+.slots{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;padding:6px 8px}
+.pv{display:none}
+@media(max-width:1100px){.rsgrid.back{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.rsgrid.back{grid-template-columns:1fr}.slots{grid-template-columns:repeat(5,minmax(0,1fr))}.pgtabs{margin-left:0}}
+/* printing: both sides, one sheet of paper each, landscape */
+@page{size:landscape;margin:9mm}
+@media print{
+  body{font-size:15px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  header,.mylist,.lockbar,.demo,.foot,.hint#status{display:none!important}
+  main{padding:0;max-width:none}
+  .rspage{display:block!important;break-after:page}.rspage:last-of-type{break-after:auto}
+  .rshead{grid-template-columns:2.2fr 1fr 1fr 1.2fr .45fr 1.1fr 1fr!important}
+  .rsgrid{grid-template-columns:minmax(0,1.45fr) minmax(0,.8fr) minmax(0,1fr)!important;min-height:600px}
+  .rsgrid.back{grid-template-columns:repeat(3,minmax(0,1fr))!important;min-height:600px!important}
+  .rsgrid>.rsbox{grid-column:auto!important}
+  textarea{display:none!important}.pv{display:block;white-space:pre-wrap;font:.9rem/1.35 var(--body);min-height:3em}
+  input::placeholder{color:transparent}
+  .barnote{color:#fff}
+}
 </style>
 <script src="tracker-config.js"></script>
 </head><body>
@@ -135,10 +163,10 @@ async function firebaseApi(cfg,party){
     create:data=>F.addDoc(col,data).then(r=>r.id), update:(id,p)=>F.updateDoc(ref(id),p), remove:id=>F.deleteDoc(ref(id)) };
 }
 function demoApi(){
-  const KEY="party-tracker-demo4"; let all=LS.get(KEY,null);
+  const KEY="party-tracker-demo5"; let all=LS.get(KEY,null);
   if(!all){ all={}; const s=o=>Object.assign(BLANK(),o);
-    all.d1=s({name:"Brother Aldric",player:"Sam",race:"Human",cls:"Cleric",level:"3",align:"Lawful good",hpmax:"19",ac:"3",thac0:"20",move:"9",sv1:"9",sv2:"13",sv3:"12",sv4:"15",sv5:"14",str:"14",dex:"9",con:"13",int:"10",wis:"16",cha:"12",xp:"4,210",gp:"112",sp:"40",cp:"15",magic:"Mace +1\nPotion of Healing (1 dose)",gear:"Mace +1 (see magic items), chain mail, shield, holy symbol (silver), backpack, 3 days rations, 50 ft. rope, 2 torches"});
-    all.d2=s({name:"Tamsin Reed",player:"Jo",race:"Halfling",cls:"Thief",level:"4",align:"Neutral",hpmax:"16",ac:"5",thac0:"19",move:"6",sv1:"9",sv2:"10",sv3:"11",sv4:"14",sv5:"11",str:"10",dex:"17",con:"15",int:"13",wis:"11",cha:"10",xp:"6,050",pp:"3",gp:"48",ep:"6",magic:"Ring of Protection +1\nWand of Magic Missiles (23 charges), found in the crypt",gear:"Leather armor, short sword, sling and 20 bullets, thieves’ picks and tools, dark cloak"}); }
+    all.d1=s({name:"Brother Aldric",player:"Sam",race:"Human",cls:"Cleric",level:"3",align:"Lawful good",hpmax:"19",ac:"3",thac0:"20",move:"9",sv1:"9",sv2:"13",sv3:"12",sv4:"15",sv5:"14",str:"14",dex:"9",con:"13",int:"10",wis:"16",cha:"12",xp:"4,210",gp:"112",sp:"40",cp:"15",magic:"Mace +1\nPotion of Healing (1 dose)",nwp:"Healing (Wis −2)\nReligion (Wis +0)\nReading/writing (Int +1)",langs:"Common\nDwarvish",special:"Turn undead\nMay use only bludgeoning weapons",sl1:"4",sl2:"3",spells:"1st: Cure Light Wounds ×2, Bless, Command\n2nd: Hold Person, Spiritual Hammer, Slow Poison",gear:"Mace +1 (see magic items), chain mail, shield, holy symbol (silver), backpack, 3 days rations, 50 ft. rope, 2 torches"});
+    all.d2=s({name:"Tamsin Reed",player:"Jo",race:"Halfling",cls:"Thief",level:"4",align:"Neutral",hpmax:"16",ac:"5",thac0:"19",move:"6",sv1:"9",sv2:"10",sv3:"11",sv4:"14",sv5:"11",str:"10",dex:"17",con:"15",int:"13",wis:"11",cha:"10",xp:"6,050",pp:"3",gp:"48",ep:"6",magic:"Ring of Protection +1\nWand of Magic Missiles (23 charges), found in the crypt",nwp:"Tumbling (Dex +0)\nJumping (Str +0)\nAppraising (Int +0)",langs:"Common\nHalfling\nGnomish",special:"Infravision 30 ft.\n+3 to hit with slings and thrown weapons\nBackstab ×2",th1:"45",th2:"40",th3:"30",th4:"50",th5:"45",th6:"25",th7:"60",th8:"10",gear:"Leather armor, short sword, sling and 20 bullets, thieves’ picks and tools, dark cloak"}); }
   let L=null; const save=()=>LS.set(KEY,all), fire=()=>setTimeout(()=>L&&L(Object.entries(all).map(([id,c])=>({id,...JSON.parse(JSON.stringify(c))}))),30);
   return { listen:fn=>{ L=fn; fire(); return ()=>{L=null;}; }, create:async d=>{ const id="c"+Date.now(); all[id]=d; save(); fire(); return id; },
     update:async(id,p)=>{ Object.assign(all[id],p); save(); fire(); }, remove:async id=>{ delete all[id]; save(); fire(); }, isDemo:true };
@@ -160,12 +188,13 @@ const setView=v=>{ view=v; $$("#nav button").forEach(x=>x.setAttribute("aria-sel
 // ---------- screens ----------
 function draw(){ const m=$("#main"); if(!api) return;
   if(view==="party"){ m.innerHTML=demoNote()+partyHTML(); return; }
-  const my=chars.filter(c=>mine.has(c.id)).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
-  let c=chars.find(x=>x.id===openId); if(!c&&my.length===1){ c=my[0]; openId=c.id; } if(!c&&openId) openId=null;
+  const my=chars.filter(c=>mine.has(c.id)&&!c.binned).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  let c=chars.find(x=>x.id===openId&&!x.binned); if(!c&&my.length===1){ c=my[0]; openId=c.id; } if(!c&&openId) openId=null;
   const picks=my.map(x=>`<button class="pick" data-open="${esc(x.id)}" aria-pressed="${x.id===openId}">${esc(x.name||"Unnamed")}</button>`).join("");
   const lock=c&&!mine.has(c.id)?`<div class="lockbar"><span>This is <b>${esc(c.player||"another player")}</b>’s character${canEdit(c)?". You are editing it.":", so it is view only."}</span>${canEdit(c)?"":`<button class="btn sec small" id="unlock">Edit it anyway</button>`}<button class="btn sec small" id="claim">It’s mine: remember it on this device</button></div>`:"";
   const empty=my.length?"<p>Pick a character above.</p>":`<p>No characters on this device yet. Press <b>New character</b> to make one.</p><p class="hint">Made your character on another device? Open the <b>Party</b> tab, click its name, and press “It’s mine”.</p>`;
-  m.innerHTML=demoNote()+`<div class="mylist">${picks}<button class="btn sec small" id="new">＋ New character</button></div>`+(c?lock+sheetHTML(c):empty);
+  const pg=c?`<span class="pgtabs"><span class="seg2" role="group" aria-label="Side of the sheet"><button data-pg="front" aria-pressed="${sheetPage==="front"}">Front</button><button data-pg="back" aria-pressed="${sheetPage==="back"}">Back</button></span><button class="btn sec small" id="print">Print</button></span>`:"";
+  m.innerHTML=demoNote()+`<div class="mylist">${picks}<button class="btn sec small" id="new">＋ New character</button>${pg}</div>`+(c?lock+sheetHTML(c):empty);
   if(c) fillSheet(c,true); m.querySelectorAll("input:not([type=checkbox]),textarea").forEach(x=>x.setAttribute("autocomplete","off")); }
 function demoNote(){ return api.isDemo?`<div class="demo"><b>Demo mode.</b> Everything is saved in this browser only, and two made-up party members are filled in. ${CFG?"":`<a href="?">Set up the real thing</a>.`}</div>`:""; }
 // ---------- ability score tables, Player's Handbook Tables 1-6 ----------
@@ -185,11 +214,16 @@ function adjCells(k,c){ const s=num(c[k]); if(s===null||s<1||s>25) return [];
   return []; }
 const ABNAME={str:"Strength",dex:"Dexterity",con:"Constitution",int:"Intelligence",wis:"Wisdom",cha:"Charisma"};
 
+const THIEF=[["th1","Pick pockets"],["th2","Open locks"],["th3","Find/remove traps"],["th4","Move silently"],["th5","Hide in shadows"],["th6","Detect noise"],["th7","Climb walls"],["th8","Read languages"]];
+let sheetPage=LS.get("pt-page","front");
 function sheetHTML(c){ const dis=canEdit(c)?"":" disabled";
-  const u=(k,l,cls="")=>`<div class="uf ${cls}"><input id="f-${k}" data-f="${k}"${dis} autocomplete="off"><label for="f-${k}">${l}</label></div>`;
+  const u=(k,l,cls="",id=true)=>`<div class="uf ${cls}"><input${id?` id="f-${k}"`:""} data-f="${k}"${dis} autocomplete="off" aria-label="${l}">${id?`<label for="f-${k}">${l}</label>`:`<label>${l}</label>`}</div>`;
   const big=(k,l,cls="")=>`<div class="cb ${cls}"><input id="f-${k}" data-f="${k}"${dis} autocomplete="off"><label for="f-${k}">${l}</label></div>`;
+  const ta=(k,l,ph)=>`<textarea data-f="${k}" aria-label="${l}" placeholder="${ph}"${dis}></textarea><div class="pv" data-pv="${k}"></div>`;
+  const box=(t,inner,cls="fill")=>`<div class="rsbox ${cls}"><div class="rsbar">${t}</div><div class="rsin">${inner}</div></div>`;
+  const head=id=>`<div class="rsbox rshead">${u("name","Character name","wide",id)}${u("player","Player","",id)}${u("race","Race","",id)}${u("cls","Class","",id)}${u("level","Level","sm",id)}${u("align","Alignment","",id)}${u("xp","Experience points","",id)}</div>`;
   return `<div class="sheet rs" id="sheet" data-id="${esc(c.id)}">
-  <div class="rsbox rshead">${u("name","Character name","wide")}${u("player","Player")}${u("race","Race")}${u("cls","Class")}${u("level","Level","sm")}${u("align","Alignment")}${u("xp","Experience points")}</div>
+  <div class="rspage" data-page="front"${sheetPage==="front"?"":" hidden"}>${head(true)}
   <div class="rsgrid">
    <div class="rsbox"><div class="rsbar">Ability scores <span class="barnote">figures from PHB Tables 1–6</span></div>${Object.keys(ABNAME).map(k=>`<div class="ab"><div class="abn">${ABNAME[k]}</div><div class="abs"><input id="f-${k}" data-f="${k}"${dis} aria-label="${ABNAME[k]}" inputmode="numeric" autocomplete="off">${k==="str"?`<span id="strslash">/</span><input class="strx" data-f="strx" aria-label="Exceptional strength" placeholder="00"${dis} inputmode="numeric" autocomplete="off">`:""}</div><div class="abadj" id="adj-${k}"></div></div>`).join("")}</div>
    <div class="rscol">
@@ -198,11 +232,25 @@ function sheetHTML(c){ const dis=canEdit(c)?"":" disabled";
     <div class="rsbox"><div class="rsbar">Money</div><div class="rsin"><div class="coins">${COINS.map(k=>`<div class="cb sm"><input id="f-${k}" data-f="${k}"${dis} inputmode="numeric" autocomplete="off"><label for="f-${k}">${k}</label></div>`).join("")}</div><p class="hint" id="worth"></p></div></div>
    </div>
    <div class="rscol grow">
-    <div class="rsbox fill"><div class="rsbar">Magic items</div><div class="rsin"><textarea data-f="magic" aria-label="Magic items" placeholder="One per line, for example: Wand of Magic Missiles (23 charges)"${dis}></textarea></div></div>
-    <div class="rsbox fill"><div class="rsbar">Equipment</div><div class="rsin"><textarea data-f="gear" aria-label="Equipment" placeholder="Weapons, armor and everything else carried"${dis}></textarea></div></div>
-    <div class="rsbox fill"><div class="rsbar">Notes</div><div class="rsin"><textarea data-f="notes" aria-label="Notes" placeholder="Spells known, languages, proficiencies, henchmen, property"${dis}></textarea></div></div>
-   </div></div>
-  <div class="foot"><span id="status"></span>${canEdit(c)?`<span style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><label class="tick"><input type="checkbox" data-f="hidden"> Leave out of the party view (retired or dead)</label><button class="btn sec small" id="del">Delete character</button></span>`:""}</div></div>`; }
+    ${box("Magic items",ta("magic","Magic items","One per line, for example: Wand of Magic Missiles (23 charges)"))}
+    ${box("Equipment",ta("gear","Equipment","Weapons, armor and everything else carried"))}
+    ${box("Notes",ta("notes","Notes","Henchmen, property, background, anything else"))}
+   </div></div></div>
+  <div class="rspage" data-page="back"${sheetPage==="back"?"":" hidden"}>${head(false)}
+  <div class="rsgrid back">
+   <div class="rscol">
+    ${box("Nonweapon proficiencies",ta("nwp","Nonweapon proficiencies","One per line, with the ability and modifier, for example: Riding, land-based (Wis +3)"),"fill tall")}
+   </div>
+   <div class="rscol">
+    ${box("Languages",ta("langs","Languages","Common, Elvish, …"))}
+    <div class="rsbox"><div class="rsbar">Thief abilities</div><div class="ths">${THIEF.map(([k,l])=>`<div class="sv"><label for="f-${k}">${l}</label><input id="f-${k}" data-f="${k}"${dis} autocomplete="off" placeholder="%"></div>`).join("")}</div></div>
+    ${box("Special abilities",ta("special","Special abilities","Racial and class abilities: infravision, turn undead, backstab, …"))}
+   </div>
+   <div class="rscol">
+    <div class="rsbox"><div class="rsbar">Spells per day</div><div class="slots">${[1,2,3,4,5,6,7,8,9].map(n=>`<div class="cb sm"><input id="f-sl${n}" data-f="sl${n}"${dis} inputmode="numeric" autocomplete="off"><label for="f-sl${n}">${ord(n)}</label></div>`).join("")}</div></div>
+    ${box("Spells",ta("spells","Spells","Spells memorized, and the spell book or spells granted, by level"),"fill tall")}
+   </div></div></div>
+  <div class="foot"><span id="status"></span>${canEdit(c)?`<span style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><label class="tick"><input type="checkbox" data-f="hidden"> Leave out of the party view (retired or dead)</label><button class="btn sec small" id="del" title="Moves it to the bin at the bottom of the Party tab, where it can be restored">Move to the bin</button></span>`:""}</div></div>`; }
 
 // PHB Table 43: 1 pp = 5 gp; 2 ep, 10 sp or 100 cp = 1 gp
 const worth=c=>{ const n=k=>Math.max(0,num(c[k])||0); return n("pp")*5+n("gp")+n("ep")/2+n("sp")/10+n("cp")/100; };
@@ -210,36 +258,48 @@ const gpStr=v=>(Math.round(v*100)/100).toLocaleString("en-US",{maximumFractionDi
 function fillSheet(c,all){ const sh=$("#sheet"); if(!sh) return; const act=document.activeElement;
   sh.querySelectorAll("[data-f]").forEach(el=>{ if(el===act&&!all) return; const k=el.dataset.f; if(el.type==="checkbox") el.checked=!!c[k]; else if(el.value!==String(c[k]??"")) el.value=c[k]??""; });
   const s18=String(c.str).trim()==="18"; $("#strslash").style.display=s18?"":"none"; sh.querySelector('[data-f="strx"]').style.display=s18?"":"none";
+  sh.querySelectorAll("[data-pv]").forEach(d=>d.textContent=c[d.dataset.pv]||"");
   const w=$("#worth"); if(w){ const v=worth(c); w.textContent=v?"Worth "+gpStr(v)+" in all":""; w.title="1 pp = 5 gp; 2 ep, 10 sp or 100 cp = 1 gp (PHB Table 43)"; }
   Object.keys(ABNAME).forEach(k=>{ const el=$("#adj-"+k); if(el) el.innerHTML=adjCells(k,c).map(([l,v])=>`<span class="a"><i>${l}</i> ${esc(v)}</span>`).join(""); }); }
-function partyHTML(){ const P=chars.filter(c=>!c.hidden).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
-  if(!P.length) return `<p>No characters yet.</p>`+shareHTML();
+let showRetired=false;
+function extrasHTML(){ const R=chars.filter(c=>c.hidden&&!c.binned), B=chars.filter(c=>c.binned).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  return (R.length?`<div class="share"><button class="link" id="retired">${showRetired?"Hide":"Show"} retired characters (${R.length})</button></div>`:"")+
+   (B.length?`<div class="share bin"><span class="k">The bin</span>${B.map(c=>`<span class="binrow"><b>${esc(c.name||"Unnamed")}</b>${c.player?` <span class="hint">${esc(c.player)}</span>`:""} <button class="btn sec small" data-restore="${esc(c.id)}">Restore</button></span>`).join("")}<span class="hint">Characters moved to the bin stay here until restored.</span></div>`:""); }
+function partyHTML(){ const P=chars.filter(c=>!c.binned&&(!c.hidden||showRetired)).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  if(!P.length) return `<p>No characters yet.</p>`+extrasHTML()+shareHTML();
   const mags=c=>String(c.magic||"").split(/\n/).map(x=>x.trim()).filter(Boolean);
   const tot=P.reduce((a,c)=>a+worth(c),0), ni=P.reduce((a,c)=>a+mags(c).length,0);
   return `<p class="hint" style="margin:0 0 10px">The whole party: ${gpStr(tot)} in coin, ${ni} magic item${ni===1?"":"s"}. Click a name to open the full sheet.</p><div class="party">${P.map(c=>{ const I=mags(c), coins=COINS.filter(k=>num(c[k])).map(k=>num(c[k]).toLocaleString("en-US")+" "+k);
-    return `<div class="card pc"><h3 data-open="${esc(c.id)}" title="Open the sheet">${esc(c.name||"Unnamed")}</h3><div class="sub">${esc([c.race,c.cls,c.level&&("level "+c.level)].filter(Boolean).join(" · "))}${c.player?" · "+esc(c.player):""}</div>
+    return `<div class="card pc"><h3 data-open="${esc(c.id)}" title="Open the sheet">${esc(c.name||"Unnamed")}${c.hidden?` <span class="tag">Retired</span>`:""}</h3><div class="sub">${esc([c.race,c.cls,c.level&&("level "+c.level)].filter(Boolean).join(" · "))}${c.player?" · "+esc(c.player):""}</div>
       <div class="pcrow"><div><span class="k">Experience</span><span class="big">${esc(c.xp||"—")}</span></div><div><span class="k">HP</span><span class="big">${esc(c.hpmax||"—")}</span></div><div><span class="k">AC</span><span class="big">${esc(c.ac||"—")}</span></div></div>
       <div class="line"><span class="k">Coins${worth(c)?" · worth "+esc(gpStr(worth(c))):""}</span>${coins.length?esc(coins.join(" · ")):"None"}</div>
       <div class="line"><span class="k">Magic items</span>${I.length?`<ul class="ilist">${I.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`:"None"}</div>
-      <div class="line"><span class="k">Equipment</span>${c.gear?`<div class="gear">${esc(c.gear)}</div>`:"Nothing listed"}</div></div>`; }).join("")}</div>`+shareHTML(); }
+      <div class="line"><span class="k">Equipment</span>${c.gear?`<div class="gear">${esc(c.gear)}</div>`:"Nothing listed"}</div></div>`; }).join("")}</div>`+extrasHTML()+shareHTML(); }
 function shareHTML(){ return `<div class="share"><span class="hint">Invite players with this link. Anyone who has it can see and change the sheets, so share it only with your group.</span><input id="plink" readonly value="${esc(partyLink())}" aria-label="Party link"><button class="btn sec small" id="copylink">Copy the link</button></div>`; }
-function startHTML(){ return `<div class="card" style="max-width:620px"><h2>Start your party</h2>
-  <p>This makes your party’s private link. Send it to your players: they open it, and their browser remembers it from then on. Nobody signs in.</p>
-  <button class="btn" id="startparty">Start a new party</button>
-  <p class="hint" style="margin-top:14px">If you are a player, open the link your DM sent you instead.</p></div>`; }
+function startHTML(){ return `<div class="card" style="max-width:620px"><h2>Open your party’s link</h2>
+  <p>This device doesn’t know your party yet. <b>Open the link your DM sent you</b> (in your email or messages) and your characters will be there. After that, this device remembers it.</p>
+  <p class="hint">Lost the link? Ask your DM to send it again: it is at the bottom of their Party tab.</p>
+  <button class="link" id="iamdm">I’m the DM and want to start a brand-new party</button>
+  <div id="dmstart" hidden style="margin-top:12px;border-top:1px solid var(--soft);padding-top:12px"><p>This makes a new, empty party with its own private link. <b>It does not open an existing party.</b> If you already have a party, open its link instead.</p>
+  <button class="btn" id="startparty">Start a new party</button></div></div>`; }
 // ---------- events ----------
 $("#main").addEventListener("click",async ev=>{ const b=ev.target.closest("button,h3[data-open]"); if(!b) return;
   if(b.id==="startparty"){ PARTY=newCode(); LS.set("pt-party",PARTY); location.hash="party="+PARTY; mine=new Set(LS.get(MKEY(),[])); boot(); return; }
   if(b.id==="copylink"){ const i=$("#plink"); try{ await navigator.clipboard.writeText(i.value); b.textContent="Copied ✓"; }catch(e){ i.select(); b.textContent="Selected: press Ctrl+C"; } return; }
   if(b.dataset.open){ openId=b.dataset.open; setView("mine"); draw(); window.scrollTo({top:0}); return; }
   if(b.id==="new"){ b.disabled=true; try{ const id=await api.create(Object.assign(BLANK(),{created:Date.now(),updated:Date.now()})); mine.add(id); saveMine(); openId=id; if(!chars.some(c=>c.id===id)) chars.push(Object.assign(BLANK(),{id})); draw(); const n=$('[data-f="name"]'); if(n) n.focus(); }catch(e){ b.disabled=false; $("#main").insertAdjacentHTML("afterbegin",`<p class="hint" style="color:var(--bad)">${esc(failMsg(e))}</p>`); } return; }
+  if(b.dataset.pg){ sheetPage=b.dataset.pg; LS.set("pt-page",sheetPage); $$(".rspage").forEach(p=>p.hidden=p.dataset.page!==sheetPage); $$("[data-pg]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.pg===sheetPage)); return; }
+  if(b.id==="print"){ await flush(); window.print(); return; }
   if(b.id==="unlock"){ unlocked.add(openId); draw(); return; }
   if(b.id==="claim"){ mine.add(openId); saveMine(); draw(); return; }
   const id=$("#sheet")&&$("#sheet").dataset.id, c=chars.find(x=>x.id===id);
-  if(b.id==="del"&&c){ if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Press again to delete "+(c.name||"this character"); setTimeout(()=>{ if(b.isConnected){ b.classList.remove("armed"); b.textContent="Delete character"; } },4000); return; }
-    try{ delete pending[id]; await api.remove(id); mine.delete(id); saveMine(); openId=null; draw(); }catch(e){ status(failMsg(e),true); } return; } });
+  if(b.id==="del"&&c){ if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Press again to move "+(c.name||"this character")+" to the bin"; setTimeout(()=>{ if(b.isConnected){ b.classList.remove("armed"); b.textContent="Move to the bin"; } },4000); return; }
+    queue(id,{binned:true}); await flush(); openId=null; draw(); return; }
+  if(b.dataset.restore){ queue(b.dataset.restore,{binned:false}); await flush(); draw(); return; }
+  if(b.id==="retired"){ showRetired=!showRetired; draw(); return; }
+  if(b.id==="iamdm"){ $("#dmstart").hidden=false; b.hidden=true; return; } });
 $("#main").addEventListener("input",ev=>{ const el=ev.target, sh=$("#sheet"); if(!sh||!sh.contains(el)) return; const id=sh.dataset.id, c=chars.find(x=>x.id===id); if(!c) return;
-  if(el.dataset.f){ queue(id,{[el.dataset.f]:el.type==="checkbox"?el.checked:el.value}); if(el.dataset.f==="name"){ const pk=document.querySelector(`.pick[data-open="${CSS.escape(id)}"]`); if(pk) pk.textContent=el.value||"Unnamed"; } if(["str","strx","dex","con","int","wis","cha",...COINS].includes(el.dataset.f)) fillSheet(c,false); } });
+  if(el.dataset.f){ queue(id,{[el.dataset.f]:el.type==="checkbox"?el.checked:el.value}); sh.querySelectorAll(`[data-f="${el.dataset.f}"]`).forEach(x=>{ if(x!==el&&x.type!=="checkbox") x.value=el.value; }); const pv=sh.querySelector(`[data-pv="${el.dataset.f}"]`); if(pv) pv.textContent=el.value; if(el.dataset.f==="name"){ const pk=document.querySelector(`.pick[data-open="${CSS.escape(id)}"]`); if(pk) pk.textContent=el.value||"Unnamed"; } if(["str","strx","dex","con","int","wis","cha",...COINS].includes(el.dataset.f)) fillSheet(c,false); } });
 // ---------- setup screen (no tracker-config.js yet) ----------
 const RULES=`rules_version = '2';
 service cloud.firestore {
