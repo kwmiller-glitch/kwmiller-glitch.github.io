@@ -139,17 +139,17 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
   body>*:not(#printout){display:none!important}
   #printout{position:static;visibility:visible;left:auto}
 }
-}
 
 /* the party list */
 .listhead{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:760px;margin:6px 0 4px}.listhead h2{margin:0}
 .plist{list-style:none;margin:0;padding:0;max-width:760px;border-top:2px solid var(--ink)}
 .plist li{border-bottom:1px solid var(--rule)}
-.plist button{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) minmax(0,.7fr);gap:14px;align-items:baseline;width:100%;text-align:left;background:none;border:0;padding:12px 8px;cursor:pointer;color:var(--ink)}
+.plist button,.plist .phead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) 56px 64px minmax(0,.6fr);gap:14px;align-items:baseline;width:100%;text-align:left;background:none;border:0;padding:12px 8px;cursor:pointer;color:var(--ink)}
 .plist button:hover,.plist button:focus-visible{background:var(--hi)}
-.pn{font:1.25rem var(--head);color:var(--deep)}.pd{font:1rem var(--body)}.pp{font:.9rem var(--ui);color:var(--muted);text-align:right}
+.pn{font:1.25rem var(--head);color:var(--deep)}.pnum{font:700 1.2rem var(--ui);text-align:center}
+.plist .phead{padding:2px 8px;gap:14px;font:600 .64rem var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:0}.plist .phead span{text-align:center}.pd{font:1rem var(--body)}.pp{font:.9rem var(--ui);color:var(--muted);text-align:right}
 .backlink{font-size:1rem}
-@media(max-width:640px){.plist button{grid-template-columns:1fr auto}.plist .pd{grid-column:1/-1;order:3}}
+@media(max-width:640px){.plist .phead{display:none}.plist button{grid-template-columns:1fr auto auto}.plist .pp{grid-column:2/-1;order:2}.plist .pnum{order:4}.plist .pnum::before{content:attr(aria-label) " ";font:600 .62rem var(--ui);color:var(--muted);text-transform:uppercase}.plist .pnum[aria-label="Armor Class"]::before{content:"AC "}.plist .pd{grid-column:1;order:3}}
 
 /* current hit points with arrows, in the Hit points box */
 .hpcell .hpnow{display:flex;align-items:stretch;width:100%;border:2px solid var(--ink);height:40px}
@@ -298,7 +298,7 @@ function extrasHTML(){ const R=chars.filter(c=>c.hidden&&!c.binned), B=chars.fil
 function partyHTML(){ const P=chars.filter(c=>!c.binned&&(!c.hidden||showRetired)).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   const head=`<div class="listhead"><h2>The party</h2><button class="btn sec" id="new">＋ New character</button></div>`;
   if(!P.length) return head+`<p>No characters yet. Press <b>New character</b> to make one.</p>`+extrasHTML()+shareHTML();
-  return head+`<p class="hint" style="margin:0 0 8px">Choose a character to open the full sheet.</p><ul class="plist">${P.map(c=>`<li><button data-open="${esc(c.id)}"><span class="pn">${esc(c.name||"Unnamed character")}${c.hidden?` <span class="tag">Retired</span>`:""}</span><span class="pd">${esc([c.race,c.cls,c.level&&("level "+c.level)].filter(Boolean).join(" · "))}</span><span class="pp">${c.player?esc(c.player):""}</span></button></li>`).join("")}</ul>`+extrasHTML()+shareHTML(); }
+  return head+`<p class="hint" style="margin:0 0 8px">Choose a character to open the full sheet.</p><ul class="plist"><li class="phead" aria-hidden="true"><span></span><span></span><span>AC</span><span>THAC0</span><span></span></li>${P.map(c=>`<li><button data-open="${esc(c.id)}"><span class="pn">${esc(c.name||"Unnamed character")}${c.hidden?` <span class="tag">Retired</span>`:""}</span><span class="pd">${esc([c.race,c.cls,c.level&&("level "+c.level)].filter(Boolean).join(" · "))}</span><span class="pnum" aria-label="Armor Class">${esc(c.ac||"—")}</span><span class="pnum" aria-label="THAC0">${esc(c.thac0||"—")}</span><span class="pp">${c.player?esc(c.player):""}</span></button></li>`).join("")}</ul>`+extrasHTML()+shareHTML(); }
 function shareHTML(){ return `<div class="share"><span class="hint">Invite players with this link. Anyone who has it can see and change the sheets, so share it only with your group.</span><input id="plink" readonly value="${esc(partyLink())}" aria-label="Party link"><button class="btn sec small" id="copylink">Copy the link</button></div>`; }
 function startHTML(){ return `<div class="card" style="max-width:620px"><h2>Open your party’s link</h2>
   <p>This device doesn’t know your party yet. <b>Open the link your DM sent you</b> (in your email or messages) and your characters will be there. After that, this device remembers it.</p>
