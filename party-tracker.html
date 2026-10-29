@@ -154,10 +154,10 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
 /* current hit points with arrows, in the Hit points box */
 .hpcell .hpnow{display:flex;align-items:stretch;width:100%;border:2px solid var(--ink);height:40px}
 .hpcell .hpnow input{border:0;height:100%;min-width:0;flex:1;font:700 1.3rem var(--ui);text-align:center;padding:0}
-.hpcell .arrows{display:flex;flex-direction:column;border-left:1.5px solid var(--ink);border-right:1.5px solid var(--ink)}
+.hpcell .arrows{display:flex;flex-direction:column;border-right:1.5px solid var(--ink)}
 .hpa{flex:1;width:20px;border:0;background:var(--panel);color:var(--ink);font-size:.62rem;line-height:1;padding:0;cursor:pointer;touch-action:manipulation;user-select:none}
 .hpa:first-child{border-bottom:1px solid var(--ink)}.hpa:hover{background:var(--hi)}.hpa:active{background:var(--blue);color:#fff}
-.hpcell .slash{align-self:center;font:400 1.5rem var(--ui);padding:0 1px 0 4px;color:var(--ink)}
+.hpcell .slash{align-self:center;font:400 1.5rem var(--ui);padding:0 1px;color:var(--ink)}
 .hpcell .hpnow input.max{font-weight:600;font-size:1.15rem}
 .cbs{grid-template-columns:1fr 1.9fr 1fr 1fr!important}
 #printout .hpcell .arrows{display:none}
@@ -257,7 +257,7 @@ function sheetHTML(c){ const dis=canEdit(c)?"":" disabled";
   <div class="rsgrid">
    <div class="rsbox"><div class="rsbar">Ability scores <span class="barnote">figures from PHB Tables 1–6</span></div>${Object.keys(ABNAME).map(k=>`<div class="ab"><div class="abn">${ABNAME[k]}</div><div class="abs"><input id="f-${k}" data-f="${k}"${dis} aria-label="${ABNAME[k]}" inputmode="numeric" autocomplete="off">${k==="str"?`<span id="strslash">/</span><input class="strx" data-f="strx" aria-label="Exceptional strength" placeholder="00"${dis} inputmode="numeric" autocomplete="off">`:""}</div><div class="abadj" id="adj-${k}"></div></div>`).join("")}</div>
    <div class="rscol">
-    <div class="rsbox"><div class="rsbar">Combat</div><div class="cbs">${big("ac","Armor Class","shield")}<div class="cb hpcell"><div class="hpnow"><input id="f-hp" data-f="hp"${dis} inputmode="numeric" autocomplete="off" aria-label="Current hit points"><span class="arrows"><button type="button" class="hpa" data-hpstep="1"${dis} title="Add a hit point (hold to keep adding)" aria-label="Add a hit point">▲</button><button type="button" class="hpa" data-hpstep="-1"${dis} title="Take away a hit point (hold to keep going)" aria-label="Take away a hit point">▼</button></span><span class="slash">/</span><input id="f-hpmax" class="max" data-f="hpmax"${dis} inputmode="numeric" autocomplete="off" aria-label="Maximum hit points" title="Maximum hit points"></div><label for="f-hp">Hit points</label></div>${big("thac0","THAC0")}${big("move","Movement")}</div></div>
+    <div class="rsbox"><div class="rsbar">Combat</div><div class="cbs">${big("ac","Armor Class","shield")}<div class="cb hpcell"><div class="hpnow"><span class="arrows"><button type="button" class="hpa" data-hpstep="1"${dis} title="Add a hit point (hold to keep adding)" aria-label="Add a hit point">▲</button><button type="button" class="hpa" data-hpstep="-1"${dis} title="Take away a hit point (hold to keep going)" aria-label="Take away a hit point">▼</button></span><input id="f-hp" data-f="hp"${dis} inputmode="numeric" autocomplete="off" aria-label="Current hit points"><span class="slash">/</span><input id="f-hpmax" class="max" data-f="hpmax"${dis} inputmode="numeric" autocomplete="off" aria-label="Maximum hit points" title="Maximum hit points"></div><label for="f-hp">Hit points</label></div>${big("thac0","THAC0")}${big("move","Movement")}</div></div>
     <div class="rsbox"><div class="rsbar">Saving throws</div><div class="svs">${SAVES.map(([k,l])=>`<div class="sv"><label for="f-${k}">${l}</label><input id="f-${k}" data-f="${k}"${dis} inputmode="numeric" autocomplete="off"></div>`).join("")}</div></div>
     <div class="rsbox"><div class="rsbar">Money</div><div class="rsin"><div class="coins">${COINS.map(k=>`<div class="cb sm"><input id="f-${k}" data-f="${k}"${dis} inputmode="numeric" autocomplete="off"><label for="f-${k}">${k}</label></div>`).join("")}</div><p class="hint" id="worth"></p></div></div>
    </div>
