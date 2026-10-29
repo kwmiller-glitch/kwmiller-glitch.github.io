@@ -8,11 +8,11 @@
 *{box-sizing:border-box}html{font-size:17px}
 body{margin:0;background:var(--page);color:var(--ink);font-family:var(--body);line-height:1.45}
 header{background:var(--blue);color:#fff;padding:0 24px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 28px;border-bottom:4px solid #000}
-header h1{font-family:var(--head);font-weight:500;font-size:1.7rem;margin:12px 0 10px;line-height:1.1}
-header h1 small{display:block;font:italic .8rem var(--body);opacity:.9;margin-top:2px}
-nav{display:flex;gap:4px}nav button{font:1rem var(--head);background:var(--deep);color:#dbe6f5;border:0;padding:9px 18px 8px;border-radius:3px 3px 0 0;cursor:pointer}
+header h1{font-family:var(--head);font-weight:500;font-size:1.35rem;margin:7px 0 6px;line-height:1.1}
+header h1 small{display:inline;font:italic .78rem var(--body);opacity:.9;margin-left:10px}
+nav{display:flex;gap:4px}nav[hidden]{display:none}nav button{font:.95rem var(--head);background:var(--deep);color:#dbe6f5;border:0;padding:6px 16px 5px;border-radius:3px 3px 0 0;cursor:pointer}
 nav button[aria-selected=true]{background:#fff;color:var(--ink)}
-main{padding:18px 24px 40px;max-width:1150px}
+main{padding:10px 20px 24px;max-width:1440px}
 h2{font-family:var(--head);font-weight:500;font-size:1.3rem;margin:0 0 10px;color:var(--deep)}
 h3{font-family:var(--head);font-weight:500;font-size:1.05rem;margin:0 0 6px;color:var(--deep)}
 .hint{font:.84rem var(--ui);color:var(--muted)}
@@ -27,8 +27,8 @@ textarea{min-height:90px;resize:vertical;line-height:1.4}
 .card{border:1px solid var(--rule);border-top:4px solid var(--blue);padding:12px 14px;background:#fff}
 .grid{display:grid;gap:10px 14px}
 /* my characters */
-.mylist{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
-.mylist .pick{font:1rem var(--head);border:1px solid var(--deep);background:#fff;color:var(--deep);border-radius:16px;padding:5px 14px;cursor:pointer}
+.mylist{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center}
+.mylist .pick{font:.95rem var(--head);border:1px solid var(--deep);background:#fff;color:var(--deep);border-radius:16px;padding:3px 13px;cursor:pointer}
 .mylist .pick[aria-pressed=true]{background:var(--deep);color:#fff}
 /* sheet */
 .sheet{display:grid;gap:14px}
@@ -63,14 +63,45 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
 .setup{max-width:820px}.setup ol{padding-left:22px}.setup li{margin-bottom:14px}
 .setup pre{background:var(--panel);border-left:3px solid var(--blue);padding:10px 12px;font:.8rem/1.4 Consolas,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
 .setup code{font:.88rem Consolas,Menlo,monospace;background:var(--panel);padding:0 3px}
-.demo{background:#fff6dc;border:1px solid #e3c770;padding:6px 10px;font:.85rem var(--ui);margin-bottom:14px}
+.demo{background:#fff6dc;border:1px solid #e3c770;padding:3px 10px;font:.8rem var(--ui);margin-bottom:8px}
 @media(max-width:900px){.ident{grid-template-columns:1fr 1fr 1fr}.ident .nm{grid-column:1/-1}.fight{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}}
 @media(max-width:560px){main{padding:14px}header{padding:0 14px}.ident{grid-template-columns:1fr 1fr}.saves{grid-template-columns:repeat(2,minmax(0,1fr))}.abil{grid-template-columns:repeat(3,minmax(0,1fr))}.money{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.lockbar{margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:#fff6dc;border:1px solid #e3c770;padding:8px 12px;font:.9rem var(--ui)}
+.lockbar{margin-bottom:8px;padding:4px 10px!important;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:#fff6dc;border:1px solid #e3c770;padding:8px 12px;font:.9rem var(--ui)}
 .share{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:22px;padding-top:12px;border-top:1px solid var(--soft)}
 .share input{max-width:520px;font:.85rem Consolas,Menlo,monospace}
 .ilist{margin:2px 0 0;padding-left:18px}.ilist li{margin:1px 0}.gear{white-space:pre-wrap;max-height:9em;overflow:auto;margin-top:2px}
 .tick{display:flex;gap:6px;align-items:center;font:.9rem var(--ui)}.tick input{width:auto}
+
+/* record sheet look, sized to fit a laptop screen */
+.rs{display:block}.rsbox{border:2px solid var(--ink);background:#fff}
+.rsbar{background:var(--ink);color:#fff;font:600 .7rem var(--head);letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;display:flex;justify-content:space-between;gap:8px}
+.barnote{font:400 .62rem var(--ui);letter-spacing:0;text-transform:none;opacity:.75}
+.rsin{padding:6px 8px}
+.rshead{display:grid;grid-template-columns:2.2fr 1fr 1fr 1.2fr .45fr 1.1fr 1fr;gap:14px;padding:4px 12px 5px;margin-bottom:8px}
+.uf{display:flex;flex-direction:column}.uf input{border:0;border-bottom:1.5px solid var(--ink);border-radius:0;padding:1px 2px;background:transparent;font:1rem var(--body)}
+.uf.wide input{font:1.2rem var(--head)}
+.uf label,.cb label,.sv label{font:600 .58rem var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:1px 0 0}
+.uf input:focus,.cb input:focus,.abs input:focus,.sv input:focus{outline:2px solid var(--blue);outline-offset:1px}
+.rsgrid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(250px,.8fr) minmax(0,1fr);gap:8px;align-items:stretch}
+.rscol{display:flex;flex-direction:column;gap:8px}.rsbox.fill{flex:1;display:flex;flex-direction:column}.rsbox.fill .rsin{flex:1;display:flex}.rsbox.fill textarea{flex:1;min-height:64px}
+.ab{display:grid;grid-template-columns:96px auto minmax(0,1fr);gap:8px;align-items:center;padding:4px 8px;border-bottom:1px solid var(--rule);min-height:46px}.ab:last-child{border-bottom:0}
+.abn{font:600 .72rem var(--head);letter-spacing:.07em;text-transform:uppercase}
+.abs{display:flex;align-items:center;gap:2px;min-width:86px}.abs input{width:42px;height:38px;border:2px solid var(--ink);border-radius:0;text-align:center;font:700 1.2rem var(--ui);padding:0}
+.abs input.strx{width:38px;height:28px;font-size:.9rem;border-width:1.5px}#strslash{font:700 1rem var(--ui)}
+.abadj{font:600 .8rem/1.35 var(--ui);display:flex;flex-wrap:wrap;gap:0 12px}.abadj .a{white-space:nowrap}.abadj i{font-style:normal;font-weight:400;color:var(--muted);font-size:.72rem}
+.cbs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:6px 8px}
+.cb{display:flex;flex-direction:column;align-items:center}.cb input{width:100%;height:40px;border:2px solid var(--ink);border-radius:0;text-align:center;font:700 1.3rem var(--ui);padding:0}
+.cb.shield input{border-radius:0 0 50% 50% / 0 0 40% 40%;height:44px}
+.cb label{text-align:center;line-height:1.2}
+.cb.sm input{height:30px;font:600 .95rem var(--ui)}
+.svs{padding:2px 8px 4px}.sv{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:8px;align-items:center;padding:2px 0;border-bottom:1px solid var(--rule)}.sv:last-child{border-bottom:0}
+.sv label{font-size:.62rem;color:var(--ink);margin:0}.sv input{height:25px;border:2px solid var(--ink);border-radius:0;text-align:center;font:700 1rem var(--ui);padding:0}
+.coins{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+#worth{margin:4px 0 0;font-size:.72rem}
+.rs .foot{margin-top:6px}.rs .foot .btn.small{padding:2px 9px}
+.rs input:disabled,.rs textarea:disabled{background:transparent}
+@media(max-width:1100px){.rsgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.rsgrid>.rsbox{grid-column:1/-1}.rshead{grid-template-columns:2fr 1fr 1fr 1fr;row-gap:6px}}
+@media(max-width:640px){.rsbox.fill textarea{min-height:110px}.rsgrid{grid-template-columns:1fr}.rshead{grid-template-columns:1fr 1fr}.rshead .wide{grid-column:1/-1}.ab{grid-template-columns:1fr auto}.ab .abadj{grid-column:1/-1}.coins{grid-template-columns:repeat(5,minmax(0,1fr))}}
 </style>
 <script src="tracker-config.js"></script>
 </head><body>
@@ -88,7 +119,7 @@ const SAVES=[["sv1","Paralyzation, poison, death magic"],["sv2","Rod, staff or w
 const ABIL=[["str","Str"],["dex","Dex"],["con","Con"],["int","Int"],["wis","Wis"],["cha","Cha"]];
 const COINS=["pp","gp","ep","sp","cp"];
 const BLANK=()=>({name:"",player:"",race:"",cls:"",level:"1",align:"",xp:"",hpmax:"",ac:"10",thac0:"20",move:"12",
-  sv1:"",sv2:"",sv3:"",sv4:"",sv5:"",str:"",strx:"",dex:"",con:"",int:"",wis:"",cha:"",items:[],gear:"",notes:"",pp:"",gp:"",ep:"",sp:"",cp:"",hidden:false});
+  sv1:"",sv2:"",sv3:"",sv4:"",sv5:"",str:"",strx:"",dex:"",con:"",int:"",wis:"",cha:"",magic:"",gear:"",notes:"",pp:"",gp:"",ep:"",sp:"",cp:"",hidden:false});
 // ---------- the party's private code: from the link, else remembered by this browser ----------
 const codeOk=c=>/^[A-Za-z0-9]{16,40}$/.test(c||"");
 let PARTY=null;
@@ -104,10 +135,10 @@ async function firebaseApi(cfg,party){
     create:data=>F.addDoc(col,data).then(r=>r.id), update:(id,p)=>F.updateDoc(ref(id),p), remove:id=>F.deleteDoc(ref(id)) };
 }
 function demoApi(){
-  const KEY="party-tracker-demo"; let all=LS.get(KEY,null);
+  const KEY="party-tracker-demo4"; let all=LS.get(KEY,null);
   if(!all){ all={}; const s=o=>Object.assign(BLANK(),o);
-    all.d1=s({name:"Brother Aldric",player:"Sam",race:"Human",cls:"Cleric",level:"3",align:"Lawful good",hpmax:"19",ac:"3",thac0:"20",move:"9",sv1:"9",sv2:"13",sv3:"12",sv4:"15",sv5:"14",str:"14",dex:"9",con:"13",int:"10",wis:"16",cha:"12",xp:"4,210",gp:"112",sp:"40",cp:"15",items:[{n:"Mace +1",ch:"",note:""},{n:"Potion of Healing",ch:"1",note:""}],gear:"Mace +1 (see magic items), chain mail, shield, holy symbol (silver), backpack, 3 days rations, 50 ft. rope, 2 torches"});
-    all.d2=s({name:"Tamsin Reed",player:"Jo",race:"Halfling",cls:"Thief",level:"4",align:"Neutral",hpmax:"16",ac:"5",thac0:"19",move:"6",sv1:"9",sv2:"10",sv3:"11",sv4:"14",sv5:"11",str:"10",dex:"17",con:"15",int:"13",wis:"11",cha:"10",xp:"6,050",pp:"3",gp:"48",ep:"6",items:[{n:"Ring of Protection +1",ch:"",note:""},{n:"Wand of Magic Missiles",ch:"23",note:"found in the crypt"}],gear:"Leather armor, short sword, sling and 20 bullets, thieves’ picks and tools, dark cloak"}); }
+    all.d1=s({name:"Brother Aldric",player:"Sam",race:"Human",cls:"Cleric",level:"3",align:"Lawful good",hpmax:"19",ac:"3",thac0:"20",move:"9",sv1:"9",sv2:"13",sv3:"12",sv4:"15",sv5:"14",str:"14",dex:"9",con:"13",int:"10",wis:"16",cha:"12",xp:"4,210",gp:"112",sp:"40",cp:"15",magic:"Mace +1\nPotion of Healing (1 dose)",gear:"Mace +1 (see magic items), chain mail, shield, holy symbol (silver), backpack, 3 days rations, 50 ft. rope, 2 torches"});
+    all.d2=s({name:"Tamsin Reed",player:"Jo",race:"Halfling",cls:"Thief",level:"4",align:"Neutral",hpmax:"16",ac:"5",thac0:"19",move:"6",sv1:"9",sv2:"10",sv3:"11",sv4:"14",sv5:"11",str:"10",dex:"17",con:"15",int:"13",wis:"11",cha:"10",xp:"6,050",pp:"3",gp:"48",ep:"6",magic:"Ring of Protection +1\nWand of Magic Missiles (23 charges), found in the crypt",gear:"Leather armor, short sword, sling and 20 bullets, thieves’ picks and tools, dark cloak"}); }
   let L=null; const save=()=>LS.set(KEY,all), fire=()=>setTimeout(()=>L&&L(Object.entries(all).map(([id,c])=>({id,...JSON.parse(JSON.stringify(c))}))),30);
   return { listen:fn=>{ L=fn; fire(); return ()=>{L=null;}; }, create:async d=>{ const id="c"+Date.now(); all[id]=d; save(); fire(); return id; },
     update:async(id,p)=>{ Object.assign(all[id],p); save(); fire(); }, remove:async id=>{ delete all[id]; save(); fire(); }, isDemo:true };
@@ -137,38 +168,59 @@ function draw(){ const m=$("#main"); if(!api) return;
   m.innerHTML=demoNote()+`<div class="mylist">${picks}<button class="btn sec small" id="new">＋ New character</button></div>`+(c?lock+sheetHTML(c):empty);
   if(c) fillSheet(c,true); }
 function demoNote(){ return api.isDemo?`<div class="demo"><b>Demo mode.</b> Everything is saved in this browser only, and two made-up party members are filled in. ${CFG?"":`<a href="?">Set up the real thing</a>.`}</div>`:""; }
+// ---------- ability score tables, Player's Handbook Tables 1-6 ----------
+const ABT={"str":[["1",-5,-4,1,3,"1","0%"],["2",-3,-2,1,5,"1","0%"],["3",-3,-1,5,10,"2","0%"],["4-5",-2,-1,10,25,"3","0%"],["6-7",-1,0,20,55,"4","0%"],["8-9",0,0,35,90,"5","1%"],["10-11",0,0,40,115,"6","2%"],["12-13",0,0,45,140,"7","4%"],["14-15",0,0,55,170,"8","7%"],["16",0,1,70,195,"9","10%"],["17",1,1,85,220,"10","13%"],["18",1,2,110,255,"11","16%"],["18/01-50",1,3,135,280,"12","20%"],["18/51-75",2,3,160,305,"13","25%"],["18/76-90",2,4,185,330,"14","30%"],["18/91-99",2,5,235,380,"15(3)","35%"],["18/00",3,6,335,480,"16(6)","40%"],["19",3,7,485,640,"16(8)","50%"],["20",3,8,535,700,"17(10)","60%"],["21",4,9,635,810,"17(12)","70%"],["22",4,10,785,970,"18(14)","80%"],["23",5,11,935,1130,"18(16)","90%"],["24",6,12,1235,1440,"19(17)","95%"],["25",7,14,1535,1750,"19(18)","99%"]],"dex":{"1":[-6,-6,5],"2":[-4,-4,5],"3":[-3,-3,4],"4":[-2,-2,3],"5":[-1,-1,2],"6":[0,0,1],"7":[0,0,0],"8":[0,0,0],"9":[0,0,0],"10":[0,0,0],"11":[0,0,0],"12":[0,0,0],"13":[0,0,0],"14":[0,0,0],"15":[0,0,-1],"16":[1,1,-2],"17":[2,2,-3],"18":[2,2,-4],"19":[3,3,-4],"20":[3,3,-4],"21":[4,4,-5],"22":[4,4,-5],"23":[4,4,-5],"24":[5,5,-6],"25":[5,5,-6]},"con":{"1":[-3,-3,25,30,-2,"Nil"],"2":[-2,-2,30,35,-1,"Nil"],"3":[-2,-2,35,40,0,"Nil"],"4":[-1,-1,40,45,0,"Nil"],"5":[-1,-1,45,50,0,"Nil"],"6":[-1,-1,50,55,0,"Nil"],"7":[0,0,55,60,0,"Nil"],"8":[0,0,60,65,0,"Nil"],"9":[0,0,65,70,0,"Nil"],"10":[0,0,70,75,0,"Nil"],"11":[0,0,75,80,0,"Nil"],"12":[0,0,80,85,0,"Nil"],"13":[0,0,85,90,0,"Nil"],"14":[0,0,88,92,0,"Nil"],"15":[1,1,90,94,0,"Nil"],"16":[2,2,95,96,0,"Nil"],"17":[2,3,97,98,0,"Nil"],"18":[2,4,99,100,0,"Nil"],"19":[2,5,99,100,1,"Nil"],"20":[2,5,99,100,1,"1/6 turns"],"21":[2,6,99,100,2,"1/5 turns"],"22":[2,6,99,100,2,"1/4 turns"],"23":[2,6,99,100,3,"1/3 turns"],"24":[2,7,99,100,3,"1/2 turns"],"25":[2,7,100,100,4,"1/1 turn"]},"int":{"1":[0,0,0,0],"2":[0,0,0,1],"3":[0,0,0,1],"4":[0,0,0,1],"5":[0,0,0,1],"6":[0,0,0,1],"7":[0,0,0,1],"8":[0,0,0,1],"9":[4,6,35,2],"10":[5,7,40,2],"11":[5,7,45,2],"12":[6,7,50,3],"13":[6,9,55,3],"14":[7,9,60,4],"15":[7,11,65,4],"16":[8,11,70,5],"17":[8,14,75,6],"18":[9,18,85,7],"19":[9,99,95,8],"20":[9,99,96,9],"21":[9,99,97,10],"22":[9,99,98,11],"23":[9,99,99,12],"24":[9,99,100,15],"25":[9,99,100,20]},"wis":{"1":[-6,[],80],"2":[-4,[],60],"3":[-3,[],50],"4":[-2,[],45],"5":[-1,[],40],"6":[-1,[],35],"7":[-1,[],30],"8":[0,[],25],"9":[0,[],20],"10":[0,[],15],"11":[0,[],10],"12":[0,[],5],"13":[0,[1],0],"14":[0,[1,1],0],"15":[1,[1,1,2],0],"16":[2,[1,1,2,2],0],"17":[3,[1,1,2,2,3],0],"18":[4,[1,1,2,2,3,4],0],"19":[4,[1,1,2,2,3,4,1,4],0],"20":[4,[1,1,2,2,3,4,1,4,2,4],0],"21":[4,[1,1,2,2,3,4,1,4,2,4,3,5],0],"22":[4,[1,1,2,2,3,4,1,4,2,4,3,5,4,5],0],"23":[4,[1,1,2,2,3,4,1,4,2,4,3,5,4,5,5,5],0],"24":[4,[1,1,2,2,3,4,1,4,2,4,3,5,4,5,5,5,6,6],0],"25":[4,[1,1,2,2,3,4,1,4,2,4,3,5,4,5,5,5,6,6,6,7],0]},"cha":{"1":[0,-8,-7],"2":[1,-7,-6],"3":[1,-6,-5],"4":[1,-5,-4],"5":[2,-4,-3],"6":[2,-3,-2],"7":[3,-2,-1],"8":[3,-1,0],"9":[4,0,0],"10":[4,0,0],"11":[4,0,0],"12":[5,0,0],"13":[5,0,1],"14":[6,1,2],"15":[7,3,3],"16":[8,4,5],"17":[10,6,6],"18":[15,8,7],"19":[20,10,8],"20":[25,12,9],"21":[30,14,10],"22":[35,16,11],"23":[40,18,12],"24":[45,20,13],"25":[50,20,14]}};
+const ord=n=>n+(["th","st","nd","rd"][n%10>3||Math.floor(n/10)%10===1?0:n%10]);
+const sg=n=>n>0?"+"+n:n<0?"−"+Math.abs(n):"0";
+function strRow(s,x){ if(s===18&&x){ const e=String(x).trim(); const p=/^0+$/.test(e)||e==="100"?100:parseInt(e,10); if(p>=1&&p<=100){ const lab=p<=50?"18/01-50":p<=75?"18/51-75":p<=90?"18/76-90":p<=99?"18/91-99":"18/00"; return ABT.str.find(r=>r[0]===lab); } }
+  return ABT.str.find(r=>{ if(r[0].includes("/")) return false; const a=r[0].split("-").map(Number); return s>=a[0]&&s<=a[a.length-1]; }); }
+function adjCells(k,c){ const s=num(c[k]); if(s===null||s<1||s>25) return [];
+  if(k==="str"){ const r=strRow(s,c.strx); return [["Hit",r[1]?sg(r[1]):"Normal"],["Dmg",r[2]?sg(r[2]):"None"],["Weight allow.",r[3].toLocaleString("en-US")+" lb."],["Max. press",r[4].toLocaleString("en-US")+" lb."],["Open doors",r[5]],["Bend bars",r[6]]]; }
+  if(k==="dex"){ const r=ABT.dex[s]; return [["Reaction",sg(r[0])],["Missile",sg(r[1])],["Defense",sg(r[2])]]; }
+  if(k==="con"){ const r=ABT.con[s]; return [["HP adj.",sg(r[0])+(r[1]!==r[0]?` (warriors ${sg(r[1])})`:"")],["System shock",r[2]+"%"],["Resurrection",r[3]+"%"],["Poison save",sg(r[4])],["Regeneration",r[5]]]; }
+  if(k==="int"){ const r=ABT.int[s]; return [["Languages",String(r[3])],["Spell level",r[0]?ord(r[0]):"—"],["Learn spell",r[2]?r[2]+"%":"—"],["Max. spells/level",r[1]===99?"All":r[1]?String(r[1]):"—"]].concat(s>=19?[["Spell immunity",`Illusions up to ${ord(s-18)} level`]]:[]); }
+  if(k==="wis"){ const r=ABT.wis[s]; const cnt={}; r[1].forEach(l=>cnt[l]=(cnt[l]||0)+1); const bs=Object.keys(cnt).sort((a,b)=>a-b).map(l=>ord(+l)+(cnt[l]>1?" ×"+cnt[l]:"")).join(", ");
+    return [["Magic defense",sg(r[0])],["Bonus spells",bs||"—"],["Spell failure",r[2]+"%"]].concat(s>=19?[["Spell immunity","See PHB Table 5"]]:[]); }
+  if(k==="cha"){ const r=ABT.cha[s]; return [["Henchmen",String(r[0])],["Loyalty base",sg(r[1])],["Reaction",sg(r[2])]]; }
+  return []; }
+const ABNAME={str:"Strength",dex:"Dexterity",con:"Constitution",int:"Intelligence",wis:"Wisdom",cha:"Charisma"};
+
 function sheetHTML(c){ const dis=canEdit(c)?"":" disabled";
-  const f=(k,l,cls="")=>`<div class="${cls}"><label for="f-${k}">${l}</label><input id="f-${k}" data-f="${k}"${dis} autocomplete="off"></div>`;
-  return `<div class="sheet" id="sheet" data-id="${esc(c.id)}">
-  <div class="grid ident">${f("name","Character","nm")}${f("player","Player")}${f("race","Race")}${f("cls","Class")}${f("level","Level")}${f("align","Alignment")}${f("xp","Experience")}</div>
-  <div class="grid fight">${[["hpmax","Hit points"],["ac","Armor Class"],["thac0","THAC0"],["move","Movement"]].map(([k,l])=>f(k,l,"stat")).join("")}</div>
-  <div class="card"><h3>Ability scores</h3><div class="grid abil">${ABIL.map(([k,l])=>k==="str"?`<div><label for="f-str">Str</label><div class="strx"><input id="f-str" data-f="str"${dis}><span id="strslash">/</span><input data-f="strx" aria-label="Exceptional strength" placeholder="00"${dis}></div></div>`:f(k,l)).join("")}</div></div>
-  <div class="card"><h3>Saving throws</h3><div class="grid saves">${SAVES.map(([k,l])=>f(k,l)).join("")}</div></div>
-  <div class="two"><div class="card"><h3>Magic items</h3><div id="items"></div>${canEdit(c)?`<button class="link" data-add="items">＋ Add a magic item</button>`:""}</div>
-   <div class="card"><h3>Money</h3><div class="grid money">${COINS.map(k=>f(k,k)).join("")}</div><p class="hint" id="worth" style="margin:6px 0 0"></p></div></div>
-  <div class="two"><div class="card"><h3>Equipment</h3><textarea data-f="gear" aria-label="Equipment" placeholder="Weapons, armor and everything else carried"${dis}></textarea></div><div class="card"><h3>Notes</h3><textarea data-f="notes" aria-label="Notes" placeholder="Spells known, henchmen, property, anything else"${dis}></textarea></div></div>
+  const u=(k,l,cls="")=>`<div class="uf ${cls}"><input id="f-${k}" data-f="${k}"${dis} autocomplete="off"><label for="f-${k}">${l}</label></div>`;
+  const big=(k,l,cls="")=>`<div class="cb ${cls}"><input id="f-${k}" data-f="${k}"${dis} autocomplete="off"><label for="f-${k}">${l}</label></div>`;
+  return `<div class="sheet rs" id="sheet" data-id="${esc(c.id)}">
+  <div class="rsbox rshead">${u("name","Character name","wide")}${u("player","Player")}${u("race","Race")}${u("cls","Class")}${u("level","Level","sm")}${u("align","Alignment")}${u("xp","Experience points")}</div>
+  <div class="rsgrid">
+   <div class="rsbox"><div class="rsbar">Ability scores <span class="barnote">figures from PHB Tables 1–6</span></div>${Object.keys(ABNAME).map(k=>`<div class="ab"><div class="abn">${ABNAME[k]}</div><div class="abs"><input id="f-${k}" data-f="${k}"${dis} aria-label="${ABNAME[k]}" inputmode="numeric">${k==="str"?`<span id="strslash">/</span><input class="strx" data-f="strx" aria-label="Exceptional strength" placeholder="00"${dis} inputmode="numeric">`:""}</div><div class="abadj" id="adj-${k}"></div></div>`).join("")}</div>
+   <div class="rscol">
+    <div class="rsbox"><div class="rsbar">Combat</div><div class="cbs">${big("ac","Armor Class","shield")}${big("hpmax","Hit points")}${big("thac0","THAC0")}${big("move","Movement")}</div></div>
+    <div class="rsbox"><div class="rsbar">Saving throws</div><div class="svs">${SAVES.map(([k,l])=>`<div class="sv"><label for="f-${k}">${l}</label><input id="f-${k}" data-f="${k}"${dis} inputmode="numeric"></div>`).join("")}</div></div>
+    <div class="rsbox"><div class="rsbar">Money</div><div class="rsin"><div class="coins">${COINS.map(k=>`<div class="cb sm"><input id="f-${k}" data-f="${k}"${dis} inputmode="numeric"><label for="f-${k}">${k}</label></div>`).join("")}</div><p class="hint" id="worth"></p></div></div>
+   </div>
+   <div class="rscol grow">
+    <div class="rsbox fill"><div class="rsbar">Magic items</div><div class="rsin"><textarea data-f="magic" aria-label="Magic items" placeholder="One per line, for example: Wand of Magic Missiles (23 charges)"${dis}></textarea></div></div>
+    <div class="rsbox fill"><div class="rsbar">Equipment</div><div class="rsin"><textarea data-f="gear" aria-label="Equipment" placeholder="Weapons, armor and everything else carried"${dis}></textarea></div></div>
+    <div class="rsbox fill"><div class="rsbar">Notes</div><div class="rsin"><textarea data-f="notes" aria-label="Notes" placeholder="Spells known, languages, proficiencies, henchmen, property"${dis}></textarea></div></div>
+   </div></div>
   <div class="foot"><span id="status"></span>${canEdit(c)?`<span style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><label class="tick"><input type="checkbox" data-f="hidden"> Leave out of the party view (retired or dead)</label><button class="btn sec small" id="del">Delete character</button></span>`:""}</div></div>`; }
-const rowsSig=a=>JSON.stringify(a||[]);
-function itemsHTML(c){ const dis=canEdit(c)?"":" disabled", I=c.items||[];
-  if(!I.length) return `<p class="hint">None yet.</p>`;
-  return `<table class="rows" data-arr="items"><tr><th>Item</th><th>Charges</th><th>Notes</th><th></th></tr>${I.map((w,i)=>`<tr data-i="${i}"><td><input type="text" data-k="n" value="${esc(w.n)}"${dis} aria-label="Item"></td><td style="width:80px"><input type="text" data-k="ch" value="${esc(w.ch)}"${dis} aria-label="Charges"></td><td><input type="text" data-k="note" value="${esc(w.note)}"${dis} aria-label="Notes"></td><td>${dis?"":`<button class="x" data-rm="${i}" title="Remove">✕</button>`}</td></tr>`).join("")}</table>`; }
+
 // PHB Table 43: 1 pp = 5 gp; 2 ep, 10 sp or 100 cp = 1 gp
 const worth=c=>{ const n=k=>Math.max(0,num(c[k])||0); return n("pp")*5+n("gp")+n("ep")/2+n("sp")/10+n("cp")/100; };
 const gpStr=v=>(Math.round(v*100)/100).toLocaleString("en-US",{maximumFractionDigits:2})+" gp";
 function fillSheet(c,all){ const sh=$("#sheet"); if(!sh) return; const act=document.activeElement;
   sh.querySelectorAll("[data-f]").forEach(el=>{ if(el===act&&!all) return; const k=el.dataset.f; if(el.type==="checkbox") el.checked=!!c[k]; else if(el.value!==String(c[k]??"")) el.value=c[k]??""; });
-  const s18=String(c.str).trim()==="18"; $("#strslash").style.visibility=s18?"":"hidden"; sh.querySelector('[data-f="strx"]').style.visibility=s18?"":"hidden";
-  const w=$("#worth"); if(w){ const v=worth(c); w.textContent=v?"Worth "+gpStr(v)+" in all (1 pp = 5 gp; 2 ep, 10 sp or 100 cp = 1 gp).":""; }
-  const box=$("#items"); if(box){ const sig=rowsSig(c.items); if(box.dataset.sig!==sig&&(all||!box.contains(act))){ box.innerHTML=itemsHTML(c); box.dataset.sig=sig; } } }
-function readRows(k){ const t=$(`table[data-arr="${k}"]`); if(!t) return []; return [...t.querySelectorAll("tr[data-i]")].map(tr=>{ const o={}; tr.querySelectorAll("[data-k]").forEach(el=>o[el.dataset.k]=el.type==="checkbox"?el.checked:el.value); return o; }); }
+  const s18=String(c.str).trim()==="18"; $("#strslash").style.display=s18?"":"none"; sh.querySelector('[data-f="strx"]').style.display=s18?"":"none";
+  const w=$("#worth"); if(w){ const v=worth(c); w.textContent=v?"Worth "+gpStr(v)+" in all":""; w.title="1 pp = 5 gp; 2 ep, 10 sp or 100 cp = 1 gp (PHB Table 43)"; }
+  Object.keys(ABNAME).forEach(k=>{ const el=$("#adj-"+k); if(el) el.innerHTML=adjCells(k,c).map(([l,v])=>`<span class="a"><i>${l}</i> ${esc(v)}</span>`).join(""); }); }
 function partyHTML(){ const P=chars.filter(c=>!c.hidden).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   if(!P.length) return `<p>No characters yet.</p>`+shareHTML();
-  const tot=P.reduce((a,c)=>a+worth(c),0), ni=P.reduce((a,c)=>a+(c.items||[]).filter(i=>i.n).length,0);
-  return `<p class="hint" style="margin:0 0 10px">The whole party: ${gpStr(tot)} in coin, ${ni} magic item${ni===1?"":"s"}. Click a name to open the full sheet.</p><div class="party">${P.map(c=>{ const I=(c.items||[]).filter(i=>i.n), coins=COINS.filter(k=>num(c[k])).map(k=>num(c[k]).toLocaleString("en-US")+" "+k);
+  const mags=c=>String(c.magic||"").split(/\n/).map(x=>x.trim()).filter(Boolean);
+  const tot=P.reduce((a,c)=>a+worth(c),0), ni=P.reduce((a,c)=>a+mags(c).length,0);
+  return `<p class="hint" style="margin:0 0 10px">The whole party: ${gpStr(tot)} in coin, ${ni} magic item${ni===1?"":"s"}. Click a name to open the full sheet.</p><div class="party">${P.map(c=>{ const I=mags(c), coins=COINS.filter(k=>num(c[k])).map(k=>num(c[k]).toLocaleString("en-US")+" "+k);
     return `<div class="card pc"><h3 data-open="${esc(c.id)}" title="Open the sheet">${esc(c.name||"Unnamed")}</h3><div class="sub">${esc([c.race,c.cls,c.level&&("level "+c.level)].filter(Boolean).join(" · "))}${c.player?" · "+esc(c.player):""}</div>
       <div class="pcrow"><div><span class="k">Experience</span><span class="big">${esc(c.xp||"—")}</span></div><div><span class="k">HP</span><span class="big">${esc(c.hpmax||"—")}</span></div><div><span class="k">AC</span><span class="big">${esc(c.ac||"—")}</span></div></div>
       <div class="line"><span class="k">Coins${worth(c)?" · worth "+esc(gpStr(worth(c))):""}</span>${coins.length?esc(coins.join(" · ")):"None"}</div>
-      <div class="line"><span class="k">Magic items</span>${I.length?`<ul class="ilist">${I.map(i=>`<li>${esc(i.n)}${i.ch?` <span class="hint">(${esc(i.ch)})</span>`:""}${i.note?` <span class="hint">· ${esc(i.note)}</span>`:""}</li>`).join("")}</ul>`:"None"}</div>
+      <div class="line"><span class="k">Magic items</span>${I.length?`<ul class="ilist">${I.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`:"None"}</div>
       <div class="line"><span class="k">Equipment</span>${c.gear?`<div class="gear">${esc(c.gear)}</div>`:"Nothing listed"}</div></div>`; }).join("")}</div>`+shareHTML(); }
 function shareHTML(){ return `<div class="share"><span class="hint">Invite players with this link. Anyone who has it can see and change the sheets, so share it only with your group.</span><input id="plink" readonly value="${esc(partyLink())}" aria-label="Party link"><button class="btn sec small" id="copylink">Copy the link</button></div>`; }
 function startHTML(){ return `<div class="card" style="max-width:620px"><h2>Start your party</h2>
@@ -184,13 +236,10 @@ $("#main").addEventListener("click",async ev=>{ const b=ev.target.closest("butto
   if(b.id==="unlock"){ unlocked.add(openId); draw(); return; }
   if(b.id==="claim"){ mine.add(openId); saveMine(); draw(); return; }
   const id=$("#sheet")&&$("#sheet").dataset.id, c=chars.find(x=>x.id===id);
-  if(b.dataset.add&&c){ const k=b.dataset.add; const arr=(c[k]||[]).concat({n:"",ch:"",note:""}); queue(id,{[k]:arr}); fillSheet(c,true); const ins=$$(`#${k} tr[data-i]`); const last=ins[ins.length-1]; if(last) last.querySelector("input").focus(); return; }
-  if(b.dataset.rm&&c){ const k=b.closest("[data-arr]").dataset.arr; const arr=readRows(k); arr.splice(+b.dataset.rm,1); queue(id,{[k]:arr}); fillSheet(c,true); return; }
   if(b.id==="del"&&c){ if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Press again to delete "+(c.name||"this character"); setTimeout(()=>{ if(b.isConnected){ b.classList.remove("armed"); b.textContent="Delete character"; } },4000); return; }
     try{ delete pending[id]; await api.remove(id); mine.delete(id); saveMine(); openId=null; draw(); }catch(e){ status(failMsg(e),true); } return; } });
 $("#main").addEventListener("input",ev=>{ const el=ev.target, sh=$("#sheet"); if(!sh||!sh.contains(el)) return; const id=sh.dataset.id, c=chars.find(x=>x.id===id); if(!c) return;
-  if(el.dataset.f){ queue(id,{[el.dataset.f]:el.type==="checkbox"?el.checked:el.value}); if(el.dataset.f==="name"){ const pk=document.querySelector(`.pick[data-open="${CSS.escape(id)}"]`); if(pk) pk.textContent=el.value||"Unnamed"; } if(["str",...COINS].includes(el.dataset.f)) fillSheet(c,false); return; }
-  const t=el.closest("[data-arr]"); if(t){ const k=t.dataset.arr; const arr=readRows(k); queue(id,{[k]:arr}); $("#"+k).dataset.sig=rowsSig(arr); } });
+  if(el.dataset.f){ queue(id,{[el.dataset.f]:el.type==="checkbox"?el.checked:el.value}); if(el.dataset.f==="name"){ const pk=document.querySelector(`.pick[data-open="${CSS.escape(id)}"]`); if(pk) pk.textContent=el.value||"Unnamed"; } if(["str","strx","dex","con","int","wis","cha",...COINS].includes(el.dataset.f)) fillSheet(c,false); } });
 // ---------- setup screen (no tracker-config.js yet) ----------
 const RULES=`rules_version = '2';
 service cloud.firestore {
@@ -234,7 +283,7 @@ async function boot(){
   $("#nav").hidden=false; $("#main").innerHTML=`<p class="hint">Loading the party…</p>`;
   try{ api=DEMO?demoApi():await firebaseApi(CFG,PARTY); }catch(e){ $("#main").innerHTML=`<div class="card"><h2>Could not reach the database</h2><p>${esc(e&&e.message||e)}</p><p class="hint">Check your internet connection and reload.</p></div>`; return; }
   if(unsub) unsub(); let first=true;
-  unsub=api.listen(list=>{ list.forEach(c=>{ if(pending[c.id]) Object.assign(c,pending[c.id]); }); chars=list;
+  unsub=api.listen(list=>{ list.forEach(c=>{ if(pending[c.id]) Object.assign(c,pending[c.id]); if(!c.magic&&Array.isArray(c.items)&&c.items.length) c.magic=c.items.filter(i=>i&&i.n).map(i=>i.n+(i.ch?` (${i.ch})`:"")+(i.note?` – ${i.note}`:"")).join("\n"); }); chars=list;
     const sh=$("#sheet"); if(!first&&view==="mine"&&sh&&chars.some(c=>c.id===sh.dataset.id)){ fillSheet(chars.find(c=>c.id===sh.dataset.id),false); return; }
     first=false; draw(); }, e=>{ $("#main").innerHTML=`<div class="card"><h2>The database said no</h2><p>${esc(e&&e.message||e)}</p><p class="hint">Usually the rules from setup step 3 are missing or were not published.</p></div>`; });
 }
