@@ -72,7 +72,7 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
 .ilist{margin:2px 0 0;padding-left:18px}.ilist li{margin:1px 0}.gear{white-space:pre-wrap;max-height:9em;overflow:auto;margin-top:2px}
 .tick{display:flex;gap:6px;align-items:center;font:.9rem var(--ui)}
 .tag{font:600 .62rem var(--ui);letter-spacing:.06em;text-transform:uppercase;background:var(--soft);color:var(--muted);border-radius:3px;padding:1px 5px;vertical-align:middle}
-.bin{flex-direction:column;align-items:flex-start}.binrow{display:flex;gap:8px;align-items:center}.tick input{width:auto}
+.bin{flex-direction:column;align-items:flex-start}.binconfirm{background:#fdecea;border:1px solid #e7a9a3;padding:8px 12px;font:.9rem var(--ui);max-width:560px}.binrow{display:flex;gap:8px;align-items:center}.link.danger{color:#b3261e;font-weight:400;font-size:.85rem}.tick input{width:auto}
 
 /* record sheet look, sized to fit a laptop screen */
 .rs{display:block}.rsbox{border:2px solid var(--ink);background:#fff}
@@ -141,12 +141,12 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
 }
 
 /* the party list */
-.listhead{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:760px;margin:6px 0 4px}.listhead h2{margin:0}
-.plist{list-style:none;margin:0;padding:0;max-width:760px;border-top:2px solid var(--ink)}
+.listhead{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:860px;margin:6px 0 4px}.listhead h2{margin:0}
+.plist{list-style:none;margin:0;padding:0;max-width:860px;border-top:2px solid var(--ink)}
 .plist li{border-bottom:1px solid var(--rule)}
-.plist button,.plist .phead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) 56px 64px minmax(0,.6fr);gap:14px;align-items:baseline;width:100%;text-align:left;background:none;border:0;padding:12px 8px;cursor:pointer;color:var(--ink)}
+.plist button,.plist .phead{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.7fr) 56px 64px minmax(0,.6fr);gap:14px;align-items:baseline;width:100%;text-align:left;background:none;border:0;padding:12px 8px;cursor:pointer;color:var(--ink)}
 .plist button:hover,.plist button:focus-visible{background:var(--hi)}
-.pn{font:1.25rem var(--head);color:var(--deep)}.pnum{font:700 1.2rem var(--ui);text-align:center}
+.pn{font:1.25rem var(--head);color:var(--deep);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pnum{font:700 1.2rem var(--ui);text-align:center}
 .plist .phead{padding:2px 8px;gap:14px;font:600 .64rem var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:0}.plist .phead span{text-align:center}.pd{font:1rem var(--body)}.pp{font:.9rem var(--ui);color:var(--muted);text-align:right}
 .backlink{font-size:1rem}
 @media(max-width:640px){.plist .phead{display:none}.plist button{grid-template-columns:1fr auto auto}.plist .pp{grid-column:2/-1;order:2}.plist .pnum{order:4}.plist .pnum::before{content:attr(aria-label) " ";font:600 .62rem var(--ui);color:var(--muted);text-transform:uppercase}.plist .pnum[aria-label="Armor Class"]::before{content:"AC "}.plist .pd{grid-column:1;order:3}}
@@ -291,14 +291,16 @@ function fillSheet(c,all){ const sh=$("#sheet"); if(!sh) return; const act=docum
   sh.querySelectorAll("[data-pv]").forEach(d=>d.textContent=c[d.dataset.pv]||"");
   const w=$("#worth"); if(w){ const v=worth(c); w.textContent=v?"Worth "+gpStr(v)+" in all":""; w.title="1 pp = 5 gp; 2 ep, 10 sp or 100 cp = 1 gp (PHB Table 43)"; }
   Object.keys(ABNAME).forEach(k=>{ const el=$("#adj-"+k); if(el) el.innerHTML=adjCells(k,c).map(([l,v])=>`<span class="a"><i>${l}</i> ${esc(v)}</span>`).join(""); }); }
-let showRetired=false;
+let showRetired=false, binTarget="all";
 function extrasHTML(){ const R=chars.filter(c=>c.hidden&&!c.binned), B=chars.filter(c=>c.binned).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   return (R.length?`<div class="share"><button class="link" id="retired">${showRetired?"Hide":"Show"} retired characters (${R.length})</button></div>`:"")+
-   (B.length?`<div class="share bin"><span class="k">The bin</span>${B.map(c=>`<span class="binrow"><b>${esc(c.name||"Unnamed")}</b>${c.player?` <span class="hint">${esc(c.player)}</span>`:""} <button class="btn sec small" data-restore="${esc(c.id)}">Restore</button></span>`).join("")}<span class="hint">Characters moved to the bin stay here until someone restores them.</span></div>`:""); }
+   (B.length?`<div class="share bin"><span class="k">The bin</span>${B.map(c=>`<span class="binrow"><b>${esc(c.name||"Unnamed")}</b>${c.player?` <span class="hint">${esc(c.player)}</span>`:""} <button class="btn sec small" data-restore="${esc(c.id)}">Restore</button><button class="link danger" data-killone="${esc(c.id)}">Delete for good…</button></span>`).join("")}<span class="hint">Characters moved to the bin stay here until someone restores them or empties the bin.</span>
+   <button class="link" id="emptybin">Empty the bin…</button>
+   <div id="binconfirm" hidden class="binconfirm"><b id="binwhat"></b><br>To go ahead, type <b>delete</b> in the box and press the button.<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap"><input id="binword" autocomplete="off" aria-label="Type delete to confirm" style="width:140px"><button class="btn small" id="binreally">Delete for good</button><button class="btn sec small" id="bincancel">Cancel</button></div><span class="hint" id="binmsg"></span></div></div>`:""); }
 function partyHTML(){ const P=chars.filter(c=>!c.binned&&(!c.hidden||showRetired)).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   const head=`<div class="listhead"><h2>The party</h2><button class="btn sec" id="new">＋ New character</button></div>`;
   if(!P.length) return head+`<p>No characters yet. Press <b>New character</b> to make one.</p>`+extrasHTML()+shareHTML();
-  return head+`<p class="hint" style="margin:0 0 8px">Choose a character to open the full sheet.</p><ul class="plist"><li class="phead" aria-hidden="true"><span></span><span></span><span>AC</span><span>THAC0</span><span></span></li>${P.map(c=>`<li><button data-open="${esc(c.id)}"><span class="pn">${esc(c.name||"Unnamed character")}${c.hidden?` <span class="tag">Retired</span>`:""}</span><span class="pd">${esc([c.race,c.cls,c.level&&("level "+c.level)].filter(Boolean).join(" · "))}</span><span class="pnum" aria-label="Armor Class">${esc(c.ac||"—")}</span><span class="pnum" aria-label="THAC0">${esc(c.thac0||"—")}</span><span class="pp">${c.player?esc(c.player):""}</span></button></li>`).join("")}</ul>`+extrasHTML()+shareHTML(); }
+  return head+`<p class="hint" style="margin:0 0 8px">Choose a character to open the full sheet.</p><ul class="plist"><li class="phead" aria-hidden="true"><span></span><span></span><span>AC</span><span>THAC0</span><span></span></li>${P.map(c=>`<li><button data-open="${esc(c.id)}"><span class="pn">${esc(c.name||"Unnamed character")}${c.hidden?` <span class="tag">Retired</span>`:""}</span>${(()=>{ const d=[c.race,[c.cls,c.level&&(c.cls?c.level:"level "+c.level)].filter(Boolean).join(" ")].filter(Boolean).join(" · "); return `<span class="pd" title="${esc(d)}">${esc(d)}</span>`; })()}<span class="pnum" aria-label="Armor Class">${esc(c.ac||"—")}</span><span class="pnum" aria-label="THAC0">${esc(c.thac0||"—")}</span><span class="pp">${c.player?esc(c.player):""}</span></button></li>`).join("")}</ul>`+extrasHTML()+shareHTML(); }
 function shareHTML(){ return `<div class="share"><span class="hint">Invite players with this link. Anyone who has it can see and change the sheets, so share it only with your group.</span><input id="plink" readonly value="${esc(partyLink())}" aria-label="Party link"><button class="btn sec small" id="copylink">Copy the link</button></div>`; }
 function startHTML(){ return `<div class="card" style="max-width:620px"><h2>Open your party’s link</h2>
   <p>This device doesn’t know your party yet. <b>Open the link your DM sent you</b> (in your email or messages) and your characters will be there. After that, this device remembers it.</p>
@@ -318,6 +320,12 @@ $("#main").addEventListener("click",async ev=>{ const b=ev.target.closest("butto
   const id=$("#sheet")&&$("#sheet").dataset.id, c=chars.find(x=>x.id===id);
   if(b.id==="del"&&c){ if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Press again to move "+(c.name||"this character")+" to the bin"; setTimeout(()=>{ if(b.isConnected){ b.classList.remove("armed"); b.textContent="Move to the bin"; } },4000); return; }
     queue(id,{binned:true}); await flush(); openId=null; draw(); return; }
+  if(b.id==="emptybin"||b.dataset.killone){ binTarget=b.dataset.killone||"all"; const B=chars.filter(c=>c.binned), one=chars.find(c=>c.id===binTarget);
+    $("#binwhat").textContent=one?`This deletes ${one.name||"this character"} for good. It can’t be undone.`:`This deletes ${B.length===1?"the character in the bin":"all "+B.length+" characters in the bin"} for good. It can’t be undone.`;
+    $("#binconfirm").hidden=false; $("#emptybin").hidden=true; $("#binmsg").textContent=""; $("#binword").value=""; $("#binword").focus(); return; }
+  if(b.id==="bincancel"){ $("#binconfirm").hidden=true; $("#emptybin").hidden=false; $("#binword").value=""; return; }
+  if(b.id==="binreally"){ if($("#binword").value.trim().toLowerCase()!=="delete"){ $("#binmsg").textContent="Type the word delete first."; $("#binword").focus(); return; }
+    b.disabled=true; const B=chars.filter(c=>c.binned&&(binTarget==="all"||c.id===binTarget)), gone=new Set(B.map(c=>c.id)); try{ for(const c of B){ delete pending[c.id]; await api.remove(c.id); mine.delete(c.id); } saveMine(); chars=chars.filter(c=>!gone.has(c.id)); draw(); }catch(e){ b.disabled=false; $("#binmsg").textContent=failMsg(e).replace("Not saved","Not deleted"); } return; }
   if(b.dataset.restore){ queue(b.dataset.restore,{binned:false}); await flush(); draw(); return; }
   if(b.id==="retired"){ showRetired=!showRetired; draw(); return; }
   if(b.id==="iamdm"){ $("#dmstart").hidden=false; b.hidden=true; return; } });
