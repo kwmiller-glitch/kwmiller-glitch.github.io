@@ -116,21 +116,29 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
 .backhead{display:none}.rspage[data-page="back"]{margin-top:10px}
 @media(max-width:1100px){.rsgrid.back{grid-template-columns:1fr 1fr}}
 @media(max-width:640px){.rsgrid.back{grid-template-columns:1fr}.slots{grid-template-columns:repeat(5,minmax(0,1fr))}.pgtabs{margin-left:0}}
-/* printing: both sides, one sheet of paper each, landscape */
+/* printing: a fixed-size copy of the sheet (#printout), one landscape page per side; long boxes shrink to fit */
 @page{size:landscape;margin:9mm}
+#printout{position:absolute;left:-20000px;top:0;width:980px;visibility:hidden;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#printout .rspage{width:980px;height:728px;overflow:hidden;display:flex;flex-direction:column;margin:0;break-after:page}
+#printout .rspage.extra{height:auto;overflow:visible;break-after:auto}
+#printout .rspage:last-child{break-after:auto}
+#printout .backhead{display:block}
+#printout .rshead{grid-template-columns:2.2fr 1fr 1fr 1.2fr .45fr 1.1fr 1fr!important}
+#printout .rsgrid{flex:1;min-height:0!important;grid-template-columns:minmax(0,1.45fr) minmax(0,.8fr) minmax(0,1fr)!important}
+#printout .rsgrid.back{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+#printout .rsgrid>.rsbox{grid-column:auto!important}
+#printout .rscol,#printout .rsbox.fill,#printout .rsbox.fill .rsin{min-height:0;overflow:hidden}
+#printout .ab{grid-template-columns:96px auto minmax(0,1fr)!important}#printout .ab .abadj{grid-column:auto!important}
+#printout .cbs{grid-template-columns:1fr 1.9fr 1fr 1fr!important}#printout .slots{grid-template-columns:repeat(9,minmax(0,1fr))!important}#printout .coins{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+#printout textarea,#printout .foot{display:none!important}
+#printout .pv{display:block;white-space:pre-wrap;font:14px/1.3 var(--body);flex:1;min-height:0;overflow:hidden;column-gap:16px;column-fill:auto}
+#printout .pv .more{font:italic 11px var(--ui);color:var(--muted)}
+#printout .extra .rsbox{margin-top:8px}#printout .extra .pv{column-count:3;column-fill:balance;font-size:11px;overflow:visible;flex:none;height:auto}
+#printout input::placeholder{color:transparent}
 @media print{
-  body{font-size:15px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  header,.mylist,.lockbar,.demo,.foot,.hint#status{display:none!important}
-  main{padding:0;max-width:none}
-  .backhead{display:block}.rspage[data-page="back"]{margin-top:0}
-  .rspage{display:block!important;break-after:page}.rspage:last-of-type{break-after:auto}
-  .rshead{grid-template-columns:2.2fr 1fr 1fr 1.2fr .45fr 1.1fr 1fr!important}
-  .rsgrid{grid-template-columns:minmax(0,1.45fr) minmax(0,.8fr) minmax(0,1fr)!important;min-height:600px}
-  .rsgrid.back{grid-template-columns:repeat(3,minmax(0,1fr))!important;min-height:600px!important}
-  .rsgrid>.rsbox{grid-column:auto!important}
-  textarea{display:none!important}.pv{display:block;white-space:pre-wrap;font:.9rem/1.35 var(--body);min-height:3em}
-  input::placeholder{color:transparent}
-  .barnote{color:#fff}
+  body>*:not(#printout){display:none!important}
+  #printout{position:static;visibility:visible;left:auto}
+}
 }
 
 /* the party list */
@@ -142,6 +150,17 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
 .pn{font:1.25rem var(--head);color:var(--deep)}.pd{font:1rem var(--body)}.pp{font:.9rem var(--ui);color:var(--muted);text-align:right}
 .backlink{font-size:1rem}
 @media(max-width:640px){.plist button{grid-template-columns:1fr auto}.plist .pd{grid-column:1/-1;order:3}}
+
+/* current hit points with arrows, in the Hit points box */
+.hpcell .hpnow{display:flex;align-items:stretch;width:100%;border:2px solid var(--ink);height:40px}
+.hpcell .hpnow input{border:0;height:100%;min-width:0;flex:1;font:700 1.3rem var(--ui);text-align:center;padding:0}
+.hpcell .arrows{display:flex;flex-direction:column;border-left:1.5px solid var(--ink);border-right:1.5px solid var(--ink)}
+.hpa{flex:1;width:20px;border:0;background:var(--panel);color:var(--ink);font-size:.62rem;line-height:1;padding:0;cursor:pointer;touch-action:manipulation;user-select:none}
+.hpa:first-child{border-bottom:1px solid var(--ink)}.hpa:hover{background:var(--hi)}.hpa:active{background:var(--blue);color:#fff}
+.hpcell .slash{align-self:center;font:400 1.5rem var(--ui);padding:0 1px 0 4px;color:var(--ink)}
+.hpcell .hpnow input.max{font-weight:600;font-size:1.15rem}
+.cbs{grid-template-columns:1fr 1.9fr 1fr 1fr!important}
+#printout .hpcell .arrows{display:none}
 </style>
 <script src="tracker-config.js"></script>
 </head><body>
@@ -158,7 +177,7 @@ const DEMO=new URLSearchParams(location.search).has("demo");
 const SAVES=[["sv1","Paralyzation, poison, death magic"],["sv2","Rod, staff or wand"],["sv3","Petrification or polymorph"],["sv4","Breath weapon"],["sv5","Spell"]];
 const ABIL=[["str","Str"],["dex","Dex"],["con","Con"],["int","Int"],["wis","Wis"],["cha","Cha"]];
 const COINS=["pp","gp","ep","sp","cp"];
-const BLANK=()=>({name:"",player:"",race:"",cls:"",level:"1",align:"",xp:"",hpmax:"",ac:"10",thac0:"20",move:"12",
+const BLANK=()=>({name:"",player:"",race:"",cls:"",level:"1",align:"",xp:"",hp:"",hpmax:"",ac:"10",thac0:"20",move:"12",
   sv1:"",sv2:"",sv3:"",sv4:"",sv5:"",str:"",strx:"",dex:"",con:"",int:"",wis:"",cha:"",magic:"",gear:"",notes:"",pp:"",gp:"",ep:"",sp:"",cp:"",hidden:false});
 // ---------- the party's private code: from the link, else remembered by this browser ----------
 const codeOk=c=>/^[A-Za-z0-9]{16,40}$/.test(c||"");
@@ -238,7 +257,7 @@ function sheetHTML(c){ const dis=canEdit(c)?"":" disabled";
   <div class="rsgrid">
    <div class="rsbox"><div class="rsbar">Ability scores <span class="barnote">figures from PHB Tables 1–6</span></div>${Object.keys(ABNAME).map(k=>`<div class="ab"><div class="abn">${ABNAME[k]}</div><div class="abs"><input id="f-${k}" data-f="${k}"${dis} aria-label="${ABNAME[k]}" inputmode="numeric" autocomplete="off">${k==="str"?`<span id="strslash">/</span><input class="strx" data-f="strx" aria-label="Exceptional strength" placeholder="00"${dis} inputmode="numeric" autocomplete="off">`:""}</div><div class="abadj" id="adj-${k}"></div></div>`).join("")}</div>
    <div class="rscol">
-    <div class="rsbox"><div class="rsbar">Combat</div><div class="cbs">${big("ac","Armor Class","shield")}${big("hpmax","Hit points")}${big("thac0","THAC0")}${big("move","Movement")}</div></div>
+    <div class="rsbox"><div class="rsbar">Combat</div><div class="cbs">${big("ac","Armor Class","shield")}<div class="cb hpcell"><div class="hpnow"><input id="f-hp" data-f="hp"${dis} inputmode="numeric" autocomplete="off" aria-label="Current hit points"><span class="arrows"><button type="button" class="hpa" data-hpstep="1"${dis} title="Add a hit point (hold to keep adding)" aria-label="Add a hit point">▲</button><button type="button" class="hpa" data-hpstep="-1"${dis} title="Take away a hit point (hold to keep going)" aria-label="Take away a hit point">▼</button></span><span class="slash">/</span><input id="f-hpmax" class="max" data-f="hpmax"${dis} inputmode="numeric" autocomplete="off" aria-label="Maximum hit points" title="Maximum hit points"></div><label for="f-hp">Hit points</label></div>${big("thac0","THAC0")}${big("move","Movement")}</div></div>
     <div class="rsbox"><div class="rsbar">Saving throws</div><div class="svs">${SAVES.map(([k,l])=>`<div class="sv"><label for="f-${k}">${l}</label><input id="f-${k}" data-f="${k}"${dis} inputmode="numeric" autocomplete="off"></div>`).join("")}</div></div>
     <div class="rsbox"><div class="rsbar">Money</div><div class="rsin"><div class="coins">${COINS.map(k=>`<div class="cb sm"><input id="f-${k}" data-f="${k}"${dis} inputmode="numeric" autocomplete="off"><label for="f-${k}">${k}</label></div>`).join("")}</div><p class="hint" id="worth"></p></div></div>
    </div>
@@ -295,7 +314,7 @@ $("#main").addEventListener("click",async ev=>{ const b=ev.target.closest("butto
   if(b.id==="tolist"){ openSheet(null); return; }
   if(b.id==="new"){ b.disabled=true; try{ const id=await api.create(Object.assign(BLANK(),{created:Date.now(),updated:Date.now()})); if(!chars.some(c=>c.id===id)) chars.push(Object.assign(BLANK(),{id})); openSheet(id); const n=$('[data-f="name"]'); if(n) n.focus(); }catch(e){ b.disabled=false; $("#main").insertAdjacentHTML("afterbegin",`<p class="hint" style="color:var(--bad)">${esc(failMsg(e))}</p>`); } return; }
   if(b.dataset.pg){ sheetPage=b.dataset.pg; LS.set("pt-page",sheetPage); $$(".rspage").forEach(p=>p.hidden=p.dataset.page!==sheetPage); $$("[data-pg]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.pg===sheetPage)); return; }
-  if(b.id==="print"){ await flush(); window.print(); return; }
+  if(b.id==="print"){ await flush(); buildPrint(); window.print(); return; }
   const id=$("#sheet")&&$("#sheet").dataset.id, c=chars.find(x=>x.id===id);
   if(b.id==="del"&&c){ if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Press again to move "+(c.name||"this character")+" to the bin"; setTimeout(()=>{ if(b.isConnected){ b.classList.remove("armed"); b.textContent="Move to the bin"; } },4000); return; }
     queue(id,{binned:true}); await flush(); openId=null; draw(); return; }
@@ -304,6 +323,39 @@ $("#main").addEventListener("click",async ev=>{ const b=ev.target.closest("butto
   if(b.id==="iamdm"){ $("#dmstart").hidden=false; b.hidden=true; return; } });
 $("#main").addEventListener("input",ev=>{ const el=ev.target, sh=$("#sheet"); if(!sh||!sh.contains(el)) return; const id=sh.dataset.id, c=chars.find(x=>x.id===id); if(!c) return;
   if(el.dataset.f){ queue(id,{[el.dataset.f]:el.type==="checkbox"?el.checked:el.value}); sh.querySelectorAll(`[data-f="${el.dataset.f}"]`).forEach(x=>{ if(x!==el&&x.type!=="checkbox") x.value=el.value; }); const pv=sh.querySelector(`[data-pv="${el.dataset.f}"]`); if(pv) pv.textContent=el.value; if(el.dataset.f==="name"){ const pk=document.querySelector(`.pick[data-open="${CSS.escape(id)}"]`); if(pk) pk.textContent=el.value||"Unnamed"; } if(["str","strx","dex","con","int","wis","cha",...COINS].includes(el.dataset.f)) fillSheet(c,false); } });
+
+
+// ---------- hit point arrows: click for one, hold to keep going ----------
+function hpStep(d){ const sh=$("#sheet"); if(!sh) return; const id=sh.dataset.id, c=chars.find(x=>x.id===id); if(!c) return;
+  let v=num(c.hp); if(v===null) v=num(c.hpmax)||0; v+=d; const inp=$("#f-hp"); if(inp) inp.value=v; queue(id,{hp:String(v)}); }
+let hpTimer=null; const hpStop=()=>{ clearTimeout(hpTimer); clearInterval(hpTimer); hpTimer=null; };
+$("#main").addEventListener("pointerdown",ev=>{ const b=ev.target.closest("[data-hpstep]"); if(!b||b.disabled) return; ev.preventDefault(); const d=+b.dataset.hpstep; hpStep(d); hpStop(); hpTimer=setTimeout(()=>{ hpTimer=setInterval(()=>hpStep(d),110); },420); });
+["pointerup","pointerleave","pointercancel","blur"].forEach(t=>window.addEventListener(t,hpStop,true));
+$("#main").addEventListener("click",ev=>{ const b=ev.target.closest("[data-hpstep]"); if(b&&ev.detail===0&&!b.disabled) hpStep(+b.dataset.hpstep); });
+// ---------- printing ----------
+// Each side prints on one landscape page. A box with more text than fits gets smaller type, then two
+// columns; if it still does not fit, the rest goes on an extra page at the end ("continued").
+function buildPrint(){ const old=$("#printout"); if(old) old.remove(); const sh=$("#sheet"); if(!sh) return;
+  sh.querySelectorAll("input").forEach(i=>{ if(i.type==="checkbox"){ if(i.checked) i.setAttribute("checked",""); else i.removeAttribute("checked"); } else i.setAttribute("value",i.value); });
+  const out=document.createElement("div"); out.id="printout"; const copy=sh.cloneNode(true); copy.querySelectorAll("[id]").forEach(e=>e.removeAttribute("id")); copy.removeAttribute("id");
+  copy.querySelectorAll("textarea,.foot").forEach(e=>e.remove()); [...copy.children].forEach(ch=>out.appendChild(ch)); document.body.appendChild(out);
+  const fits=el=>el.scrollHeight<=el.clientHeight+1&&el.scrollWidth<=el.clientWidth+1;
+  const set=(el,cols,px)=>{ el.style.columnCount=cols; el.style.fontSize=px+"px"; };
+  // each box starts at the height its writing needs; when a column is too full, the longest boxes give up the most room
+  out.querySelectorAll(".rsbox.fill").forEach(b=>{ const t=(b.querySelector(".pv")||{}).textContent||""; const lines=t.split("\n").reduce((n,l)=>n+Math.max(1,Math.ceil(l.length/45)),0); b.style.flex=`1 ${Math.max(1,lines*lines)} auto`; b.style.minHeight="64px"; });
+  const rest=[];
+  out.querySelectorAll(".pv").forEach(el=>{ const text=el.textContent; if(!text.trim()) return;
+    for(const [cols,px] of [[1,14],[1,13],[1,12],[1,11],[2,12],[2,11],[2,10],[2,9]]){ set(el,cols,px); if(fits(el)) return; }
+    set(el,2,10); const words=text.split(/(\s+)/); let lo=0, hi=words.length;
+    const show=n=>{ el.textContent=words.slice(0,n).join("").replace(/\s+$/,""); const m=document.createElement("div"); m.className="more"; m.textContent="… continued on the last page"; el.appendChild(m); };
+    while(lo<hi){ const mid=Math.ceil((lo+hi)/2); show(mid); if(fits(el)) lo=mid; else hi=mid-1; }
+    show(lo); const title=(el.closest(".rsbox").querySelector(".rsbar")||{}).textContent||"";
+    rest.push([title,words.slice(lo).join("").replace(/^\s+/,"")]); });
+  if(rest.length){ const pg=document.createElement("div"); pg.className="rspage extra"; const head=out.querySelector(".rshead"); if(head) pg.appendChild(head.cloneNode(true));
+    rest.forEach(([t,x])=>{ const b=document.createElement("div"); b.className="rsbox"; b.innerHTML=`<div class="rsbar">${esc(t)} (continued)</div><div class="rsin"><div class="pv"></div></div>`; b.querySelector(".pv").textContent=x; pg.appendChild(b); });
+    out.appendChild(pg); } }
+window.addEventListener("beforeprint",()=>{ if(!$("#printout")) buildPrint(); });
+window.addEventListener("afterprint",()=>{ const o=$("#printout"); if(o) o.remove(); });
 // ---------- setup screen (no tracker-config.js yet) ----------
 const RULES=`rules_version = '2';
 service cloud.firestore {
