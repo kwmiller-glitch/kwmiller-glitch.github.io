@@ -132,6 +132,16 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
   input::placeholder{color:transparent}
   .barnote{color:#fff}
 }
+
+/* the party list */
+.listhead{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:760px;margin:6px 0 4px}.listhead h2{margin:0}
+.plist{list-style:none;margin:0;padding:0;max-width:760px;border-top:2px solid var(--ink)}
+.plist li{border-bottom:1px solid var(--rule)}
+.plist button{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) minmax(0,.7fr);gap:14px;align-items:baseline;width:100%;text-align:left;background:none;border:0;padding:12px 8px;cursor:pointer;color:var(--ink)}
+.plist button:hover,.plist button:focus-visible{background:var(--hi)}
+.pn{font:1.25rem var(--head);color:var(--deep)}.pd{font:1rem var(--body)}.pp{font:.9rem var(--ui);color:var(--muted);text-align:right}
+.backlink{font-size:1rem}
+@media(max-width:640px){.plist button{grid-template-columns:1fr auto}.plist .pd{grid-column:1/-1;order:3}}
 </style>
 <script src="tracker-config.js"></script>
 </head><body>
@@ -178,7 +188,7 @@ let api=null, chars=[], view="mine", openId=null;
 const MKEY=()=>"pt-mine-"+PARTY; let mine=new Set(LS.get(MKEY(),[])); const saveMine=()=>LS.set(MKEY(),[...mine]);
 const unlocked=new Set();
 const pending={}; let timer=null;
-const canEdit=c=>!!c&&(mine.has(c.id)||unlocked.has(c.id));
+const canEdit=c=>!!c;
 const num=v=>{ const n=parseInt(String(v).replace(/[^\d-]/g,""),10); return isNaN(n)?null:n; };
 const status=(t,err)=>{ const s=$("#status"); if(s){ s.textContent=t; s.className=err?"err":""; } };
 function failMsg(e){ const c=e&&e.code||""; return c.includes("permission")?"Not saved: the database refused (check the rules from setup step 3).":c.includes("unavailable")?"Not saved yet: no connection. It will go through when you are back online.":"Not saved: "+(e&&e.message||e); }
@@ -189,15 +199,14 @@ $("#nav").addEventListener("click",ev=>{ const b=ev.target.closest("button[data-
 const setView=v=>{ view=v; $$("#nav button").forEach(x=>x.setAttribute("aria-selected",x.dataset.v===v)); };
 // ---------- screens ----------
 function draw(){ const m=$("#main"); if(!api) return;
-  if(view==="party"){ m.innerHTML=demoNote()+partyHTML(); return; }
-  const my=chars.filter(c=>mine.has(c.id)&&!c.binned).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
-  let c=chars.find(x=>x.id===openId&&!x.binned); if(!c&&my.length===1){ c=my[0]; openId=c.id; } if(!c&&openId) openId=null;
-  const picks=my.map(x=>`<button class="pick" data-open="${esc(x.id)}" aria-pressed="${x.id===openId}">${esc(x.name||"Unnamed")}</button>`).join("");
-  const lock=c&&!mine.has(c.id)?`<div class="lockbar"><span>This is <b>${esc(c.player||"another player")}</b>’s character${canEdit(c)?". You are editing it.":", so it is view only."}</span>${canEdit(c)?"":`<button class="btn sec small" id="unlock">Edit it anyway</button>`}<button class="btn sec small" id="claim">It’s mine: remember it on this device</button></div>`:"";
-  const empty=my.length?"<p>Pick a character above.</p>":`<p>No characters on this device yet. Press <b>New character</b> to make one.</p><p class="hint">Made your character on another device? Open the <b>Party</b> tab, click its name, and press “It’s mine”.</p>`;
-  const pg=c?`<span class="pgtabs"><button class="btn sec small" id="print">Print</button></span>`:"";
-  m.innerHTML=demoNote()+`<div class="mylist">${picks}<button class="btn sec small" id="new">＋ New character</button>${pg}</div>`+(c?lock+sheetHTML(c):empty);
-  if(c) fillSheet(c,true); m.querySelectorAll("input:not([type=checkbox]),textarea").forEach(x=>x.setAttribute("autocomplete","off")); }
+  const c=chars.find(x=>x.id===openId&&!x.binned); if(!c) openId=null;
+  if(!c){ m.innerHTML=demoNote()+partyHTML(); return; }
+  m.innerHTML=demoNote()+`<div class="mylist"><button class="link backlink" id="tolist">← All characters</button><span class="pgtabs"><button class="btn sec small" id="print">Print</button></span></div>`+sheetHTML(c);
+  fillSheet(c,true); m.querySelectorAll("input:not([type=checkbox]),textarea").forEach(x=>x.setAttribute("autocomplete","off")); }
+// the open sheet is part of the address, so the browser's Back button returns to the list
+const partyBase=()=>location.href.replace(/#.*$/,"")+"#party="+PARTY;
+function openSheet(id,push=true){ openId=id; if(push) history.pushState(null,"",partyBase()+(id?"&c="+id:"")); draw(); window.scrollTo({top:0}); }
+window.addEventListener("popstate",()=>{ const m=location.hash.match(/[&#]c=([A-Za-z0-9]+)/); openId=m?m[1]:null; draw(); window.scrollTo({top:0}); });
 function demoNote(){ return api.isDemo?`<div class="demo"><b>Demo mode.</b> Everything is saved in this browser only, and two made-up party members are filled in. ${CFG?"":`<a href="?">Set up the real thing</a>.`}</div>`:""; }
 // ---------- ability score tables, Player's Handbook Tables 1-6 ----------
 const ABT={"str":[["1",-5,-4,1,3,"1","0%"],["2",-3,-2,1,5,"1","0%"],["3",-3,-1,5,10,"2","0%"],["4-5",-2,-1,10,25,"3","0%"],["6-7",-1,0,20,55,"4","0%"],["8-9",0,0,35,90,"5","1%"],["10-11",0,0,40,115,"6","2%"],["12-13",0,0,45,140,"7","4%"],["14-15",0,0,55,170,"8","7%"],["16",0,1,70,195,"9","10%"],["17",1,1,85,220,"10","13%"],["18",1,2,110,255,"11","16%"],["18/01-50",1,3,135,280,"12","20%"],["18/51-75",2,3,160,305,"13","25%"],["18/76-90",2,4,185,330,"14","30%"],["18/91-99",2,5,235,380,"15(3)","35%"],["18/00",3,6,335,480,"16(6)","40%"],["19",3,7,485,640,"16(8)","50%"],["20",3,8,535,700,"17(10)","60%"],["21",4,9,635,810,"17(12)","70%"],["22",4,10,785,970,"18(14)","80%"],["23",5,11,935,1130,"18(16)","90%"],["24",6,12,1235,1440,"19(17)","95%"],["25",7,14,1535,1750,"19(18)","99%"]],"dex":{"1":[-6,-6,5],"2":[-4,-4,5],"3":[-3,-3,4],"4":[-2,-2,3],"5":[-1,-1,2],"6":[0,0,1],"7":[0,0,0],"8":[0,0,0],"9":[0,0,0],"10":[0,0,0],"11":[0,0,0],"12":[0,0,0],"13":[0,0,0],"14":[0,0,0],"15":[0,0,-1],"16":[1,1,-2],"17":[2,2,-3],"18":[2,2,-4],"19":[3,3,-4],"20":[3,3,-4],"21":[4,4,-5],"22":[4,4,-5],"23":[4,4,-5],"24":[5,5,-6],"25":[5,5,-6]},"con":{"1":[-3,-3,25,30,-2,"Nil"],"2":[-2,-2,30,35,-1,"Nil"],"3":[-2,-2,35,40,0,"Nil"],"4":[-1,-1,40,45,0,"Nil"],"5":[-1,-1,45,50,0,"Nil"],"6":[-1,-1,50,55,0,"Nil"],"7":[0,0,55,60,0,"Nil"],"8":[0,0,60,65,0,"Nil"],"9":[0,0,65,70,0,"Nil"],"10":[0,0,70,75,0,"Nil"],"11":[0,0,75,80,0,"Nil"],"12":[0,0,80,85,0,"Nil"],"13":[0,0,85,90,0,"Nil"],"14":[0,0,88,92,0,"Nil"],"15":[1,1,90,94,0,"Nil"],"16":[2,2,95,96,0,"Nil"],"17":[2,3,97,98,0,"Nil"],"18":[2,4,99,100,0,"Nil"],"19":[2,5,99,100,1,"Nil"],"20":[2,5,99,100,1,"1/6 turns"],"21":[2,6,99,100,2,"1/5 turns"],"22":[2,6,99,100,2,"1/4 turns"],"23":[2,6,99,100,3,"1/3 turns"],"24":[2,7,99,100,3,"1/2 turns"],"25":[2,7,100,100,4,"1/1 turn"]},"int":{"1":[0,0,0,0],"2":[0,0,0,1],"3":[0,0,0,1],"4":[0,0,0,1],"5":[0,0,0,1],"6":[0,0,0,1],"7":[0,0,0,1],"8":[0,0,0,1],"9":[4,6,35,2],"10":[5,7,40,2],"11":[5,7,45,2],"12":[6,7,50,3],"13":[6,9,55,3],"14":[7,9,60,4],"15":[7,11,65,4],"16":[8,11,70,5],"17":[8,14,75,6],"18":[9,18,85,7],"19":[9,99,95,8],"20":[9,99,96,9],"21":[9,99,97,10],"22":[9,99,98,11],"23":[9,99,99,12],"24":[9,99,100,15],"25":[9,99,100,20]},"wis":{"1":[-6,[],80],"2":[-4,[],60],"3":[-3,[],50],"4":[-2,[],45],"5":[-1,[],40],"6":[-1,[],35],"7":[-1,[],30],"8":[0,[],25],"9":[0,[],20],"10":[0,[],15],"11":[0,[],10],"12":[0,[],5],"13":[0,[1],0],"14":[0,[1,1],0],"15":[1,[1,1,2],0],"16":[2,[1,1,2,2],0],"17":[3,[1,1,2,2,3],0],"18":[4,[1,1,2,2,3,4],0],"19":[4,[1,1,2,2,3,4,1,4],0],"20":[4,[1,1,2,2,3,4,1,4,2,4],0],"21":[4,[1,1,2,2,3,4,1,4,2,4,3,5],0],"22":[4,[1,1,2,2,3,4,1,4,2,4,3,5,4,5],0],"23":[4,[1,1,2,2,3,4,1,4,2,4,3,5,4,5,5,5],0],"24":[4,[1,1,2,2,3,4,1,4,2,4,3,5,4,5,5,5,6,6],0],"25":[4,[1,1,2,2,3,4,1,4,2,4,3,5,4,5,5,5,6,6,6,7],0]},"cha":{"1":[0,-8,-7],"2":[1,-7,-6],"3":[1,-6,-5],"4":[1,-5,-4],"5":[2,-4,-3],"6":[2,-3,-2],"7":[3,-2,-1],"8":[3,-1,0],"9":[4,0,0],"10":[4,0,0],"11":[4,0,0],"12":[5,0,0],"13":[5,0,1],"14":[6,1,2],"15":[7,3,3],"16":[8,4,5],"17":[10,6,6],"18":[15,8,7],"19":[20,10,8],"20":[25,12,9],"21":[30,14,10],"22":[35,16,11],"23":[40,18,12],"24":[45,20,13],"25":[50,20,14]}};
@@ -266,21 +275,15 @@ function fillSheet(c,all){ const sh=$("#sheet"); if(!sh) return; const act=docum
 let showRetired=false;
 function extrasHTML(){ const R=chars.filter(c=>c.hidden&&!c.binned), B=chars.filter(c=>c.binned).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   return (R.length?`<div class="share"><button class="link" id="retired">${showRetired?"Hide":"Show"} retired characters (${R.length})</button></div>`:"")+
-   (B.length?`<div class="share bin"><span class="k">The bin</span>${B.map(c=>`<span class="binrow"><b>${esc(c.name||"Unnamed")}</b>${c.player?` <span class="hint">${esc(c.player)}</span>`:""} <button class="btn sec small" data-restore="${esc(c.id)}">Restore</button></span>`).join("")}<span class="hint">Characters moved to the bin stay here until restored.</span></div>`:""); }
+   (B.length?`<div class="share bin"><span class="k">The bin</span>${B.map(c=>`<span class="binrow"><b>${esc(c.name||"Unnamed")}</b>${c.player?` <span class="hint">${esc(c.player)}</span>`:""} <button class="btn sec small" data-restore="${esc(c.id)}">Restore</button></span>`).join("")}<span class="hint">Characters moved to the bin stay here until someone restores them.</span></div>`:""); }
 function partyHTML(){ const P=chars.filter(c=>!c.binned&&(!c.hidden||showRetired)).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
-  if(!P.length) return `<p>No characters yet.</p>`+extrasHTML()+shareHTML();
-  const mags=c=>String(c.magic||"").split(/\n/).map(x=>x.trim()).filter(Boolean);
-  const tot=P.reduce((a,c)=>a+worth(c),0), ni=P.reduce((a,c)=>a+mags(c).length,0);
-  return `<p class="hint" style="margin:0 0 10px">The whole party: ${gpStr(tot)} in coin, ${ni} magic item${ni===1?"":"s"}. Click a name to open the full sheet.</p><div class="party">${P.map(c=>{ const I=mags(c), coins=COINS.filter(k=>num(c[k])).map(k=>num(c[k]).toLocaleString("en-US")+" "+k);
-    return `<div class="card pc"><h3 data-open="${esc(c.id)}" title="Open the sheet">${esc(c.name||"Unnamed")}${c.hidden?` <span class="tag">Retired</span>`:""}</h3><div class="sub">${esc([c.race,c.cls,c.level&&("level "+c.level)].filter(Boolean).join(" · "))}${c.player?" · "+esc(c.player):""}</div>
-      <div class="pcrow"><div><span class="k">Experience</span><span class="big">${esc(c.xp||"—")}</span></div><div><span class="k">HP</span><span class="big">${esc(c.hpmax||"—")}</span></div><div><span class="k">AC</span><span class="big">${esc(c.ac||"—")}</span></div></div>
-      <div class="line"><span class="k">Coins${worth(c)?" · worth "+esc(gpStr(worth(c))):""}</span>${coins.length?esc(coins.join(" · ")):"None"}</div>
-      <div class="line"><span class="k">Magic items</span>${I.length?`<ul class="ilist">${I.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`:"None"}</div>
-      <div class="line"><span class="k">Equipment</span>${c.gear?`<div class="gear">${esc(c.gear)}</div>`:"Nothing listed"}</div></div>`; }).join("")}</div>`+extrasHTML()+shareHTML(); }
+  const head=`<div class="listhead"><h2>The party</h2><button class="btn sec" id="new">＋ New character</button></div>`;
+  if(!P.length) return head+`<p>No characters yet. Press <b>New character</b> to make one.</p>`+extrasHTML()+shareHTML();
+  return head+`<p class="hint" style="margin:0 0 8px">Choose a character to open the full sheet.</p><ul class="plist">${P.map(c=>`<li><button data-open="${esc(c.id)}"><span class="pn">${esc(c.name||"Unnamed character")}${c.hidden?` <span class="tag">Retired</span>`:""}</span><span class="pd">${esc([c.race,c.cls,c.level&&("level "+c.level)].filter(Boolean).join(" · "))}</span><span class="pp">${c.player?esc(c.player):""}</span></button></li>`).join("")}</ul>`+extrasHTML()+shareHTML(); }
 function shareHTML(){ return `<div class="share"><span class="hint">Invite players with this link. Anyone who has it can see and change the sheets, so share it only with your group.</span><input id="plink" readonly value="${esc(partyLink())}" aria-label="Party link"><button class="btn sec small" id="copylink">Copy the link</button></div>`; }
 function startHTML(){ return `<div class="card" style="max-width:620px"><h2>Open your party’s link</h2>
   <p>This device doesn’t know your party yet. <b>Open the link your DM sent you</b> (in your email or messages) and your characters will be there. After that, this device remembers it.</p>
-  <p class="hint">Lost the link? Ask your DM to send it again: it is at the bottom of their Party tab.</p>
+  <p class="hint">Lost the link? Ask your DM to send it again: it is at the bottom of their party list.</p>
   <button class="link" id="iamdm">I’m the DM and want to start a brand-new party</button>
   <div id="dmstart" hidden style="margin-top:12px;border-top:1px solid var(--soft);padding-top:12px"><p>This makes a new, empty party with its own private link. <b>It does not open an existing party.</b> If you already have a party, open its link instead.</p>
   <button class="btn" id="startparty">Start a new party</button></div></div>`; }
@@ -288,12 +291,11 @@ function startHTML(){ return `<div class="card" style="max-width:620px"><h2>Open
 $("#main").addEventListener("click",async ev=>{ const b=ev.target.closest("button,h3[data-open]"); if(!b) return;
   if(b.id==="startparty"){ PARTY=newCode(); LS.set("pt-party",PARTY); location.hash="party="+PARTY; mine=new Set(LS.get(MKEY(),[])); boot(); return; }
   if(b.id==="copylink"){ const i=$("#plink"); try{ await navigator.clipboard.writeText(i.value); b.textContent="Copied ✓"; }catch(e){ i.select(); b.textContent="Selected: press Ctrl+C"; } return; }
-  if(b.dataset.open){ openId=b.dataset.open; setView("mine"); draw(); window.scrollTo({top:0}); return; }
-  if(b.id==="new"){ b.disabled=true; try{ const id=await api.create(Object.assign(BLANK(),{created:Date.now(),updated:Date.now()})); mine.add(id); saveMine(); openId=id; if(!chars.some(c=>c.id===id)) chars.push(Object.assign(BLANK(),{id})); draw(); const n=$('[data-f="name"]'); if(n) n.focus(); }catch(e){ b.disabled=false; $("#main").insertAdjacentHTML("afterbegin",`<p class="hint" style="color:var(--bad)">${esc(failMsg(e))}</p>`); } return; }
+  if(b.dataset.open){ openSheet(b.dataset.open); return; }
+  if(b.id==="tolist"){ openSheet(null); return; }
+  if(b.id==="new"){ b.disabled=true; try{ const id=await api.create(Object.assign(BLANK(),{created:Date.now(),updated:Date.now()})); if(!chars.some(c=>c.id===id)) chars.push(Object.assign(BLANK(),{id})); openSheet(id); const n=$('[data-f="name"]'); if(n) n.focus(); }catch(e){ b.disabled=false; $("#main").insertAdjacentHTML("afterbegin",`<p class="hint" style="color:var(--bad)">${esc(failMsg(e))}</p>`); } return; }
   if(b.dataset.pg){ sheetPage=b.dataset.pg; LS.set("pt-page",sheetPage); $$(".rspage").forEach(p=>p.hidden=p.dataset.page!==sheetPage); $$("[data-pg]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.pg===sheetPage)); return; }
   if(b.id==="print"){ await flush(); window.print(); return; }
-  if(b.id==="unlock"){ unlocked.add(openId); draw(); return; }
-  if(b.id==="claim"){ mine.add(openId); saveMine(); draw(); return; }
   const id=$("#sheet")&&$("#sheet").dataset.id, c=chars.find(x=>x.id===id);
   if(b.id==="del"&&c){ if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Press again to move "+(c.name||"this character")+" to the bin"; setTimeout(()=>{ if(b.isConnected){ b.classList.remove("armed"); b.textContent="Move to the bin"; } },4000); return; }
     queue(id,{binned:true}); await flush(); openId=null; draw(); return; }
@@ -342,11 +344,12 @@ let unsub=null;
 async function boot(){
   if(!CFG&&!DEMO){ startSetup(); return; }
   if(!PARTY){ $("#main").innerHTML=startHTML(); return; }
-  $("#nav").hidden=false; $("#main").innerHTML=`<p class="hint">Loading the party…</p>`;
+  $("#main").innerHTML=`<p class="hint">Loading the party…</p>`;
   try{ api=DEMO?demoApi():await firebaseApi(CFG,PARTY); }catch(e){ $("#main").innerHTML=`<div class="card"><h2>Could not reach the database</h2><p>${esc(e&&e.message||e)}</p><p class="hint">Check your internet connection and reload.</p></div>`; return; }
+  { const m=location.hash.match(/[&#]c=([A-Za-z0-9]+)/); if(m) openId=m[1]; }
   if(unsub) unsub(); let first=true;
   unsub=api.listen(list=>{ list.forEach(c=>{ if(pending[c.id]) Object.assign(c,pending[c.id]); if(!c.magic&&Array.isArray(c.items)&&c.items.length) c.magic=c.items.filter(i=>i&&i.n).map(i=>i.n+(i.ch?` (${i.ch})`:"")+(i.note?` – ${i.note}`:"")).join("\n"); }); chars=list;
-    const sh=$("#sheet"); if(!first&&view==="mine"&&sh&&chars.some(c=>c.id===sh.dataset.id)){ fillSheet(chars.find(c=>c.id===sh.dataset.id),false); return; }
+    const sh=$("#sheet"); if(!first&&sh&&chars.some(c=>c.id===sh.dataset.id)){ fillSheet(chars.find(c=>c.id===sh.dataset.id),false); return; }
     first=false; draw(); }, e=>{ $("#main").innerHTML=`<div class="card"><h2>The database said no</h2><p>${esc(e&&e.message||e)}</p><p class="hint">Usually the rules from setup step 3 are missing or were not published.</p></div>`; });
 }
 boot();
