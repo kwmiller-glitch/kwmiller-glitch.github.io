@@ -113,6 +113,7 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
 .ths{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;padding:2px 8px 4px}.ths .sv{grid-template-columns:minmax(0,1fr) 46px}
 .slots{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;padding:6px 8px}
 .pv{display:none}
+.backhead{display:none}.rspage[data-page="back"]{margin-top:10px}
 @media(max-width:1100px){.rsgrid.back{grid-template-columns:1fr 1fr}}
 @media(max-width:640px){.rsgrid.back{grid-template-columns:1fr}.slots{grid-template-columns:repeat(5,minmax(0,1fr))}.pgtabs{margin-left:0}}
 /* printing: both sides, one sheet of paper each, landscape */
@@ -121,6 +122,7 @@ table.rows td{padding:2px 3px}table.rows input{padding:4px 6px}
   body{font-size:15px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   header,.mylist,.lockbar,.demo,.foot,.hint#status{display:none!important}
   main{padding:0;max-width:none}
+  .backhead{display:block}.rspage[data-page="back"]{margin-top:0}
   .rspage{display:block!important;break-after:page}.rspage:last-of-type{break-after:auto}
   .rshead{grid-template-columns:2.2fr 1fr 1fr 1.2fr .45fr 1.1fr 1fr!important}
   .rsgrid{grid-template-columns:minmax(0,1.45fr) minmax(0,.8fr) minmax(0,1fr)!important;min-height:600px}
@@ -193,7 +195,7 @@ function draw(){ const m=$("#main"); if(!api) return;
   const picks=my.map(x=>`<button class="pick" data-open="${esc(x.id)}" aria-pressed="${x.id===openId}">${esc(x.name||"Unnamed")}</button>`).join("");
   const lock=c&&!mine.has(c.id)?`<div class="lockbar"><span>This is <b>${esc(c.player||"another player")}</b>’s character${canEdit(c)?". You are editing it.":", so it is view only."}</span>${canEdit(c)?"":`<button class="btn sec small" id="unlock">Edit it anyway</button>`}<button class="btn sec small" id="claim">It’s mine: remember it on this device</button></div>`:"";
   const empty=my.length?"<p>Pick a character above.</p>":`<p>No characters on this device yet. Press <b>New character</b> to make one.</p><p class="hint">Made your character on another device? Open the <b>Party</b> tab, click its name, and press “It’s mine”.</p>`;
-  const pg=c?`<span class="pgtabs"><span class="seg2" role="group" aria-label="Side of the sheet"><button data-pg="front" aria-pressed="${sheetPage==="front"}">Front</button><button data-pg="back" aria-pressed="${sheetPage==="back"}">Back</button></span><button class="btn sec small" id="print">Print</button></span>`:"";
+  const pg=c?`<span class="pgtabs"><button class="btn sec small" id="print">Print</button></span>`:"";
   m.innerHTML=demoNote()+`<div class="mylist">${picks}<button class="btn sec small" id="new">＋ New character</button>${pg}</div>`+(c?lock+sheetHTML(c):empty);
   if(c) fillSheet(c,true); m.querySelectorAll("input:not([type=checkbox]),textarea").forEach(x=>x.setAttribute("autocomplete","off")); }
 function demoNote(){ return api.isDemo?`<div class="demo"><b>Demo mode.</b> Everything is saved in this browser only, and two made-up party members are filled in. ${CFG?"":`<a href="?">Set up the real thing</a>.`}</div>`:""; }
@@ -223,7 +225,7 @@ function sheetHTML(c){ const dis=canEdit(c)?"":" disabled";
   const box=(t,inner,cls="fill")=>`<div class="rsbox ${cls}"><div class="rsbar">${t}</div><div class="rsin">${inner}</div></div>`;
   const head=id=>`<div class="rsbox rshead">${u("name","Character name","wide",id)}${u("player","Player","",id)}${u("race","Race","",id)}${u("cls","Class","",id)}${u("level","Level","sm",id)}${u("align","Alignment","",id)}${u("xp","Experience points","",id)}</div>`;
   return `<div class="sheet rs" id="sheet" data-id="${esc(c.id)}">
-  <div class="rspage" data-page="front"${sheetPage==="front"?"":" hidden"}>${head(true)}
+  <div class="rspage" data-page="front">${head(true)}
   <div class="rsgrid">
    <div class="rsbox"><div class="rsbar">Ability scores <span class="barnote">figures from PHB Tables 1–6</span></div>${Object.keys(ABNAME).map(k=>`<div class="ab"><div class="abn">${ABNAME[k]}</div><div class="abs"><input id="f-${k}" data-f="${k}"${dis} aria-label="${ABNAME[k]}" inputmode="numeric" autocomplete="off">${k==="str"?`<span id="strslash">/</span><input class="strx" data-f="strx" aria-label="Exceptional strength" placeholder="00"${dis} inputmode="numeric" autocomplete="off">`:""}</div><div class="abadj" id="adj-${k}"></div></div>`).join("")}</div>
    <div class="rscol">
@@ -236,14 +238,14 @@ function sheetHTML(c){ const dis=canEdit(c)?"":" disabled";
     ${box("Equipment",ta("gear","Equipment","Weapons, armor and everything else carried"))}
     ${box("Notes",ta("notes","Notes","Henchmen, property, background, anything else"))}
    </div></div></div>
-  <div class="rspage" data-page="back"${sheetPage==="back"?"":" hidden"}>${head(false)}
+  <div class="rspage" data-page="back"><div class="backhead">${head(false)}</div>
   <div class="rsgrid back">
    <div class="rscol">
     ${box("Nonweapon proficiencies",ta("nwp","Nonweapon proficiencies","One per line, with the ability and modifier, for example: Riding, land-based (Wis +3)"),"fill tall")}
    </div>
    <div class="rscol">
     ${box("Languages",ta("langs","Languages","Common, Elvish, …"))}
-    <div class="rsbox"><div class="rsbar">Thief abilities</div><div class="ths">${THIEF.map(([k,l])=>`<div class="sv"><label for="f-${k}">${l}</label><input id="f-${k}" data-f="${k}"${dis} autocomplete="off" placeholder="%"></div>`).join("")}</div></div>
+    <div class="rsbox"><div class="rsbar">Thief abilities</div><div class="ths">${THIEF.map(([k,l])=>`<div class="sv"><label for="f-${k}">${l}</label><input id="f-${k}" data-f="${k}"${dis} autocomplete="off"></div>`).join("")}</div></div>
     ${box("Special abilities",ta("special","Special abilities","Racial and class abilities: infravision, turn undead, backstab, …"))}
    </div>
    <div class="rscol">
