@@ -60,11 +60,19 @@ export function acText(e) {
   if (e.ac > 10) return "misses";
   return "hits AC " + minus(e.ac);
 }
+const sgn = (n) => (n > 0 ? " + " + n : " − " + Math.abs(n));
+const advText = (e) => (e.comb === "HIGHEST" ? " (best of " + e.faces.join(", ") + ")" : e.comb === "LOWEST" ? " (worst of " + e.faces.join(", ") + ")" : "");
+// Full breakdown, for the panel's list: "15 + 1 (sling) + 1 (specialized) + 1 (blessed)".
 export function rollText(e) {
-  const b = e.bonus ? (e.bonus > 0 ? " + " + e.bonus : " − " + Math.abs(e.bonus)) : "";
-  const adv = e.comb === "HIGHEST" ? " (best of " + e.faces.join(", ") + ")" : e.comb === "LOWEST" ? " (worst of " + e.faces.join(", ") + ")" : "";
-  const w = e.weapon ? (e.wb ? (e.wb > 0 ? " + " + e.wb : " − " + Math.abs(e.wb)) : "") + " (" + e.weapon + ")" : "";
-  return e.die + adv + b + w + (e.spec ? " + 1 (specialized)" : "") + (e.bless ? " + 1 (blessed)" : "");
+  const b = e.bonus ? sgn(e.bonus) : "";
+  const w = e.weapon ? (e.wb ? sgn(e.wb) : "") + " (" + e.weapon + ")" : "";
+  return e.die + advText(e) + b + w + (e.spec ? " + 1 (specialized)" : "") + (e.bless ? " + 1 (blessed)" : "");
+}
+// Short form, for the banner: one total bonus with the reasons after it: "15 + 3 (sling, spec, blessed)".
+export function rollTextShort(e) {
+  const add = (e.bonus || 0) + (e.wb || 0) + (e.spec || 0) + (e.bless || 0);
+  const why = [e.weapon, e.spec ? "spec" : "", e.bless ? "blessed" : "", e.bonus ? "dice" + sgn(e.bonus).replace(/ /g, "") : ""].filter(Boolean);
+  return e.die + advText(e) + (add ? sgn(add) : "") + (why.length ? " (" + why.join(", ") + ")" : "");
 }
 export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export const LOG_KEY = (roomId) => ID + "/log/" + roomId;
