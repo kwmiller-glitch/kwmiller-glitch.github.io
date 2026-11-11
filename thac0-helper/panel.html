@@ -1,0 +1,73 @@
+<!doctype html><html><head><meta charset="utf-8"><title>THAC0 Helper</title>
+<style>
+:root{--bg:#222639;--paper:#2b2f45;--text:#fff;--muted:rgba(255,255,255,.7);--line:rgba(255,255,255,.14);--accent:#bb99ff;--good:#66bb6a}
+*{box-sizing:border-box}html,body{margin:0;background:transparent;color:var(--text);font:14px/1.4 "Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{padding:12px 14px}
+h1{font-size:16px;margin:0 0 8px}h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.hint{color:var(--muted);font-size:12.5px;margin:4px 0}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:transparent;color:var(--text);font:600 15px inherit;font-family:inherit;cursor:pointer}
+.switch .pill{width:46px;height:26px;border-radius:13px;background:rgba(255,255,255,.25);position:relative;flex:none;transition:background .15s}
+.switch .pill::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.switch[aria-pressed=true] .pill{background:var(--good)}.switch[aria-pressed=true] .pill::after{left:23px}
+.row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row.away .nm{color:var(--muted)}
+.row input{width:62px;padding:4px 6px;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--text);font:600 15px inherit;font-family:inherit;text-align:center}
+.x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 4px}
+.log{list-style:none;margin:0;padding:0}.log li{display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
+.log .ac{margin-left:auto;font-weight:700;white-space:nowrap}.log .n20 .ac{color:#ffd54f}.log .n1 .ac{color:#ff8a80}
+.log .who{font-weight:600}.log .r{color:var(--muted)}
+.state{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:10px;background:rgba(255,255,255,.18)}.state.on{background:var(--good)}
+</style></head><body><main id="app"><p class="hint">Loading…</p></main>
+<script type="module">
+import OBR from "./obr-sdk.js";
+import { KEY, ID, readSettings, acText, rollText, esc, LOG_KEY } from "./shared.js";
+const app = document.getElementById("app");
+let role = "PLAYER", settings = { on: false, thac0: {} }, players = [], log = [];
+const saveSettings = (s) => OBR.room.setMetadata({ [KEY]: s });
+
+function logHTML() {
+  if (!log.length) return `<p class="hint">No attack rolls yet.</p>`;
+  return `<ul class="log">${log.slice(0, 12).map((e) => `<li class="${e.nat === 20 ? "n20" : e.nat === 1 ? "n1" : ""}"><span class="who">${esc(e.name)}</span><span class="r">${esc(rollText(e))}</span><span class="ac">${esc(acText(e))}</span></li>`).join("")}</ul>`;
+}
+function draw() {
+  const focus = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.name;
+  if (role !== "GM") {
+    app.innerHTML = `<h1>THAC0 Helper <span class="state${settings.on ? " on" : ""}">${settings.on ? "ON" : "OFF"}</span></h1>
+      <p class="hint">${settings.on ? "Your DM has switched this on: roll a d20 with the Dice and a banner at the top of the screen shows which Armor Class you hit." : "Your DM switches this on for attack rolls. While it’s on, your d20 rolls show which Armor Class you hit."}</p>
+      <h2>Recent rolls</h2>${logHTML()}`;
+    return;
+  }
+  const here = players.filter((p) => p.role !== "GM").map((p) => p.name);
+  const names = [...new Set([...here, ...Object.keys(settings.thac0)])].sort((a, b) => a.localeCompare(b));
+  app.innerHTML = `<h1>THAC0 Helper</h1>
+    <button class="switch" id="sw" aria-pressed="${settings.on}"><span>AC calculator ${settings.on ? "on" : "off"}</span><span class="pill"></span></button>
+    <p class="hint">${settings.on ? "Every d20 a player rolls now shows the Armor Class it hits. Switch it off for saving throws and checks." : "Off: d20s are left alone. Switch it on when the attacks start."}</p>
+    <h2>THAC0 for each player</h2>
+    ${names.length ? names.map((n) => `<div class="row${here.includes(n) ? "" : " away"}"><span class="nm" title="${esc(n)}">${esc(n)}${here.includes(n) ? "" : " (not here)"}</span><input data-name="${esc(n)}" inputmode="numeric" placeholder="—" value="${settings.thac0[n] ?? ""}" aria-label="THAC0 for ${esc(n)}"><button class="x" data-del="${esc(n)}" title="Forget ${esc(n)}">✕</button></div>`).join("") : `<p class="hint">No players in the room yet.</p>`}
+    <p class="hint">Matched by each player’s Owlbear name. Players without a THAC0 are not announced. Bonuses added with the Dice’s +/− button are counted.</p>
+    <h2>Recent rolls</h2>${logHTML()}`;
+  if (focus) { const el = app.querySelector(`input[data-name="${CSS.escape(focus)}"]`); if (el) { el.focus(); const v = el.value; el.value = ""; el.value = v; } }
+}
+app.addEventListener("click", (ev) => {
+  const sw = ev.target.closest("#sw"); if (sw) { settings.on = !settings.on; draw(); saveSettings(settings); return; }
+  const del = ev.target.closest("[data-del]"); if (del) { delete settings.thac0[del.dataset.del]; draw(); saveSettings(settings); }
+});
+app.addEventListener("change", (ev) => {
+  const el = ev.target; if (!el.dataset.name) return;
+  const v = el.value.trim(); if (v === "") delete settings.thac0[el.dataset.name];
+  else { const n = parseInt(v, 10); if (isNaN(n)) { el.value = settings.thac0[el.dataset.name] ?? ""; return; } settings.thac0[el.dataset.name] = n; el.value = n; }
+  saveSettings(settings);
+});
+new BroadcastChannel(ID + "/log").onmessage = (m) => { log = m.data || []; draw(); };
+OBR.onReady(async () => {
+  try { const t = await OBR.theme.getTheme(); const r = document.documentElement.style; r.setProperty("--text", t.text.primary); r.setProperty("--muted", t.text.secondary); r.setProperty("--accent", t.primary.main); } catch (e) {}
+  role = await OBR.player.getRole();
+  try { log = JSON.parse(localStorage.getItem(LOG_KEY(OBR.room.id)) || "[]"); } catch (e) {}
+  settings = readSettings(await OBR.room.getMetadata());
+  players = await OBR.party.getPlayers();
+  draw();
+  OBR.room.onMetadataChange((meta) => { settings = readSettings(meta); if (!(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.name)) draw(); });
+  OBR.party.onChange((ps) => { players = ps; draw(); });
+  OBR.player.onChange((p) => { if (p.role && p.role !== role) { role = p.role; draw(); } });
+});
+</script></body></html>
