@@ -7,7 +7,8 @@ export function readSettings(meta) {
   const s = (meta && meta[KEY]) || {};
   const obj = (x) => (x && typeof x === "object" && !Array.isArray(x) ? x : {});
   return { on: !!s.on, thac0: obj(s.thac0), weapons: obj(s.weapons), active: obj(s.active), bless: obj(s.bless),
-           round: Number.isInteger(s.round) && s.round > 0 ? s.round : 0, turn: s.turn === "party" || s.turn === "monsters" ? s.turn : "" };
+           round: Number.isInteger(s.round) && s.round > 0 ? s.round : 0, turn: s.turn === "party" || s.turn === "monsters" ? s.turn : "",
+           prev: s.prev && typeof s.prev === "object" ? s.prev : null };
 }
 
 // The d20 result of a finished, visible roll made only of d20s (one d20, or two at advantage/disadvantage).
@@ -72,3 +73,18 @@ export const LOG_KEY = (roomId) => ID + "/log/" + roomId;
 export const BLESS_ROUNDS = 6;
 export const blessLeft = (settings, name) => { const c = settings.bless[name]; return Number.isInteger(c) && settings.round ? c + BLESS_ROUNDS - settings.round : null; };
 export const turnText = (s) => "Round " + s.round + " · " + (s.turn === "party" ? "Party acts" : s.turn === "monsters" ? "Monsters act" : "Roll initiative");
+
+// Round changes, used by both the DM's panel and the DM's clicks on the pill.
+// "Next round" keeps a copy of how things were, so one slip can be taken back exactly (Bless included).
+export function nextRound(s) {
+  s.prev = { round: s.round, turn: s.turn, bless: Object.assign({}, s.bless) };
+  s.round += 1; s.turn = "";
+  for (const n in s.bless) { const c = s.bless[n]; if (Number.isInteger(c) && s.round >= c + BLESS_ROUNDS) delete s.bless[n]; }
+}
+export function prevRound(s) {
+  if (s.round <= 1) return;
+  if (s.prev && s.prev.round === s.round - 1) { s.round = s.prev.round; s.turn = s.prev.turn || ""; s.bless = Object.assign({}, s.prev.bless || {}); }
+  else { s.round -= 1; s.turn = ""; }
+  s.prev = null;
+}
+export const flipTurn = (s) => { s.turn = s.turn === "party" ? "monsters" : "party"; };
