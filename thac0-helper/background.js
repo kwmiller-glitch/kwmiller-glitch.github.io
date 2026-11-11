@@ -25,12 +25,12 @@ async function showBanner() {
   lines = lines.filter((e) => now - e.t < 7000).slice(-4);
   await OBR.popover.close(BANNER);
   if (!lines.length) return;
-  const width = 520, height = 18 + lines.length * 38;
-  let left = 600;
-  try { left = Math.round((await OBR.viewport.getWidth()) / 2); } catch (e) {}
+  let vw = 1200;
+  try { vw = await OBR.viewport.getWidth(); } catch (e) {}
+  const phone = vw < 700, width = Math.min(520, vw - 16), height = 18 + lines.length * 38, left = Math.round(vw / 2);
   await OBR.popover.open({
     id: BANNER, url: "/thac0-helper/banner.html#" + encodeURIComponent(JSON.stringify(lines)), width, height,
-    anchorReference: "POSITION", anchorPosition: { left, top: 64 },
+    anchorReference: "POSITION", anchorPosition: { left, top: phone ? 92 : 64 },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
   });
@@ -55,11 +55,13 @@ async function showTurn() {
   if (want === shownTurn) return; shownTurn = want;
   await OBR.popover.close(TURN);
   if (!want) return;
-  let left = 600;
-  try { left = Math.round((await OBR.viewport.getWidth()) / 2); } catch (e) {}
+  // On a phone, Owlbear's buttons fill the top of the screen, so the pill sits just below them, a little smaller.
+  let vw = 1200;
+  try { vw = await OBR.viewport.getWidth(); } catch (e) {}
+  const phone = vw < 700, left = Math.round(vw / 2);
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html#" + encodeURIComponent(want), width: 340, height: 38,
-    anchorReference: "POSITION", anchorPosition: { left, top: 14 },
+    id: TURN, url: "/thac0-helper/turn.html" + (phone ? "?phone" : "") + "#" + encodeURIComponent(want), width: Math.min(340, vw - 16), height: phone ? 32 : 38,
+    anchorReference: "POSITION", anchorPosition: { left, top: phone ? 58 : 14 },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
   });
