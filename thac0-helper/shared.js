@@ -1,11 +1,12 @@
 // Shared bits for the THAC0 Helper extension.
 export const ID = "thac0-helper";               // our own keys in Owlbear's storage
-export const KEY = ID + "/settings";             // room setting: { on: true/false, thac0: { "Player name": 18 } }
+export const KEY = ID + "/settings";             // room setting: { on, thac0: {name: 18}, weapons: {name: [{n:"Long sword +1", b:1}]}, active: {name: index} }
 export const DICE = "rodeo.owlbear.dice/";       // where Owlbear's own Dice extension shares each player's roll
 
 export function readSettings(meta) {
   const s = (meta && meta[KEY]) || {};
-  return { on: !!s.on, thac0: s.thac0 && typeof s.thac0 === "object" ? s.thac0 : {} };
+  const obj = (x) => (x && typeof x === "object" && !Array.isArray(x) ? x : {});
+  return { on: !!s.on, thac0: obj(s.thac0), weapons: obj(s.weapons), active: obj(s.active) };
 }
 
 // The d20 result of a finished, visible roll made only of d20s (one d20, or two at advantage/disadvantage).
@@ -38,8 +39,14 @@ export function rollKey(playerId, roll) {
 }
 
 // AD&D 2nd Edition: the Armor Class hit is THAC0 minus the attack roll (die plus bonuses).
-export function describe(name, r, thac0) {
-  return { name, die: r.used, faces: r.faces, comb: r.comb, bonus: r.bonus, total: r.total, thac0, ac: thac0 - r.total,
+// The weapon the DM has picked for this player, if any.
+export function activeWeapon(settings, name) {
+  const list = settings.weapons[name] || [], i = settings.active[name];
+  return Number.isInteger(i) && list[i] ? list[i] : null;
+}
+export function describe(name, r, thac0, weapon) {
+  const wb = weapon ? +weapon.b || 0 : 0, total = r.total + wb;
+  return { name, die: r.used, faces: r.faces, comb: r.comb, bonus: r.bonus, weapon: weapon ? weapon.n : "", wb, total, thac0, ac: thac0 - total,
            nat: r.used === 20 ? 20 : r.used === 1 ? 1 : 0, t: Date.now() };
 }
 
@@ -52,7 +59,8 @@ export function acText(e) {
 export function rollText(e) {
   const b = e.bonus ? (e.bonus > 0 ? " + " + e.bonus : " − " + Math.abs(e.bonus)) : "";
   const adv = e.comb === "HIGHEST" ? " (best of " + e.faces.join(", ") + ")" : e.comb === "LOWEST" ? " (worst of " + e.faces.join(", ") + ")" : "";
-  return e.die + adv + b;
+  const w = e.weapon ? (e.wb ? (e.wb > 0 ? " + " + e.wb : " − " + Math.abs(e.wb)) : "") + " (" + e.weapon + ")" : "";
+  return e.die + adv + b + w;
 }
 export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export const LOG_KEY = (roomId) => ID + "/log/" + roomId;

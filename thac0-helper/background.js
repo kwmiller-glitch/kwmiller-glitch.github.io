@@ -1,11 +1,11 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, LOG_KEY } from "./shared.js";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY } from "./shared.js";
 
 const BANNER = ID + "/banner";
 const seen = new Set();
-let settings = { on: false, thac0: {} }, lines = [], hideTimer = null, ready = false, role = "PLAYER";
+let settings = { on: false, thac0: {}, weapons: {}, active: {} }, lines = [], hideTimer = null, ready = false, role = "PLAYER";
 const channel = new BroadcastChannel(ID + "/log");
 
 function remember(entry) {
@@ -42,7 +42,7 @@ function consider(player) {
   if (!ready || !settings.on) return;                       // rolls made before we started, or with the helper off, are ignored
   const t = settings.thac0[player.name];
   if (t === undefined || t === null || t === "" || isNaN(+t)) return;   // only characters the DM has given a THAC0
-  const entry = describe(player.name, r, +t); entry.k = key;
+  const entry = describe(player.name, r, +t, activeWeapon(settings, player.name)); entry.k = key;
   lines.push(entry); remember(entry); showBanner();
 }
 
