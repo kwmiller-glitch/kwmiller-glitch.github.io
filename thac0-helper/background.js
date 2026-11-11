@@ -7,6 +7,8 @@ const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
 // Owlbear shows a tool's options bar across the top centre for most tools; only these leave that space free.
 const NO_BAR = ["rodeo.owlbear.tool/move", "rodeo.owlbear.tool/select", "rodeo.owlbear.tool/pointer"];
+// A phone is judged by the device's own screen (its shorter side), which doesn't depend on how Owlbear reports sizes.
+const isPhone = (vw) => vw < 700 || Math.min(screen.width || 9999, screen.height || 9999) < 600;
 let lowered = false; // true while this person has a tool with an options bar picked
 const pillTop = () => (lowered ? 64 : 14), bannerTop = (phone) => (phone ? 58 : lowered ? 110 : 64);
 const seen = new Set();
@@ -31,7 +33,7 @@ async function showBanner() {
   if (!lines.length) return;
   let vw = 1200;
   try { vw = await OBR.viewport.getWidth(); } catch (e) {}
-  const phone = vw < 700, width = Math.min(520, vw - 16), height = 18 + lines.length * 38, left = Math.round(vw / 2);
+  const phone = isPhone(vw), width = Math.min(520, vw - 16), height = 18 + lines.length * 38, left = Math.round(vw / 2);
   await OBR.popover.open({
     id: BANNER, url: "/thac0-helper/banner.html#" + encodeURIComponent(JSON.stringify(lines)), width, height,
     anchorReference: "POSITION", anchorPosition: { left, top: bannerTop(phone) },
@@ -58,7 +60,7 @@ async function showTurn() {
   let vw = 1200;
   try { vw = await OBR.viewport.getWidth(); } catch (e) {}
   // Not shown on phones at all: the screen is too small to spare the room.
-  const phone = vw < 700, left = Math.round(vw / 2);
+  const phone = isPhone(vw), left = Math.round(vw / 2);
   const want = settings.round && !phone ? JSON.stringify({ round: settings.round, turn: settings.turn, first: settings.first, canUndo: canUndo(settings), lowered }) : "";
   if (want === shownTurn) return; shownTurn = want;
   await OBR.popover.close(TURN);
@@ -71,14 +73,25 @@ async function showTurn() {
   });
 }
 
-function badge() {
-  if (role !== "GM") return;
-  OBR.action.setBadgeText(settings.on ? "ON" : undefined);
-  if (settings.on) OBR.action.setBadgeBackgroundColor("#2e7d32");
+// The helper's button sits in Owlbear's toolbar for the GM only; players never see it.
+// Clicking it opens the panel beside the button instead of switching tools; clicking elsewhere closes it.
+const PANEL = ID + "/panel";
+function addButton() {
+  return OBR.tool.create({
+    id: ID + "/button",
+    icons: [{ icon: "/thac0-helper/icon.svg", label: "THAC0 Helper", filter: { roles: ["GM"] } }],
+    onClick: async (context, elementId) => {
+      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html", width: 340, height: 480, anchorElementId: elementId,
+        anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
+      return false;
+    },
+  });
 }
+function badge() {}
 
 OBR.onReady(async () => {
   role = await OBR.player.getRole();
+  try { addButton().catch(() => {}); } catch (e) {}
   settings = readSettings(await OBR.room.getMetadata()); badge();
   // Drop the pill below the options bar while a tool that has one is picked; put it back for the move tool.
   const toolChanged = (id) => { const low = !NO_BAR.includes(id); if (low !== lowered) { lowered = low; showTurn(); } };
