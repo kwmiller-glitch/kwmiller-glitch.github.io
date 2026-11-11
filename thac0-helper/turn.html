@@ -4,7 +4,6 @@ html,body{margin:0;background:transparent;overflow:hidden;font-family:"Segoe UI"
 .p{margin:4px auto;width:max-content;max-width:calc(100% - 8px);box-sizing:border-box;display:flex;align-items:center;gap:2px;padding:2px 10px;border-radius:16px;background:rgba(24,26,33,.94);color:#fff;font-size:15px;font-weight:700;line-height:24px;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,.4);border:2px solid #8a90a0}
 .p.party{border-color:#66bb6a}.p.monsters{border-color:#ef5350}.r{color:#c9ced8;font-weight:600}.p.over{color:#c9ced8}
 .gm span[data-act]{cursor:pointer;border-radius:8px;padding:0 4px}.gm span[data-act]:hover{background:rgba(255,255,255,.14)}
-.phone .p{font-size:13px;line-height:19px;padding:2px 9px;margin:3px auto;border-width:1.5px}
 .back{color:#c9ced8;font-size:12px}.ch{color:#fff}.ch.pt{color:#a5d6a7}.ch.mo{color:#ef9a9a}.or{color:#8a90a0;font-weight:400;padding:0 2px}
 </style></head><body><div class="p" id="p"></div>
 <script type="module">
@@ -12,7 +11,6 @@ import OBR from "./obr-sdk.js";
 import { KEY, readSettings, nextRound, undo, setFirst, stepTurn, turnWords, esc } from "./shared.js";
 let s = {}; try { s = JSON.parse(decodeURIComponent(location.hash.slice(1))); } catch (e) {}
 const t = turnWords(s);
-if (location.search.includes("phone")) document.body.classList.add("phone");
 const p = document.getElementById("p"); p.className = "p " + (s.turn || "");
 p.innerHTML = `<span class="r">Round ${esc(s.round || "")} ·</span> <span>${t}</span>`;
 // Only the DM can click. The words move the round on one step at a time:

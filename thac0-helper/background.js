@@ -5,6 +5,10 @@ import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
+// Owlbear shows a tool's options bar across the top centre for most tools; only these leave that space free.
+const NO_BAR = ["rodeo.owlbear.tool/move", "rodeo.owlbear.tool/select", "rodeo.owlbear.tool/pointer"];
+let lowered = false; // true while this person has a tool with an options bar picked
+const pillTop = () => (lowered ? 64 : 14), bannerTop = (phone) => (phone ? 58 : lowered ? 110 : 64);
 const seen = new Set();
 let settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "", first: "", hist: [] }, lines = [], hideTimer = null, ready = false, role = "PLAYER";
 const channel = new BroadcastChannel(ID + "/log");
@@ -30,7 +34,7 @@ async function showBanner() {
   const phone = vw < 700, width = Math.min(520, vw - 16), height = 18 + lines.length * 38, left = Math.round(vw / 2);
   await OBR.popover.open({
     id: BANNER, url: "/thac0-helper/banner.html#" + encodeURIComponent(JSON.stringify(lines)), width, height,
-    anchorReference: "POSITION", anchorPosition: { left, top: phone ? 92 : 64 },
+    anchorReference: "POSITION", anchorPosition: { left, top: bannerTop(phone) },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
   });
@@ -51,17 +55,17 @@ function consider(player) {
 
 // The small "Round 3 · Party acts" pill at the top of everyone's screen, shown while the DM has combat going.
 async function showTurn() {
-  const want = settings.round ? JSON.stringify({ round: settings.round, turn: settings.turn, first: settings.first, canUndo: canUndo(settings) }) : "";
+  let vw = 1200;
+  try { vw = await OBR.viewport.getWidth(); } catch (e) {}
+  // Not shown on phones at all: the screen is too small to spare the room.
+  const phone = vw < 700, left = Math.round(vw / 2);
+  const want = settings.round && !phone ? JSON.stringify({ round: settings.round, turn: settings.turn, first: settings.first, canUndo: canUndo(settings), lowered }) : "";
   if (want === shownTurn) return; shownTurn = want;
   await OBR.popover.close(TURN);
   if (!want) return;
-  // On a phone, Owlbear's buttons fill the top of the screen, so the pill sits just below them, a little smaller.
-  let vw = 1200;
-  try { vw = await OBR.viewport.getWidth(); } catch (e) {}
-  const phone = vw < 700, left = Math.round(vw / 2);
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html" + (phone ? "?phone" : "") + "#" + encodeURIComponent(want), width: Math.min(340, vw - 16), height: phone ? 32 : 38,
-    anchorReference: "POSITION", anchorPosition: { left, top: phone ? 58 : 14 },
+    id: TURN, url: "/thac0-helper/turn.html#" + encodeURIComponent(want), width: 340, height: 38,
+    anchorReference: "POSITION", anchorPosition: { left, top: pillTop() },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
   });
@@ -75,7 +79,11 @@ function badge() {
 
 OBR.onReady(async () => {
   role = await OBR.player.getRole();
-  settings = readSettings(await OBR.room.getMetadata()); badge(); showTurn();
+  settings = readSettings(await OBR.room.getMetadata()); badge();
+  // Drop the pill below the options bar while a tool that has one is picked; put it back for the move tool.
+  const toolChanged = (id) => { const low = !NO_BAR.includes(id); if (low !== lowered) { lowered = low; showTurn(); } };
+  try { lowered = !NO_BAR.includes(await OBR.tool.getActiveTool()); OBR.tool.onToolChange(toolChanged); } catch (e) {}
+  showTurn();
   OBR.room.onMetadataChange((meta) => { settings = readSettings(meta); badge(); showTurn(); });
   // note the rolls already on the table, so they are not announced as new
   const self = { id: await OBR.player.getId(), name: await OBR.player.getName(), metadata: await OBR.player.getMetadata() };
