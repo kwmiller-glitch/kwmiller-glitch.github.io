@@ -1,16 +1,22 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Armor Class hit</title>
 <style>
 html,body{margin:0;background:transparent;overflow:hidden;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-.b{margin:4px;padding:5px 12px;border-radius:10px;background:rgba(24,26,33,.94);color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.45);border-left:5px solid #6ea8fe}
+.b{cursor:pointer;margin:4px;padding:5px 12px;border-radius:10px;background:rgba(24,26,33,.94);color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.45);border-left:5px solid #6ea8fe}
 .l{display:flex;align-items:baseline;gap:8px;font-size:17px;line-height:28px;white-space:nowrap}
 .n,.r{overflow:hidden;text-overflow:ellipsis;min-width:0}.n{flex:0 1 auto}.r{flex:0 1 auto}.tag,.ac{flex:none}
 .n{font-weight:700}.r{color:#c9ced8}.ac{font-weight:800;font-size:19px;margin-left:auto;color:#9fe0a5}
 .l.n20 .ac{color:#ffd54f}.l.n1 .ac{color:#ff8a80}.tag{font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 6px;border-radius:4px;background:#ffd54f;color:#222}.l.n1 .tag{background:#ff8a80}
 .l+.l{border-top:1px solid rgba(255,255,255,.12)}
-</style></head><body><div class="b" id="b"></div>
+</style></head><body><div class="b" id="b" title="Click to hide"></div>
 <script type="module">
-import { acText, rollText, esc } from "./shared.js";
+import OBR from "./obr-sdk.js";
+import { acText, rollText, esc, ID } from "./shared.js";
 let lines = []; try { lines = JSON.parse(decodeURIComponent(location.hash.slice(1))); } catch (e) {}
 document.getElementById("b").innerHTML = lines.map((e) =>
   `<div class="l${e.nat === 20 ? " n20" : e.nat === 1 ? " n1" : ""}"><span class="n">${esc(e.name)}</span><span class="r">rolled ${esc(rollText(e))}</span>${e.nat ? `<span class="tag">NATURAL ${e.nat}</span>` : ""}<span class="ac">${esc(acText(e))}</span></div>`).join("");
+// Clicking hides the banner on this screen only; other people's banners are left alone.
+document.getElementById("b").addEventListener("click", () => {
+  try { new BroadcastChannel(ID + "/dismiss").postMessage(1); } catch (e) {}
+  if (OBR.isReady) OBR.popover.close(ID + "/banner"); else OBR.onReady(() => OBR.popover.close(ID + "/banner"));
+});
 </script></body></html>

@@ -3,10 +3,13 @@
 import OBR from "./obr-sdk.js";
 import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY } from "./shared.js";
 
-const BANNER = ID + "/banner";
+const BANNER = ID + "/banner", TURN = ID + "/turn";
+let shownTurn = "";
 const seen = new Set();
-let settings = { on: false, thac0: {}, weapons: {}, active: {} }, lines = [], hideTimer = null, ready = false, role = "PLAYER";
+let settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "" }, lines = [], hideTimer = null, ready = false, role = "PLAYER";
 const channel = new BroadcastChannel(ID + "/log");
+// When this person clicks the banner away, forget those lines so the next roll doesn't bring them back.
+new BroadcastChannel(ID + "/dismiss").onmessage = () => { lines = []; clearTimeout(hideTimer); };
 
 function remember(entry) {
   let log = [];
@@ -42,8 +45,24 @@ function consider(player) {
   if (!ready || !settings.on) return;                       // rolls made before we started, or with the helper off, are ignored
   const t = settings.thac0[player.name];
   if (t === undefined || t === null || t === "" || isNaN(+t)) return;   // only characters the DM has given a THAC0
-  const entry = describe(player.name, r, +t, activeWeapon(settings, player.name)); entry.k = key;
+  const entry = describe(player.name, r, +t, activeWeapon(settings, player.name), !!settings.bless[player.name]); entry.k = key;
   lines.push(entry); remember(entry); showBanner();
+}
+
+// The small "Round 3 · Party acts" pill at the top of everyone's screen, shown while the DM has combat going.
+async function showTurn() {
+  const want = settings.round ? JSON.stringify({ round: settings.round, turn: settings.turn }) : "";
+  if (want === shownTurn) return; shownTurn = want;
+  await OBR.popover.close(TURN);
+  if (!want) return;
+  let left = 600;
+  try { left = Math.round((await OBR.viewport.getWidth()) / 2); } catch (e) {}
+  await OBR.popover.open({
+    id: TURN, url: "/thac0-helper/turn.html#" + encodeURIComponent(want), width: 260, height: 38,
+    anchorReference: "POSITION", anchorPosition: { left, top: 14 },
+    anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
+    disableClickAway: true, hidePaper: true, marginThreshold: 0,
+  });
 }
 
 function badge() {
@@ -54,8 +73,8 @@ function badge() {
 
 OBR.onReady(async () => {
   role = await OBR.player.getRole();
-  settings = readSettings(await OBR.room.getMetadata()); badge();
-  OBR.room.onMetadataChange((meta) => { settings = readSettings(meta); badge(); });
+  settings = readSettings(await OBR.room.getMetadata()); badge(); showTurn();
+  OBR.room.onMetadataChange((meta) => { settings = readSettings(meta); badge(); showTurn(); });
   // note the rolls already on the table, so they are not announced as new
   const self = { id: await OBR.player.getId(), name: await OBR.player.getName(), metadata: await OBR.player.getMetadata() };
   consider(self); (await OBR.party.getPlayers()).forEach(consider);

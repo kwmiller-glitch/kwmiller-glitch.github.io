@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Combat turn</title>
+<style>
+html,body{margin:0;background:transparent;overflow:hidden;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.p{margin:4px auto;width:max-content;max-width:calc(100% - 8px);box-sizing:border-box;padding:4px 14px;border-radius:16px;background:rgba(24,26,33,.94);color:#fff;font-size:15px;font-weight:700;line-height:22px;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,.4);border:2px solid #8a90a0}
+.p.party{border-color:#66bb6a}.p.monsters{border-color:#ef5350}.r{color:#c9ced8;font-weight:600}
+</style></head><body><div class="p" id="p"></div>
+<script type="module">
+import { esc } from "./shared.js";
+let s = {}; try { s = JSON.parse(decodeURIComponent(location.hash.slice(1))); } catch (e) {}
+const t = s.turn === "party" ? "Party acts" : s.turn === "monsters" ? "Monsters act" : "Roll initiative";
+const p = document.getElementById("p"); p.className = "p " + (s.turn || "");
+p.innerHTML = `<span class="r">Round ${esc(s.round || "")} ·</span> ${t}`;
+</script></body></html>

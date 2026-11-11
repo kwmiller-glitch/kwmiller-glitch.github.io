@@ -1,12 +1,13 @@
 // Shared bits for the THAC0 Helper extension.
 export const ID = "thac0-helper";               // our own keys in Owlbear's storage
-export const KEY = ID + "/settings";             // room setting: { on, thac0: {name: 18}, weapons: {name: [{n:"Long sword +1", b:1}]}, active: {name: index} }
+export const KEY = ID + "/settings";             // room setting: { on, thac0: {name: 18}, weapons: {name: [{n:"Long sword +1", b:1, s:true}]}, active: {name: index}, bless: {name: round cast, or true}, round: 0, turn: "" | "party" | "monsters" }
 export const DICE = "rodeo.owlbear.dice/";       // where Owlbear's own Dice extension shares each player's roll
 
 export function readSettings(meta) {
   const s = (meta && meta[KEY]) || {};
   const obj = (x) => (x && typeof x === "object" && !Array.isArray(x) ? x : {});
-  return { on: !!s.on, thac0: obj(s.thac0), weapons: obj(s.weapons), active: obj(s.active) };
+  return { on: !!s.on, thac0: obj(s.thac0), weapons: obj(s.weapons), active: obj(s.active), bless: obj(s.bless),
+           round: Number.isInteger(s.round) && s.round > 0 ? s.round : 0, turn: s.turn === "party" || s.turn === "monsters" ? s.turn : "" };
 }
 
 // The d20 result of a finished, visible roll made only of d20s (one d20, or two at advantage/disadvantage).
@@ -44,9 +45,11 @@ export function activeWeapon(settings, name) {
   const list = settings.weapons[name] || [], i = settings.active[name];
   return Number.isInteger(i) && list[i] ? list[i] : null;
 }
-export function describe(name, r, thac0, weapon) {
-  const wb = weapon ? +weapon.b || 0 : 0, total = r.total + wb;
-  return { name, die: r.used, faces: r.faces, comb: r.comb, bonus: r.bonus, weapon: weapon ? weapon.n : "", wb, total, thac0, ac: thac0 - total,
+// Bless (PHB): +1 to attack rolls while it lasts. The DM switches it on and off for each player.
+export function describe(name, r, thac0, weapon, blessed) {
+  // Weapon specialization (PHB): +1 to hit with that one weapon, ticked by the DM when adding it.
+  const wb = weapon ? +weapon.b || 0 : 0, spec = weapon && weapon.s ? 1 : 0, bless = blessed ? 1 : 0, total = r.total + wb + spec + bless;
+  return { name, bless, spec, die: r.used, faces: r.faces, comb: r.comb, bonus: r.bonus, weapon: weapon ? weapon.n : "", wb, total, thac0, ac: thac0 - total,
            nat: r.used === 20 ? 20 : r.used === 1 ? 1 : 0, t: Date.now() };
 }
 
@@ -60,7 +63,12 @@ export function rollText(e) {
   const b = e.bonus ? (e.bonus > 0 ? " + " + e.bonus : " − " + Math.abs(e.bonus)) : "";
   const adv = e.comb === "HIGHEST" ? " (best of " + e.faces.join(", ") + ")" : e.comb === "LOWEST" ? " (worst of " + e.faces.join(", ") + ")" : "";
   const w = e.weapon ? (e.wb ? (e.wb > 0 ? " + " + e.wb : " − " + Math.abs(e.wb)) : "") + " (" + e.weapon + ")" : "";
-  return e.die + adv + b + w;
+  return e.die + adv + b + w + (e.spec ? " + 1 (specialized)" : "") + (e.bless ? " + 1 (blessed)" : "");
 }
 export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export const LOG_KEY = (roomId) => ID + "/log/" + roomId;
+
+// Bless lasts 6 rounds (PHB). Cast during a round, it runs out when the 7th round starts.
+export const BLESS_ROUNDS = 6;
+export const blessLeft = (settings, name) => { const c = settings.bless[name]; return Number.isInteger(c) && settings.round ? c + BLESS_ROUNDS - settings.round : null; };
+export const turnText = (s) => "Round " + s.round + " · " + (s.turn === "party" ? "Party acts" : s.turn === "monsters" ? "Monsters act" : "Roll initiative");
