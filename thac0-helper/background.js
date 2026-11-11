@@ -1,12 +1,12 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY } from "./shared.js";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo } from "./shared.js";
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
 const seen = new Set();
-let settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "" }, lines = [], hideTimer = null, ready = false, role = "PLAYER";
+let settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "", first: "", hist: [] }, lines = [], hideTimer = null, ready = false, role = "PLAYER";
 const channel = new BroadcastChannel(ID + "/log");
 // When this person clicks the banner away, forget those lines so the next roll doesn't bring them back.
 new BroadcastChannel(ID + "/dismiss").onmessage = () => { lines = []; clearTimeout(hideTimer); };
@@ -51,14 +51,14 @@ function consider(player) {
 
 // The small "Round 3 · Party acts" pill at the top of everyone's screen, shown while the DM has combat going.
 async function showTurn() {
-  const want = settings.round ? JSON.stringify({ round: settings.round, turn: settings.turn }) : "";
+  const want = settings.round ? JSON.stringify({ round: settings.round, turn: settings.turn, first: settings.first, canUndo: canUndo(settings) }) : "";
   if (want === shownTurn) return; shownTurn = want;
   await OBR.popover.close(TURN);
   if (!want) return;
   let left = 600;
   try { left = Math.round((await OBR.viewport.getWidth()) / 2); } catch (e) {}
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html#" + encodeURIComponent(want), width: 260, height: 38,
+    id: TURN, url: "/thac0-helper/turn.html#" + encodeURIComponent(want), width: 340, height: 38,
     anchorReference: "POSITION", anchorPosition: { left, top: 14 },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,

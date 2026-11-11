@@ -1,14 +1,14 @@
 // Shared bits for the THAC0 Helper extension.
 export const ID = "thac0-helper";               // our own keys in Owlbear's storage
-export const KEY = ID + "/settings";             // room setting: { on, thac0: {name: 18}, weapons: {name: [{n:"Long sword +1", b:1, s:true}]}, active: {name: index}, bless: {name: round cast, or true}, round: 0, turn: "" | "party" | "monsters" }
+export const KEY = ID + "/settings";             // room setting: { on, thac0: {name: 18}, weapons: {name: [{n:"Long sword +1", b:1, s:true}]}, active: {name: index}, bless: {name: round cast, or true}, round: 0, turn: "" | "party" | "monsters" | "over", first: "party" | "monsters", hist: [undo copies] }
 export const DICE = "rodeo.owlbear.dice/";       // where Owlbear's own Dice extension shares each player's roll
 
 export function readSettings(meta) {
   const s = (meta && meta[KEY]) || {};
   const obj = (x) => (x && typeof x === "object" && !Array.isArray(x) ? x : {});
   return { on: !!s.on, thac0: obj(s.thac0), weapons: obj(s.weapons), active: obj(s.active), bless: obj(s.bless),
-           round: Number.isInteger(s.round) && s.round > 0 ? s.round : 0, turn: s.turn === "party" || s.turn === "monsters" ? s.turn : "",
-           prev: s.prev && typeof s.prev === "object" ? s.prev : null };
+           round: Number.isInteger(s.round) && s.round > 0 ? s.round : 0, turn: ["party", "monsters", "over"].includes(s.turn) ? s.turn : "",
+           first: s.first === "party" || s.first === "monsters" ? s.first : "", hist: Array.isArray(s.hist) ? s.hist.slice(-10) : [] };
 }
 
 // The d20 result of a finished, visible roll made only of d20s (one d20, or two at advantage/disadvantage).
@@ -80,19 +80,26 @@ export const LOG_KEY = (roomId) => ID + "/log/" + roomId;
 // Bless lasts 6 rounds (PHB). Cast during a round, it runs out when the 7th round starts.
 export const BLESS_ROUNDS = 6;
 export const blessLeft = (settings, name) => { const c = settings.bless[name]; return Number.isInteger(c) && settings.round ? c + BLESS_ROUNDS - settings.round : null; };
-export const turnText = (s) => "Round " + s.round + " · " + (s.turn === "party" ? "Party acts" : s.turn === "monsters" ? "Monsters act" : "Roll initiative");
+const SIDE = { party: "Party acts", monsters: "Monsters act" };
+export const turnWords = (s) => SIDE[s.turn] || (s.turn === "over" ? "Round over" : "Roll initiative");
+export const turnText = (s) => "Round " + s.round + " · " + turnWords(s);
+export const other = (side) => (side === "party" ? "monsters" : "party");
 
-// Round changes, used by both the DM's panel and the DM's clicks on the pill.
-// "Next round" keeps a copy of how things were, so one slip can be taken back exactly (Bless included).
+// The round runs in one direction: roll initiative → winners act → the other side acts → round over → next round.
+// Every step keeps a copy of how things were (the last 10), so ◀ can take back a slip exactly, Bless included.
+const snap = (s) => { s.hist = [...(s.hist || []), { round: s.round, turn: s.turn, first: s.first, bless: Object.assign({}, s.bless) }].slice(-10); };
+export function setFirst(s, side) { snap(s); s.first = side; s.turn = side; }
+export function stepTurn(s) {                // the side acting now is done
+  if (!s.turn || s.turn === "over") return;
+  snap(s); s.turn = s.turn === s.first ? other(s.first) : "over";
+}
 export function nextRound(s) {
-  s.prev = { round: s.round, turn: s.turn, bless: Object.assign({}, s.bless) };
-  s.round += 1; s.turn = "";
+  snap(s); s.round += 1; s.turn = ""; s.first = "";
   for (const n in s.bless) { const c = s.bless[n]; if (Number.isInteger(c) && s.round >= c + BLESS_ROUNDS) delete s.bless[n]; }
 }
-export function prevRound(s) {
-  if (s.round <= 1) return;
-  if (s.prev && s.prev.round === s.round - 1) { s.round = s.prev.round; s.turn = s.prev.turn || ""; s.bless = Object.assign({}, s.prev.bless || {}); }
-  else { s.round -= 1; s.turn = ""; }
-  s.prev = null;
+export function undo(s) {
+  const h = s.hist && s.hist.pop();
+  if (h) { s.round = h.round; s.turn = h.turn || ""; s.first = h.first || ""; s.bless = Object.assign({}, h.bless || {}); }
+  else if (s.round > 1) { s.round -= 1; s.turn = ""; s.first = ""; }
 }
-export const flipTurn = (s) => { s.turn = s.turn === "party" ? "monsters" : "party"; };
+export const canUndo = (s) => (s.hist && s.hist.length > 0) || s.round > 1;
