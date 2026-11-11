@@ -53,7 +53,7 @@ export function describe(name, r, thac0, weapon) {
 const minus = (n) => (n < 0 ? "−" + Math.abs(n) : String(n));
 export function acText(e) {
   if (e.nat === 1) return "misses";
-  if (e.ac > 10) return "misses even AC 10";
+  if (e.ac > 10) return "misses";
   return "hits AC " + minus(e.ac);
 }
 export function rollText(e) {
