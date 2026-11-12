@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Armor Class hit</title>
+<style>
+html,body{margin:0;background:transparent;overflow:hidden;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.b{cursor:pointer;margin:4px;padding:5px 12px;border-radius:10px;background:rgba(24,26,33,.94);color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.45);border-left:5px solid #6ea8fe}
+.l{display:flex;align-items:baseline;gap:8px;font-size:17px;line-height:28px;white-space:nowrap}
+.n,.r{overflow:hidden;text-overflow:ellipsis;min-width:0}.n{flex:0 1 auto}.r{flex:0 1 auto}.tag,.ac{flex:none}
+.n{font-weight:700}.r{color:#c9ced8}.ac{font-weight:800;font-size:19px;margin-left:auto;color:#9fe0a5}
+.l.n20 .ac{color:#ffd54f}.l.n1 .ac{color:#ff8a80}.tag{font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 6px;border-radius:4px;background:#ffd54f;color:#222}.l.n1 .tag{background:#ff8a80}
+.l+.l{border-top:1px solid rgba(255,255,255,.12)}
+.l.old{font-size:14px;line-height:23px;opacity:.72}.l.old .ac{font-size:15px}.l.old .tag{font-size:9.5px}.l.old.two .n{line-height:20px}.l.old.two .r{font-size:12.5px;line-height:17px}
+@media (max-width:440px){.l{font-size:15px;line-height:25px}.ac{font-size:16px}.b{padding:4px 10px}}
+.n{order:1}.r{order:2}.tag{order:3}.ac{order:4}
+/* too long for one line: name and result on top, the roll on a smaller second line */
+.l.two{flex-wrap:wrap;row-gap:0}.l.two .n{white-space:normal;flex:1 1 0;line-height:24px;padding-top:2px}.l.two .r{order:5;flex:0 0 100%;white-space:normal;font-size:14px;line-height:19px;padding-bottom:4px}
+</style></head><body><div class="b" id="b" title="Click to hide"></div>
+<script type="module">
+import OBR from "./obr-sdk.js";
+import { acText, rollTextShort, esc, ID } from "./shared.js";
+let lines = []; try { lines = JSON.parse(decodeURIComponent(location.hash.slice(1))); } catch (e) {}
+// Newest roll on top at full size; older ones below it, a little smaller and dimmer.
+document.getElementById("b").innerHTML = lines.slice().reverse().map((e, i) =>
+  `<div class="l${i ? " old" : ""}${e.nat === 20 ? " n20" : e.nat === 1 ? " n1" : ""}"><span class="n">${esc(e.name)}</span><span class="r">rolled ${esc(rollTextShort(e))}</span>${e.nat ? `<span class="tag">NATURAL ${e.nat}</span>` : ""}<span class="ac">${esc(acText(e))}</span></div>`).join("");
+// Any line whose name or roll got cut short is laid out on two lines instead, and the banner grows to fit.
+const cut = (el) => el && el.scrollWidth > el.clientWidth + 1;
+document.querySelectorAll(".l").forEach((l) => { if (cut(l.querySelector(".n")) || cut(l.querySelector(".r"))) l.classList.add("two"); });
+const fit = () => { const h = Math.ceil(document.getElementById("b").getBoundingClientRect().height) + 8; if (Math.abs(h - innerHeight) > 2) try { Promise.resolve(OBR.popover.setHeight(ID + "/banner", h)).catch(() => {}); } catch (e) {} };
+if (OBR.isReady) fit(); else OBR.onReady(fit);
+// Clicking hides the banner on this screen only; other people's banners are left alone.
+document.getElementById("b").addEventListener("click", () => {
+  try { new BroadcastChannel(ID + "/dismiss").postMessage(1); } catch (e) {}
+  if (OBR.isReady) OBR.popover.close(ID + "/banner"); else OBR.onReady(() => OBR.popover.close(ID + "/banner"));
+});
+</script></body></html>
