@@ -25,6 +25,9 @@ h1{font-size:16px;margin:0 0 8px}h2{font-size:12px;letter-spacing:.06em;text-tra
 .step{margin:8px 0 0;font-size:13.5px}.step .tp{color:#81c784}.step .tm{color:#ef9a9a}
 .cb .go{width:100%;margin-top:6px;padding:6px;font-weight:600;background:rgba(255,255,255,.08)}
 .cb .end{color:var(--muted);border-color:transparent}.turnline{margin:6px 0 0;font-size:13px}
+.nm.ren{cursor:pointer}.nm.ren:hover{text-decoration:underline dotted}
+.renf{flex:1;display:flex;gap:4px;min-width:0}.renf input{flex:1;min-width:0;width:auto!important;text-align:left!important}.renf button{border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--text);font:12px inherit;font-family:inherit;padding:2px 8px;cursor:pointer}
+.now{font-style:normal;color:var(--muted);font-size:12px}
 .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 4px}
 .pc{border-bottom:1px solid var(--line);padding:6px 0 8px}.pc .row{border:0;padding:2px 0}
 .ws{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
@@ -47,9 +50,9 @@ details.move button{margin-top:4px;border:1px solid var(--line);border-radius:6p
 </style></head><body><main id="app"><p class="hint">Loading…</p></main>
 <script type="module">
 import OBR from "./obr-sdk.js";
-import { KEY, ID, readSettings, activeWeapon, acText, rollText, esc, LOG_KEY, blessLeft, turnText, nextRound, undo, canUndo, setFirst, stepTurn, other } from "./shared.js?v=9";
+import { KEY, ID, readSettings, activeWeapon, acText, rollText, esc, LOG_KEY, blessLeft, turnText, nextRound, undo, canUndo, setFirst, stepTurn, other, canon } from "./shared.js?v=11";
 const app = document.getElementById("app");
-let role = "PLAYER", myName = "", settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "", first: "", hist: [] }, players = [], log = [], adding = null, moveMsg = "";
+let role = "PLAYER", myName = "", myId = "", settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "", first: "", hist: [] }, players = [], log = [], adding = null, renaming = null, moveMsg = "";
 const saveSettings = (s) => OBR.room.setMetadata({ [KEY]: s });
 
 function logHTML() {
@@ -66,7 +69,8 @@ function draw() {
       <h2>Recent rolls</h2>${logHTML()}`;
     return;
   }
-  const here = players.filter((p) => p.role !== "GM").map((p) => p.name);
+  const present = players.filter((p) => p.role !== "GM"), here = present.map((p) => canon(settings, p));
+  const nowAs = {}; present.forEach((p) => { const c = canon(settings, p); if (c !== p.name) nowAs[c] = p.name; });
   const names = [...new Set([...here, ...Object.keys(settings.thac0)])].sort((a, b) => a.localeCompare(b));
   app.innerHTML = `<h1>THAC0 Helper</h1>
     <button class="switch" id="sw" aria-pressed="${settings.on}"><span>AC calculator ${settings.on ? "on" : "off"}</span><span class="pill"></span></button>
@@ -80,10 +84,10 @@ function draw() {
       : `<button class="start" id="startcb">Start combat · round 1</button>`}</div>
     <div class="h2b"><h2>Players</h2>${names.some((n) => settings.thac0[n] !== undefined) ? `<button id="blessall" title="Bless: +1 to attack rolls">Bless all</button><button id="blessclear">Clear all</button>` : ""}</div>
     ${names.length ? names.map((n) => { const ws = settings.weapons[n] || [], act = settings.active[n]; const sel = Number.isInteger(act) && ws[act] ? act : -1;
-      return `<div class="pc"><div class="row${here.includes(n) ? "" : " away"}"><span class="nm" title="${esc(n)}">${esc(n)}${here.includes(n) ? "" : " (not here)"}</span>${settings.thac0[n] === undefined ? "" : `<button class="bl" data-bless="${esc(n)}" aria-pressed="${!!settings.bless[n]}" title="Bless: +1 to attack rolls">${settings.bless[n] ? "Blessed +1" + (blessLeft(settings, n) !== null ? " · " + blessLeft(settings, n) + " rd" : "") : "Bless"}</button>`}<input data-name="${esc(n)}" inputmode="numeric" placeholder="—" value="${settings.thac0[n] ?? ""}" aria-label="THAC0 for ${esc(n)}"><button class="x" data-del="${esc(n)}" title="Forget ${esc(n)}">✕</button></div>
+      return `<div class="pc"><div class="row${here.includes(n) ? "" : " away"}">${renaming === n ? `<form class="renf" data-renform="${esc(n)}"><input name="nn" value="${esc(nowAs[n] || n)}" autocomplete="off" aria-label="New name for ${esc(n)}"><button>OK</button></form>` : `<span class="nm${settings.thac0[n] === undefined ? "" : " ren"}" ${settings.thac0[n] === undefined ? "" : `data-ren="${esc(n)}" `}title="${settings.thac0[n] === undefined ? esc(n) : "Click to rename " + esc(n)}">${esc(n)}${here.includes(n) ? (nowAs[n] ? ` <i class="now" title="Renamed in Owlbear">now “${esc(nowAs[n])}”</i>` : "") : " (not here)"}</span>`}${settings.thac0[n] === undefined ? "" : `<button class="bl" data-bless="${esc(n)}" aria-pressed="${!!settings.bless[n]}" title="Bless: +1 to attack rolls">${settings.bless[n] ? "Blessed +1" + (blessLeft(settings, n) !== null ? " · " + blessLeft(settings, n) + " rd" : "") : "Bless"}</button>`}<input data-name="${esc(n)}" inputmode="numeric" placeholder="—" value="${settings.thac0[n] ?? ""}" aria-label="THAC0 for ${esc(n)}"><button class="x" data-del="${esc(n)}" title="Forget ${esc(n)}">✕</button></div>
       ${settings.thac0[n] === undefined ? "" : `<div class="ws"><button class="w none" data-pick="${esc(n)}" data-i="-1" aria-pressed="${sel === -1}" title="Use the plain THAC0">None</button>${ws.map((w, i) => `<span class="w" role="button" tabindex="0" data-pick="${esc(n)}" data-i="${i}" aria-pressed="${sel === i}">${esc(w.n)} ${w.s ? `<span class="sp" title="Specialized: +1 to hit">SPEC</span>` : ""}<span class="b">${+w.b > 0 ? "+" : +w.b < 0 ? "−" : ""}${Math.abs(+w.b) || 0}</span><button class="wx" data-wdel="${esc(n)}" data-i="${i}" title="Remove ${esc(w.n)}">✕</button></span>`).join("")}<button class="add" data-addfor="${esc(n)}">+ weapon</button></div>`}
       ${adding === n ? `<form class="addf" data-addform="${esc(n)}"><input name="wn" placeholder="Weapon, e.g. Long sword +1" autocomplete="off" required><input name="wb" class="bn" placeholder="+1" inputmode="numeric" autocomplete="off" title="Bonus to hit (include Strength or Dexterity if you like)"><label title="Weapon specialization: +1 to hit with this weapon. For bows and crossbows, use the Dice’s +/− button instead."><input type="checkbox" name="ws">Spec.</label><button>Add</button></form>` : ""}</div>`; }).join("") : `<p class="hint">No players in the room yet.</p>`}
-    <p class="hint">Matched by each player’s Owlbear name; players without a THAC0 aren’t announced. Added to their rolls: the highlighted weapon’s bonus, +1 if it’s specialized, +1 for Bless, and any Dice +/− bonus. Saved with this room.</p>
+    <p class="hint">Matched by Owlbear name, then followed even if a player renames themselves; players without a THAC0 aren’t announced. Added to their rolls: the highlighted weapon’s bonus, +1 if it’s specialized, +1 for Bless, and any Dice +/− bonus. Saved with this room.</p>
     <h2>Recent rolls</h2>${logHTML()}
     <details class="move"><summary>Move these THAC0s and weapons to another room</summary><p class="hint">Copy this text, open the new room’s THAC0 Helper, paste it in the same box there and press Load.</p><textarea id="mv">${esc(JSON.stringify({ thac0: settings.thac0, weapons: settings.weapons }))}</textarea><button id="mvload">Load</button> <span class="hint">${esc(moveMsg)}</span></details>`;
   if (focus) { const el = app.querySelector(`input[data-name="${CSS.escape(focus)}"]`); if (el) { el.focus(); const v = el.value; el.value = ""; el.value = v; } }
@@ -91,7 +95,7 @@ function draw() {
 app.addEventListener("click", (ev) => {
   const sw = ev.target.closest("#sw"); if (sw) { settings.on = !settings.on; draw(); saveSettings(settings); return; }
   const bl = ev.target.closest("[data-bless]"); if (bl) { const n = bl.dataset.bless; if (settings.bless[n]) delete settings.bless[n]; else settings.bless[n] = settings.round || true; draw(); saveSettings(settings); return; }
-  if (ev.target.id === "blessall") { const here = players.filter((p) => p.role !== "GM").map((p) => p.name); const ns = Object.keys(settings.thac0).filter((n) => here.includes(n)); (ns.length ? ns : Object.keys(settings.thac0)).forEach((n) => (settings.bless[n] = settings.round || true)); draw(); saveSettings(settings); return; }
+  if (ev.target.id === "blessall") { const here = players.filter((p) => p.role !== "GM").map((p) => canon(settings, p)); const ns = Object.keys(settings.thac0).filter((n) => here.includes(n)); (ns.length ? ns : Object.keys(settings.thac0)).forEach((n) => (settings.bless[n] = settings.round || true)); draw(); saveSettings(settings); return; }
   if (ev.target.id === "startcb") { settings.round = 1; settings.turn = ""; settings.first = ""; settings.hist = []; for (const n in settings.bless) if (settings.bless[n] === true) settings.bless[n] = 1; draw(); saveSettings(settings); return; }
   if (ev.target.id === "nextrd" || ev.target.id === "nextrd2") { nextRound(settings); draw(); saveSettings(settings); return; }
   if (ev.target.id === "prevrd") { undo(settings); draw(); saveSettings(settings); return; }
@@ -99,15 +103,28 @@ app.addEventListener("click", (ev) => {
   const fb = ev.target.closest("[data-first]"); if (fb) { setFirst(settings, fb.dataset.first); draw(); saveSettings(settings); return; }
   if (ev.target.id === "endcb") { settings.round = 0; settings.turn = ""; settings.first = ""; settings.hist = []; settings.bless = {}; draw(); saveSettings(settings); return; }
   if (ev.target.id === "blessclear") { settings.bless = {}; draw(); saveSettings(settings); return; }
-  const del = ev.target.closest("[data-del]"); if (del) { const n = del.dataset.del; delete settings.thac0[n]; delete settings.weapons[n]; delete settings.active[n]; delete settings.bless[n]; draw(); saveSettings(settings); return; }
+  const del = ev.target.closest("[data-del]"); if (del) { const n = del.dataset.del; delete settings.thac0[n]; delete settings.weapons[n]; delete settings.active[n]; delete settings.bless[n];
+    for (const id in settings.ids) if (settings.ids[id] === n) delete settings.ids[id]; draw(); saveSettings(settings); return; }
   const wd = ev.target.closest("[data-wdel]"); if (wd) { ev.stopPropagation(); const n = wd.dataset.wdel, i = +wd.dataset.i, ws = settings.weapons[n] || []; ws.splice(i, 1); settings.weapons[n] = ws;
     const a = settings.active[n]; if (Number.isInteger(a)) { if (a === i) delete settings.active[n]; else if (a > i) settings.active[n] = a - 1; } draw(); saveSettings(settings); return; }
   const pk = ev.target.closest("[data-pick]"); if (pk) { const n = pk.dataset.pick, i = +pk.dataset.i; if (i < 0) delete settings.active[n]; else settings.active[n] = i; draw(); saveSettings(settings); return; }
+  const rn = ev.target.closest("[data-ren]"); if (rn) { renaming = rn.dataset.ren; draw(); const i = app.querySelector(".renf input"); if (i) { i.focus(); i.select(); } return; }
   const ad = ev.target.closest("[data-addfor]"); if (ad) { adding = adding === ad.dataset.addfor ? null : ad.dataset.addfor; draw(); const f = app.querySelector(".addf input"); if (f) f.focus(); return; }
   if (ev.target.id === "mvload") { try { const o = JSON.parse(app.querySelector("#mv").value); if (!o || typeof o !== "object" || typeof o.thac0 !== "object") throw 0;
       settings.thac0 = Object.assign({}, settings.thac0, o.thac0); settings.weapons = Object.assign({}, settings.weapons, o.weapons || {}); moveMsg = "Loaded."; saveSettings(settings); } catch (e) { moveMsg = "That text isn’t a THAC0 Helper list."; } draw(); }
 });
 app.addEventListener("keydown", (ev) => { const pk = ev.target.closest && ev.target.closest("span[data-pick]"); if (pk && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); pk.click(); } });
+// Renaming a character moves everything saved under the old name (THAC0, weapons, Bless, the Owlbear link) to the new one.
+app.addEventListener("submit", (ev) => { const f = ev.target.closest("[data-renform]"); if (!f) return; ev.preventDefault();
+  const old = f.dataset.renform, nn = f.nn.value.trim().slice(0, 40); renaming = null;
+  if (!nn || nn === old || settings.thac0[nn] !== undefined) { draw(); return; }
+  const mv = (o) => { if (o && Object.prototype.hasOwnProperty.call(o, old)) { o[nn] = o[old]; delete o[old]; } };
+  mv(settings.thac0); mv(settings.weapons); mv(settings.active); mv(settings.bless);
+  (settings.hist || []).forEach((h) => mv(h.bless));
+  for (const id in settings.ids) if (settings.ids[id] === old) settings.ids[id] = nn;
+  draw(); saveSettings(settings);
+});
+app.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && renaming !== null) { renaming = null; draw(); } });
 app.addEventListener("submit", (ev) => { const f = ev.target.closest("[data-addform]"); if (!f) return; ev.preventDefault(); const n = f.dataset.addform, wn = f.wn.value.trim(); if (!wn) return;
   const b = parseInt(String(f.wb.value).replace(/[^\d-]/g, ""), 10) || 0; (settings.weapons[n] = settings.weapons[n] || []).push(f.ws.checked ? { n: wn, b, s: true } : { n: wn, b }); settings.active[n] = settings.weapons[n].length - 1; adding = null; draw(); saveSettings(settings); });
 app.addEventListener("change", (ev) => {
@@ -119,7 +136,7 @@ app.addEventListener("change", (ev) => {
 new BroadcastChannel(ID + "/log").onmessage = (m) => { log = m.data || []; draw(); };
 OBR.onReady(async () => {
   try { const t = await OBR.theme.getTheme(); const r = document.documentElement.style; r.setProperty("--text", t.text.primary); r.setProperty("--muted", t.text.secondary); r.setProperty("--accent", t.primary.main); } catch (e) {}
-  role = await OBR.player.getRole(); myName = await OBR.player.getName();
+  role = await OBR.player.getRole(); myName = await OBR.player.getName(); myId = await OBR.player.getId();
   try { log = JSON.parse(localStorage.getItem(LOG_KEY(OBR.room.id)) || "[]"); } catch (e) {}
   settings = readSettings(await OBR.room.getMetadata());
   players = await OBR.party.getPlayers();

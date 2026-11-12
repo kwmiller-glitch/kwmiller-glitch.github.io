@@ -1,7 +1,7 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo } from "./shared.js?v=9";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers } from "./shared.js?v=11";
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
@@ -41,7 +41,7 @@ async function showBanner() {
   if (phone) { try { vh = await OBR.viewport.getHeight(); } catch (e) {} }
   const low = phone && vh > 300;
   await OBR.popover.open({
-    id: BANNER, url: "/thac0-helper/banner.html?v=9#" + encodeURIComponent(JSON.stringify(lines)), width, height,
+    id: BANNER, url: "/thac0-helper/banner.html?v=11#" + encodeURIComponent(JSON.stringify(lines)), width, height,
     anchorReference: "POSITION", anchorPosition: { left, top: low ? vh - 84 : bannerTop(phone) },
     anchorOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -55,9 +55,10 @@ function consider(player) {
   const r = d20Result(roll, values); if (!r) return;
   const key = rollKey(player.id, roll); if (seen.has(key)) return; seen.add(key);
   if (!ready || !settings.on) return;                       // rolls made before we started, or with the helper off, are ignored
-  const t = settings.thac0[player.name];
+  const who = canon(settings, player);                     // the saved name, even if they've renamed themselves since
+  const t = settings.thac0[who];
   if (t === undefined || t === null || t === "" || isNaN(+t)) return;   // only characters the DM has given a THAC0
-  const entry = describe(player.name, r, +t, activeWeapon(settings, player.name), !!settings.bless[player.name]); entry.k = key;
+  const entry = describe(who, r, +t, activeWeapon(settings, who), !!settings.bless[who]); entry.k = key;
   remember(entry);
   if (onPhone && player.id !== myId) return;               // on a phone, only your own rolls pop up, to save space
   lines.push(entry); showBanner();
@@ -74,7 +75,7 @@ async function showTurn() {
   await OBR.popover.close(TURN);
   if (!want) return;
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html?v=9#" + encodeURIComponent(want), width: 340, height: 38,
+    id: TURN, url: "/thac0-helper/turn.html?v=11#" + encodeURIComponent(want), width: 340, height: 38,
     anchorReference: "POSITION", anchorPosition: { left, top: pillTop() },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -89,13 +90,20 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/thac0-helper/icon.svg", label: "THAC0 Helper", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=9", width: 340, height: 480, anchorElementId: elementId,
+      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=11", width: 340, height: 480, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },
   });
 }
 function badge() {}
+
+// The GM's copy of the helper (only one writer) links players to their saved names by Owlbear player ID.
+let partyNow = [];
+async function link() {
+  if (role !== "GM" || !partyNow.length) return;
+  if (linkPlayers(settings, partyNow)) { try { await OBR.room.setMetadata({ [KEY]: settings }); } catch (e) {} }
+}
 
 OBR.onReady(async () => {
   role = await OBR.player.getRole(); myId = await OBR.player.getId();
@@ -106,12 +114,13 @@ OBR.onReady(async () => {
   const toolChanged = (id) => { const low = !NO_BAR.includes(id); if (low !== lowered) { lowered = low; showTurn(); } };
   try { lowered = !NO_BAR.includes(await OBR.tool.getActiveTool()); OBR.tool.onToolChange(toolChanged); } catch (e) {}
   showTurn();
-  OBR.room.onMetadataChange((meta) => { settings = readSettings(meta); badge(); showTurn(); });
+  OBR.room.onMetadataChange((meta) => { settings = readSettings(meta); badge(); showTurn(); link(); });
   // note the rolls already on the table, so they are not announced as new
   const self = { id: await OBR.player.getId(), name: await OBR.player.getName(), metadata: await OBR.player.getMetadata() };
-  consider(self); (await OBR.party.getPlayers()).forEach(consider);
+  partyNow = await OBR.party.getPlayers(); link();
+  consider(self); partyNow.forEach(consider);
   ready = true;
   OBR.player.onChange((p) => consider(p));
-  OBR.party.onChange((ps) => ps.forEach(consider));
+  OBR.party.onChange((ps) => { partyNow = ps; link(); ps.forEach(consider); });
   OBR.player.onChange(async (p) => { if (p.role && p.role !== role) { role = p.role; badge(); } });
 });

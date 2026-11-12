@@ -8,7 +8,7 @@ export function readSettings(meta) {
   const obj = (x) => (x && typeof x === "object" && !Array.isArray(x) ? x : {});
   return { on: !!s.on, thac0: obj(s.thac0), weapons: obj(s.weapons), active: obj(s.active), bless: obj(s.bless),
            round: Number.isInteger(s.round) && s.round > 0 ? s.round : 0, turn: ["party", "monsters", "over"].includes(s.turn) ? s.turn : "",
-           first: s.first === "party" || s.first === "monsters" ? s.first : "", hist: Array.isArray(s.hist) ? s.hist.slice(-10) : [] };
+           first: s.first === "party" || s.first === "monsters" ? s.first : "", hist: Array.isArray(s.hist) ? s.hist.slice(-10) : [], ids: obj(s.ids) };
 }
 
 // The d20 result of a finished, visible roll made only of d20s (one d20, or two at advantage/disadvantage).
@@ -103,3 +103,21 @@ export function undo(s) {
   else if (s.round > 1) { s.round -= 1; s.turn = ""; s.first = ""; }
 }
 export const canUndo = (s) => (s.hist && s.hist.length > 0) || s.round > 1;
+
+// Players are first recognised by their Owlbear name; after that the helper remembers their Owlbear player ID,
+// so renaming themselves in Owlbear doesn't lose their THAC0, weapons or Bless. Returns the saved name.
+export function canon(settings, player) {
+  const n = settings.ids[player.id];
+  return n && settings.thac0[n] !== undefined ? n : player.name;
+}
+// Link anyone present who matches a saved name and isn't linked yet. Returns true if anything changed.
+export function linkPlayers(settings, players) {
+  let changed = false;
+  for (const p of players) {
+    if (!p || !p.id || p.role === "GM") continue;
+    const cur = settings.ids[p.id];
+    if (cur && settings.thac0[cur] !== undefined) continue;
+    if (settings.thac0[p.name] !== undefined) { settings.ids[p.id] = p.name; changed = true; }
+  }
+  return changed;
+}
