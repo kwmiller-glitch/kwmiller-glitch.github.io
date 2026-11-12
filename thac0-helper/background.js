@@ -1,7 +1,7 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo } from "./shared.js";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo } from "./shared.js?v=9";
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
@@ -10,9 +10,10 @@ const NO_BAR = ["rodeo.owlbear.tool/move", "rodeo.owlbear.tool/select", "rodeo.o
 // A phone is judged by the device's own screen (its shorter side), which doesn't depend on how Owlbear reports sizes.
 const isPhone = (vw) => vw < 700 || Math.min(screen.width || 9999, screen.height || 9999) < 600;
 let lowered = false; // true while this person has a tool with an options bar picked
-const pillTop = () => (lowered ? 64 : 14), bannerTop = (phone) => (phone ? 58 : lowered ? 110 : 64);
+// The banner sits just under the pill during combat, and takes the pill's place at the top when there's no combat.
+const pillTop = () => (lowered ? 64 : 14), bannerTop = (phone) => (phone ? 58 : pillTop() + (shownTurn ? 50 : 0));
 const seen = new Set();
-let settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "", first: "", hist: [] }, lines = [], hideTimer = null, ready = false, role = "PLAYER";
+let settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "", first: "", hist: [] }, lines = [], hideTimer = null, ready = false, role = "PLAYER", myId = "", onPhone = false;
 const channel = new BroadcastChannel(ID + "/log");
 // When this person clicks the banner away, forget those lines so the next roll doesn't bring them back.
 new BroadcastChannel(ID + "/dismiss").onmessage = () => { lines = []; clearTimeout(hideTimer); };
@@ -34,10 +35,15 @@ async function showBanner() {
   let vw = 1200;
   try { vw = await OBR.viewport.getWidth(); } catch (e) {}
   const phone = isPhone(vw), width = Math.min(520, vw - 16), height = 18 + lines.length * 38, left = Math.round(vw / 2);
+  // On a phone the top of the screen is crowded (and the dice tray covers it), so the banner sits near the bottom,
+  // over the empty floor of the tray, growing upwards. Other screens are unaffected.
+  let vh = 0;
+  if (phone) { try { vh = await OBR.viewport.getHeight(); } catch (e) {} }
+  const low = phone && vh > 300;
   await OBR.popover.open({
-    id: BANNER, url: "/thac0-helper/banner.html#" + encodeURIComponent(JSON.stringify(lines)), width, height,
-    anchorReference: "POSITION", anchorPosition: { left, top: bannerTop(phone) },
-    anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
+    id: BANNER, url: "/thac0-helper/banner.html?v=9#" + encodeURIComponent(JSON.stringify(lines)), width, height,
+    anchorReference: "POSITION", anchorPosition: { left, top: low ? vh - 84 : bannerTop(phone) },
+    anchorOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
   });
   clearTimeout(hideTimer); hideTimer = setTimeout(showBanner, 7000);
@@ -52,7 +58,9 @@ function consider(player) {
   const t = settings.thac0[player.name];
   if (t === undefined || t === null || t === "" || isNaN(+t)) return;   // only characters the DM has given a THAC0
   const entry = describe(player.name, r, +t, activeWeapon(settings, player.name), !!settings.bless[player.name]); entry.k = key;
-  lines.push(entry); remember(entry); showBanner();
+  remember(entry);
+  if (onPhone && player.id !== myId) return;               // on a phone, only your own rolls pop up, to save space
+  lines.push(entry); showBanner();
 }
 
 // The small "Round 3 · Party acts" pill at the top of everyone's screen, shown while the DM has combat going.
@@ -66,7 +74,7 @@ async function showTurn() {
   await OBR.popover.close(TURN);
   if (!want) return;
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html#" + encodeURIComponent(want), width: 340, height: 38,
+    id: TURN, url: "/thac0-helper/turn.html?v=9#" + encodeURIComponent(want), width: 340, height: 38,
     anchorReference: "POSITION", anchorPosition: { left, top: pillTop() },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -81,7 +89,7 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/thac0-helper/icon.svg", label: "THAC0 Helper", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html", width: 340, height: 480, anchorElementId: elementId,
+      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=9", width: 340, height: 480, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },
@@ -90,7 +98,8 @@ function addButton() {
 function badge() {}
 
 OBR.onReady(async () => {
-  role = await OBR.player.getRole();
+  role = await OBR.player.getRole(); myId = await OBR.player.getId();
+  try { onPhone = isPhone(await OBR.viewport.getWidth()); } catch (e) { onPhone = isPhone(1200); }
   try { addButton().catch(() => {}); } catch (e) {}
   settings = readSettings(await OBR.room.getMetadata()); badge();
   // Drop the pill below the options bar while a tool that has one is picked; put it back for the move tool.
