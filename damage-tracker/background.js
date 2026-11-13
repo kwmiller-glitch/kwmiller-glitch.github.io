@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=8";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=8";
+import OBR, { buildText } from "./obr-sdk.js?v=9";
+import { ID, DMG, PC, LABEL } from "./shared.js?v=9";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -48,20 +48,44 @@ function addTool() {
     icons: [{ icon: "/damage-tracker/down.svg", label: "Click: 1 damage · Shift + click: take one back", filter: { activeTools: [TOOL] } }],
     cursors: [{ cursor: "pointer", filter: { target: [onToken] } }, { cursor: "default" }],
     preventDrag: { target: [onToken] },
-    onToolClick: async (context, event) => {
+    // Counted on each press (not each click), so rapid clicking is never mistaken for a double-click and lost.
+    onToolDown: async (context, event) => {
       const t = await tokenOf(event.target);
-      if (t) await change([t], (n) => (event.shiftKey ? n - 1 : n + 1));
-      return false;                       // don't select or move the token
+      if (t) bump(t.id, event.shiftKey ? -1 : 1);
     },
+    onToolClick: () => false,             // don't select or move the token
+    onToolDoubleClick: () => false,
   });
   OBR.tool.createAction({
     id: ID + "/clearall",
     icons: [{ icon: "/damage-tracker/clear.svg", label: "Clear all damage", filter: { activeTools: [TOOL] } }],
     onClick: async () => {
+      pend.clear(); clearTimeout(flushT);
       const hurt = await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && +i.metadata[DMG] > 0);
       if (hurt.length) await change(hurt, () => 0);
     },
   });
+}
+
+// Rapid clicks: the number on screen changes at once, and the total is saved to the token a moment after
+// the clicking stops (one save instead of one per click, which is what made it feel slow).
+let pend = new Map(), inflight = new Map(), flushT = null;
+const delta = (id) => (pend.get(id) || 0) + (inflight.get(id) || 0);
+function bump(id, d) {
+  pend.set(id, (pend.get(id) || 0) + d);
+  sync();
+  clearTimeout(flushT); flushT = setTimeout(flush, 350);
+}
+async function flush() {
+  if (!pend.size) return;
+  inflight = pend; pend = new Map();
+  try {
+    const items = await OBR.scene.items.getItems([...inflight.keys()]);
+    await OBR.scene.items.updateItems(items, (ds) => {
+      for (const d of ds) { const n = (+d.metadata[DMG] || 0) + (inflight.get(d.id) || 0); if (n > 0) d.metadata[DMG] = n; else delete d.metadata[DMG]; }
+    });
+  } catch (e) { console.warn("Damage Tracker:", e); }
+  inflight = new Map(); sync();
 }
 
 // The "−7" labels under damaged tokens are local items: they exist on the GM's screen only.
@@ -69,9 +93,10 @@ let busy = false, again = false;
 async function sync() {
   if (busy) { again = true; return; } busy = true;
   try {
-    const tokens = (await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && +i.metadata[DMG] > 0));
+    const dmgOf = (i) => Math.max(0, (+i.metadata[DMG] || 0) + delta(i.id));
+    const tokens = (await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && dmgOf(i) > 0));
     const labels = await OBR.scene.local.getItems((i) => i.metadata[LABEL] !== undefined);
-    const want = new Map(tokens.map((t) => [t.id, "−" + (+t.metadata[DMG])]));
+    const want = new Map(tokens.map((t) => [t.id, "−" + dmgOf(t)]));
     const have = new Map(labels.map((l) => [l.metadata[LABEL], l]));
     const gone = labels.filter((l) => !want.has(l.metadata[LABEL])).map((l) => l.id);
     if (gone.length) await OBR.scene.local.deleteItems(gone);
