@@ -1,5 +1,5 @@
-import OBR, { buildLabel } from "./obr-sdk.js?v=7";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=7";
+import OBR, { buildText } from "./obr-sdk.js?v=8";
+import { ID, DMG, PC, LABEL } from "./shared.js?v=8";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -81,12 +81,13 @@ async function sync() {
     for (const t of tokens) {
       if (have.has(t.id)) continue;
       const b = await OBR.scene.items.getItemBounds([t.id]);
-      // A small badge hanging just under the token, toward its right so it clears the name label;
-      // it stops growing once you zoom in past normal size, so it stays small during close-up combat.
-      add.push(buildLabel().plainText(want.get(t.id)).position({ x: b.center.x + b.width * 0.3, y: b.max.y - b.height * 0.04 }).pointerDirection("UP").maxViewScale(1)
+      // Plain red text with a dark outline, just under the token's bottom edge, right of centre (clear of the name label).
+      // It's drawn as part of the map, so it keeps the same size relative to the token at every zoom.
+      const fs = Math.max(8, Math.round(b.height * 0.2));
+      add.push(buildText().textType("PLAIN").plainText(want.get(t.id)).width(Math.round(b.width * 0.5)).height(Math.round(fs * 1.4))
+        .position({ x: b.center.x + b.width * 0.12, y: b.max.y - fs * 0.35 }).textAlign("LEFT").textAlignVertical("TOP")
+        .fontSize(fs).fontWeight(800).fillColor("#ff4a4a").strokeColor("#1a0000").strokeWidth(Math.max(2, Math.round(fs * 0.16)))
         .attachedTo(t.id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true)
-        .backgroundColor("#b71c1c").backgroundOpacity(0.92).cornerRadius(5).pointerHeight(0).padding(2)
-        .fillColor("#ffffff").fontWeight(700).fontSize(Math.max(10, Math.round(b.height * 0.09)))
         .metadata({ [LABEL]: t.id }).build());
     }
     if (add.length) await OBR.scene.local.addItems(add);
