@@ -1,5 +1,5 @@
-import OBR, { buildLabel } from "./obr-sdk.js?v=6";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=6";
+import OBR, { buildLabel } from "./obr-sdk.js?v=7";
+import { ID, DMG, PC, LABEL } from "./shared.js?v=7";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -81,11 +81,12 @@ async function sync() {
     for (const t of tokens) {
       if (have.has(t.id)) continue;
       const b = await OBR.scene.items.getItemBounds([t.id]);
-      // A small badge just above the token's top-right corner, so it covers neither the token nor its name label.
-      add.push(buildLabel().plainText(want.get(t.id)).position({ x: b.max.x - b.width * 0.08, y: b.min.y + b.height * 0.06 }).pointerDirection("DOWN")
+      // A small badge hanging just under the token, toward its right so it clears the name label;
+      // it stops growing once you zoom in past normal size, so it stays small during close-up combat.
+      add.push(buildLabel().plainText(want.get(t.id)).position({ x: b.center.x + b.width * 0.3, y: b.max.y - b.height * 0.04 }).pointerDirection("UP").maxViewScale(1)
         .attachedTo(t.id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true)
-        .backgroundColor("#b71c1c").backgroundOpacity(0.92).cornerRadius(6).pointerHeight(0).padding(3)
-        .fillColor("#ffffff").fontWeight(700).fontSize(Math.max(12, Math.round(b.height * 0.13)))
+        .backgroundColor("#b71c1c").backgroundOpacity(0.92).cornerRadius(5).pointerHeight(0).padding(2)
+        .fillColor("#ffffff").fontWeight(700).fontSize(Math.max(10, Math.round(b.height * 0.09)))
         .metadata({ [LABEL]: t.id }).build());
     }
     if (add.length) await OBR.scene.local.addItems(add);
