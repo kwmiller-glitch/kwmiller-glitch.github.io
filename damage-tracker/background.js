@@ -1,5 +1,5 @@
-import OBR, { buildLabel } from "./obr-sdk.js?v=4";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=4";
+import OBR, { buildLabel } from "./obr-sdk.js?v=6";
+import { ID, DMG, PC, LABEL } from "./shared.js?v=6";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -17,13 +17,13 @@ function addMenu() {
     id: ID + "/down",
     icons: [{ icon: "/damage-tracker/down.svg", label: "1 damage", filter: { roles: ["GM"], every: [onToken, notPC] } }],
     onClick: (ctx) => change(ctx.items, (n) => n + 1),
-    shortcut: "J",               // select a monster, press J: 1 damage
+    shortcut: "j",               // select a monster, press j: 1 damage (if Owlbear honours it)
   });
   OBR.contextMenu.create({
     id: ID + "/up",
     icons: [{ icon: "/damage-tracker/up.svg", label: "Take back 1 damage", filter: { roles: ["GM"], every: [onToken, notPC, damaged] } }],
     onClick: (ctx) => change(ctx.items, (n) => n - 1),
-    shortcut: "K",               // K takes 1 back
+    shortcut: "k",               // k takes 1 back
   });
   OBR.contextMenu.create({
     id: ID + "/clear",
@@ -32,15 +32,34 @@ function addMenu() {
   });
 }
 
-// The toolbar button (GM only) opens the small panel: mark PCs, clear all damage.
-function addButton() {
-  OBR.tool.create({
-    id: ID + "/button",
-    icons: [{ icon: "/damage-tracker/icon.svg", label: "Damage Tracker", filter: { roles: ["GM"] } }],
-    onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: ID + "/panel", url: "/damage-tracker/panel.html?v=4", width: 260, height: 130, anchorElementId: elementId,
-        anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
-      return false;
+// The damage tool (GM only). Pick it, then click a token: 1 damage per click; Shift + click takes one back.
+// "Clear all damage" sits in the tool's own bar at the top while it's picked. Pick the hand tool to go back.
+const TOOL = ID + "/tool", MODE = ID + "/hit";
+async function tokenOf(item) {
+  if (!item) return null;
+  if (item.layer === "CHARACTER") return item;
+  if (item.attachedTo) { const [p] = await OBR.scene.items.getItems([item.attachedTo]); return p && p.layer === "CHARACTER" ? p : null; }
+  return null;
+}
+function addTool() {
+  OBR.tool.create({ id: TOOL, icons: [{ icon: "/damage-tracker/icon.svg", label: "Damage (click a monster)", filter: { roles: ["GM"] } }], defaultMode: MODE });
+  OBR.tool.createMode({
+    id: MODE,
+    icons: [{ icon: "/damage-tracker/down.svg", label: "Click: 1 damage · Shift + click: take one back", filter: { activeTools: [TOOL] } }],
+    cursors: [{ cursor: "pointer", filter: { target: [onToken] } }, { cursor: "default" }],
+    preventDrag: { target: [onToken] },
+    onToolClick: async (context, event) => {
+      const t = await tokenOf(event.target);
+      if (t) await change([t], (n) => (event.shiftKey ? n - 1 : n + 1));
+      return false;                       // don't select or move the token
+    },
+  });
+  OBR.tool.createAction({
+    id: ID + "/clearall",
+    icons: [{ icon: "/damage-tracker/clear.svg", label: "Clear all damage", filter: { activeTools: [TOOL] } }],
+    onClick: async () => {
+      const hurt = await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && +i.metadata[DMG] > 0);
+      if (hurt.length) await change(hurt, () => 0);
     },
   });
 }
@@ -62,10 +81,11 @@ async function sync() {
     for (const t of tokens) {
       if (have.has(t.id)) continue;
       const b = await OBR.scene.items.getItemBounds([t.id]);
-      add.push(buildLabel().plainText(want.get(t.id)).position({ x: b.center.x, y: b.max.y - b.height * 0.12 })
+      // A small badge just above the token's top-right corner, so it covers neither the token nor its name label.
+      add.push(buildLabel().plainText(want.get(t.id)).position({ x: b.max.x - b.width * 0.08, y: b.min.y + b.height * 0.06 }).pointerDirection("DOWN")
         .attachedTo(t.id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true)
-        .backgroundColor("#b71c1c").backgroundOpacity(0.92).cornerRadius(10).pointerHeight(0).padding(6)
-        .fillColor("#ffffff").fontWeight(700).fontSize(Math.max(18, Math.round(b.height * 0.2)))
+        .backgroundColor("#b71c1c").backgroundOpacity(0.92).cornerRadius(6).pointerHeight(0).padding(3)
+        .fillColor("#ffffff").fontWeight(700).fontSize(Math.max(12, Math.round(b.height * 0.13)))
         .metadata({ [LABEL]: t.id }).build());
     }
     if (add.length) await OBR.scene.local.addItems(add);
@@ -77,7 +97,7 @@ async function sync() {
 OBR.onReady(async () => {
   addMenu();
   if ((await OBR.player.getRole()) !== "GM") return;      // players: nothing else to do
-  addButton();
+  addTool();
   let unsub = null;
   const start = () => { if (unsub) unsub(); unsub = OBR.scene.items.onChange(() => sync()); sync(); };
   if (await OBR.scene.isReady()) start();
