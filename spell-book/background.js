@@ -26,7 +26,7 @@ OBR.onReady(async () => {
   if ((await OBR.player.getRole()) !== "GM") return;
   OBR.tool.create({
     id: ID + "/button",
-    icons: [{ icon: "/spell-book/icon.svg", label: "Spell Book", filter: { roles: ["GM"] } }],
+    icons: [{ icon: "/spell-book/icon.svg?v=2", label: "Spell Book", filter: { roles: ["GM"] } }],
     onClick: () => { toggle(); return false; },
   });
 });
