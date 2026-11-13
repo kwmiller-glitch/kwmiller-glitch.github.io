@@ -1,14 +1,15 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers } from "./shared.js?v=11";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers } from "./shared.js?v=14";
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
 // Owlbear shows a tool's options bar across the top centre for most tools; only these leave that space free.
 const NO_BAR = ["rodeo.owlbear.tool/move", "rodeo.owlbear.tool/select", "rodeo.owlbear.tool/pointer"];
 // A phone is judged by the device's own screen (its shorter side), which doesn't depend on how Owlbear reports sizes.
-const isPhone = (vw) => vw < 700 || Math.min(screen.width || 9999, screen.height || 9999) < 600;
+// Phone layout switched off: nobody plays on a phone, and touch-screen laptops could be mistaken for one.
+const isPhone = () => false;
 let lowered = false; // true while this person has a tool with an options bar picked
 // The banner sits just under the pill during combat, and takes the pill's place at the top when there's no combat.
 const pillTop = () => (lowered ? 64 : 14), bannerTop = (phone) => (phone ? 58 : pillTop() + (shownTurn ? 50 : 0));
@@ -41,7 +42,7 @@ async function showBanner() {
   if (phone) { try { vh = await OBR.viewport.getHeight(); } catch (e) {} }
   const low = phone && vh > 300;
   await OBR.popover.open({
-    id: BANNER, url: "/thac0-helper/banner.html?v=11#" + encodeURIComponent(JSON.stringify(lines)), width, height,
+    id: BANNER, url: "/thac0-helper/banner.html?v=14#" + encodeURIComponent(JSON.stringify(lines)), width, height,
     anchorReference: "POSITION", anchorPosition: { left, top: low ? vh - 84 : bannerTop(phone) },
     anchorOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -75,7 +76,7 @@ async function showTurn() {
   await OBR.popover.close(TURN);
   if (!want) return;
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html?v=11#" + encodeURIComponent(want), width: 340, height: 38,
+    id: TURN, url: "/thac0-helper/turn.html?v=14#" + encodeURIComponent(want), width: 340, height: 38,
     anchorReference: "POSITION", anchorPosition: { left, top: pillTop() },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -90,7 +91,7 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/thac0-helper/icon.svg", label: "THAC0 Helper", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=11", width: 340, height: 480, anchorElementId: elementId,
+      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=14", width: 340, height: 480, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },
