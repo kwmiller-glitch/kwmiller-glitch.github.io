@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Damage Tracker</title>
+<style>
+:root{--text:#fff;--muted:#b8bfcc;--line:rgba(255,255,255,.18)}
+html,body{margin:0;background:transparent;color:var(--text);font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+main{padding:12px 14px}h1{font-size:16px;margin:0 0 10px}
+button{display:block;width:100%;box-sizing:border-box;margin:0 0 8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.06);color:var(--text);font:600 13.5px inherit;font-family:inherit;cursor:pointer;text-align:left}
+button:hover{background:rgba(255,255,255,.12)}button:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:6px}.row button{flex:1}
+.note{color:var(--muted);font-size:12.5px;margin:2px 0 10px}
+.danger{border-color:rgba(239,83,80,.6)}
+</style></head><body><main id="app">Loading…</main>
+<script type="module">
+import OBR from "./obr-sdk.js?v=4";
+import { DMG, PC } from "./shared.js?v=4";
+const app = document.getElementById("app");
+let sel = [], tokens = [];
+async function load() {
+  sel = (await OBR.player.getSelection()) || [];
+  tokens = await OBR.scene.items.getItems((i) => i.layer === "CHARACTER");
+  draw();
+}
+function draw() {
+  const hurt = tokens.filter((t) => +t.metadata[DMG] > 0).length;
+  app.innerHTML = `<h1>Damage Tracker</h1>
+    <button id="clearall" class="danger"${hurt ? "" : " disabled"}>Clear all damage${hurt ? ` (${hurt} token${hurt > 1 ? "s" : ""})` : ""}</button>
+    <p class="note">Select a monster and press <b>J</b> for 1 damage, <b>K</b> to take one back.</p>`;
+}
+app.addEventListener("click", async (ev) => {
+  const id = ev.target.id; if (!id) return;
+  if (id === "mark" || id === "unmark") {
+    const picked = tokens.filter((t) => sel.includes(t.id)); if (!picked.length) return;
+    await OBR.scene.items.updateItems(picked, (ds) => { for (const d of ds) { if (id === "mark") { d.metadata[PC] = true; delete d.metadata[DMG]; } else delete d.metadata[PC]; } });
+  }
+  if (id === "clearall") {
+    const hurt = tokens.filter((t) => +t.metadata[DMG] > 0);
+    if (hurt.length) await OBR.scene.items.updateItems(hurt, (ds) => { for (const d of ds) delete d.metadata[DMG]; });
+  }
+  load();
+});
+OBR.onReady(async () => {
+  if (!(await OBR.scene.isReady())) { app.innerHTML = "<h1>Damage Tracker</h1><p class='note'>Open a scene first.</p>"; return; }
+  load();
+  OBR.player.onChange(() => load());
+  OBR.scene.items.onChange(() => load());
+});
+</script></body></html>
