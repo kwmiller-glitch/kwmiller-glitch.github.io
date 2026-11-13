@@ -1,0 +1,9 @@
+{
+  "name": "Spell Book",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "author": "kwmiller",
+  "description": "The AD&D 2nd Edition spell dictionary in a side panel inside Owlbear, for the GM.",
+  "icon": "/spell-book/icon.svg",
+  "background_url": "/spell-book/background.html"
+}
