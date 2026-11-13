@@ -1,5 +1,5 @@
-import OBR, { buildLabel } from "./obr-sdk.js";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=1";
+import OBR, { buildLabel } from "./obr-sdk.js?v=2";
+import { ID, DMG, PC, LABEL } from "./shared.js?v=2";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -36,7 +36,7 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/damage-tracker/icon.svg", label: "Damage Tracker", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: ID + "/panel", url: "/damage-tracker/panel.html?v=1", width: 280, height: 170, anchorElementId: elementId,
+      await OBR.popover.open({ id: ID + "/panel", url: "/damage-tracker/panel.html?v=2", width: 280, height: 170, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },
