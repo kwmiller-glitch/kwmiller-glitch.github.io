@@ -57,17 +57,17 @@ body.obr header{padding:8px 14px;display:flex;align-items:center;gap:10px;positi
 body.obr header h1{font-size:1.25rem;flex:1}body.obr header small{display:none}
 .obrx{display:none;border:0;background:none;color:#fff;font-size:1.5rem;line-height:1;cursor:pointer;padding:0 4px}body.obr .obrx{display:block}
 body.obr main{padding:12px 14px 30px;max-width:none}
-body.obr .bar{grid-template-columns:1.6fr 1.2fr .7fr 1.3fr;gap:8px}
+body.obr .bar{grid-template-columns:1fr;gap:8px}body.obr .bar>div:not(:first-child),body.obr .tools,body.obr #back{display:none}
+body.obr #q{font-size:1.1rem;padding:9px 10px}
 body.obr .ld{grid-template-columns:minmax(170px,230px) minmax(0,1fr);gap:16px}
 body.obr .ld .det{position:sticky;top:52px;max-height:calc(100vh - 64px);overflow:auto;order:0}
 body.obr .ld .side{display:block}
-body.obr footer{font-size:.8rem}
-@media(max-width:620px){body.obr .bar{grid-template-columns:1fr 1fr}}
+body.obr footer{font-size:.8rem}body.obr footer p+p,body.obr .bar label{display:none}
 </style></head><body>
 <header><h1>Spell Dictionary</h1><button class="obrx" id="obrx" title="Close (Esc)" aria-label="Close">✕</button><small>Advanced Dungeons &amp; Dragons, 2nd Edition: every spell in the Player’s Handbook</small></header>
 <main>
 <div class="bar">
- <div><label for="q">Spell name</label><input type="search" id="q" placeholder="for example: fireball" autocomplete="off"></div>
+ <div><label for="q">Spell name</label><input type="search" id="q" placeholder="Spell name, for example: fireball" autocomplete="off"></div>
  <div><label for="c">Kind</label><select id="c"><option value="">Wizard and priest</option><option value="W">Wizard</option><option value="P">Priest (all)</option><option value="Cleric">Cleric</option><option value="Druid">Druid</option></select></div>
  <div><label for="l">Level</label><select id="l"><option value="">Any</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
  <div><label for="s">School or sphere</label><select id="s"></select></div>
@@ -85,6 +85,8 @@ if(OBRMODE){ document.body.classList.add("obr");
   // Owlbear's toolkit is loaded as the page opens (see the module script below); loading it late misses Owlbear's hello.
   const closeObr=()=>{ try{ new BroadcastChannel("spell-book").postMessage("closed"); }catch(e){} if(window.__obrClose) window.__obrClose(); };
   document.getElementById("obrx").addEventListener("click",closeObr);
+  setTimeout(()=>{ try{ document.getElementById("q").focus(); }catch(e){} },50);
+  document.getElementById("q").addEventListener("keydown",e=>{ if(e.key==="Enter"){ const b=document.querySelector("#view .row .nm"); if(b){ e.preventDefault(); b.click(); } } });
   addEventListener("pagehide",()=>{ try{ new BroadcastChannel("spell-book").postMessage("closed"); }catch(e){} });
   document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&!(e.target.matches&&e.target.matches("input[type=search]")&&e.target.value)) closeObr(); });
 }
@@ -111,6 +113,7 @@ function fill(){ const c=SPHERES[cs.value]?"P":cs.value, cur=ss.value; let h='<o
 function hitsNow(){ const s=q.value.trim().toLowerCase(), who=SPHERES[cs.value]?cs.value:"", c=who?"P":cs.value, l=+ls.value, g=ss.value, SP=who&&SPHERES[who];
   return keys.filter(k=>{ const e=SPELLDESC[k]; if(onlyMine&&!mine.includes(k)) return false; if(c&&k[0]!==c) return false; if(SP){ const gs=groups[k]||[]; if(!(gs.some(x=>SP.major.includes(x))||(e[2]<=3&&gs.some(x=>SP.minor.includes(x))))) return false; } if(l&&e[2]!==l) return false; if(g&&(k[0]!==g[0]||!(groups[k]||[]).includes(g.slice(2)))) return false; return !s||k.slice(2).toLowerCase().includes(s); }); }
 function draw(){
+  if(OBRMODE) onlyMine=!q.value.trim();   // in Owlbear: empty search box = My spells; typing searches everything
   $("#mine").innerHTML=onlyMine?"✕ Close My spells":"★ My spells"+(mine.length?" ("+mine.length+")":""); $("#mine").classList.toggle("on",onlyMine); $("#mine").setAttribute("aria-pressed",onlyMine);
   const who=SPHERES[cs.value]?cs.value:"", SP=who&&SPHERES[who]; const hits=hitsNow(); const narrowed=q.value.trim()||ls.value||ss.value||onlyMine;
   const note=who?`${who} spells only: major spheres ${SP.major.join(", ")}; minor (up to 3rd level) ${SP.minor.join(", ")}. `:"";
@@ -118,7 +121,7 @@ function draw(){
     const col=c=>{ const lvls={}; hits.filter(k=>k[0]===c).forEach(k=>lvls[SPELLDESC[k][2]]=(lvls[SPELLDESC[k][2]]||0)+1); const L=Object.keys(lvls); if(!L.length) return ""; return `<div><h3>${c==="W"?"Wizard":"Priest"} spells</h3>${L.map(n=>`<button class="lvb" data-lv="${c}|${n}"><span>${ord(+n)} level</span><span class="hint">${lvls[n]} spells</span></button>`).join("")}</div>`; };
     const cols=[col("W"),col("P")].filter(Boolean);
     $("#view").innerHTML=`<div class="idx${cols.length<2?" one":""}">${cols.join("")}</div>`; $("#count").textContent=note+`${hits.length} spells. Pick a level, or search.`; sel=null; return; }
-  if(!hits.length){ $("#view").innerHTML=`<p>${onlyMine&&!mine.length?"No spells in My spells yet. Press ☆ beside a spell to add it.":"No spell matches."}</p>`; $("#count").textContent=note; return; }
+  if(!hits.length){ $("#view").innerHTML=`<p>${onlyMine&&!mine.length?(OBRMODE?"Type a spell name above. Press ☆ beside a spell to keep it here, under My spells.":"No spells in My spells yet. Press ☆ beside a spell to add it."):"No spell matches."}</p>`; $("#count").textContent=note; return; }
   if(!hits.includes(sel)) sel=hits.length===1?hits[0]:null;
   const oneLevel=new Set(hits.map(k=>k[0]+SPELLDESC[k][2])).size===1;
   const title=onlyMine?"My spells":oneLevel?`${kindName(hits[0])} spells, ${ord(SPELLDESC[hits[0]][2])} level`:"Matching spells";
