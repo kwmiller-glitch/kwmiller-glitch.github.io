@@ -1,5 +1,5 @@
-import OBR, { buildLabel } from "./obr-sdk.js?v=2";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=2";
+import OBR, { buildLabel } from "./obr-sdk.js?v=3";
+import { ID, DMG, PC, LABEL } from "./shared.js?v=3";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -17,11 +17,13 @@ function addMenu() {
     id: ID + "/down",
     icons: [{ icon: "/damage-tracker/down.svg", label: "1 damage", filter: { roles: ["GM"], every: [onToken, notPC] } }],
     onClick: (ctx) => change(ctx.items, (n) => n + 1),
+    shortcut: "-",               // select a monster, press the minus key: 1 damage
   });
   OBR.contextMenu.create({
     id: ID + "/up",
     icons: [{ icon: "/damage-tracker/up.svg", label: "Take back 1 damage", filter: { roles: ["GM"], every: [onToken, notPC, damaged] } }],
     onClick: (ctx) => change(ctx.items, (n) => n - 1),
+    shortcut: "=",               // the plus/equals key takes 1 back
   });
   OBR.contextMenu.create({
     id: ID + "/clear",
@@ -36,7 +38,7 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/damage-tracker/icon.svg", label: "Damage Tracker", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: ID + "/panel", url: "/damage-tracker/panel.html?v=2", width: 280, height: 170, anchorElementId: elementId,
+      await OBR.popover.open({ id: ID + "/panel", url: "/damage-tracker/panel.html?v=3", width: 260, height: 130, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },

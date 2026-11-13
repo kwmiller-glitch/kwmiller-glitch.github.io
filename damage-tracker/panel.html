@@ -10,8 +10,8 @@ button:hover{background:rgba(255,255,255,.12)}button:disabled{opacity:.4;cursor:
 .danger{border-color:rgba(239,83,80,.6)}
 </style></head><body><main id="app">Loading…</main>
 <script type="module">
-import OBR from "./obr-sdk.js?v=2";
-import { DMG, PC } from "./shared.js?v=2";
+import OBR from "./obr-sdk.js?v=3";
+import { DMG, PC } from "./shared.js?v=3";
 const app = document.getElementById("app");
 let sel = [], tokens = [];
 async function load() {
@@ -20,13 +20,10 @@ async function load() {
   draw();
 }
 function draw() {
-  const picked = tokens.filter((t) => sel.includes(t.id));
-  const pcs = tokens.filter((t) => t.metadata[PC] === true).length;
   const hurt = tokens.filter((t) => +t.metadata[DMG] > 0).length;
   app.innerHTML = `<h1>Damage Tracker</h1>
-    <div class="row"><button id="mark"${picked.length ? "" : " disabled"}>Mark as PCs</button><button id="unmark"${picked.length ? "" : " disabled"}>Unmark</button></div>
-    <p class="note">${picked.length ? `${picked.length} token${picked.length > 1 ? "s" : ""} selected.` : "Select PC tokens on the map first."} ${pcs} marked as PC${pcs === 1 ? "" : "s"}.</p>
-    <button id="clearall" class="danger"${hurt ? "" : " disabled"}>Clear all damage${hurt ? ` (${hurt} token${hurt > 1 ? "s" : ""})` : ""}</button>`;
+    <button id="clearall" class="danger"${hurt ? "" : " disabled"}>Clear all damage${hurt ? ` (${hurt} token${hurt > 1 ? "s" : ""})` : ""}</button>
+    <p class="note">Select a monster and press <b>−</b> for 1 damage, <b>=</b> to take one back.</p>`;
 }
 app.addEventListener("click", async (ev) => {
   const id = ev.target.id; if (!id) return;
