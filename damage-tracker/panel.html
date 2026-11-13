@@ -10,8 +10,8 @@ button:hover{background:rgba(255,255,255,.12)}button:disabled{opacity:.4;cursor:
 .danger{border-color:rgba(239,83,80,.6)}
 </style></head><body><main id="app">Loading…</main>
 <script type="module">
-import OBR from "./obr-sdk.js?v=3";
-import { DMG, PC } from "./shared.js?v=3";
+import OBR from "./obr-sdk.js?v=4";
+import { DMG, PC } from "./shared.js?v=4";
 const app = document.getElementById("app");
 let sel = [], tokens = [];
 async function load() {
@@ -23,7 +23,7 @@ function draw() {
   const hurt = tokens.filter((t) => +t.metadata[DMG] > 0).length;
   app.innerHTML = `<h1>Damage Tracker</h1>
     <button id="clearall" class="danger"${hurt ? "" : " disabled"}>Clear all damage${hurt ? ` (${hurt} token${hurt > 1 ? "s" : ""})` : ""}</button>
-    <p class="note">Select a monster and press <b>−</b> for 1 damage, <b>=</b> to take one back.</p>`;
+    <p class="note">Select a monster and press <b>J</b> for 1 damage, <b>K</b> to take one back.</p>`;
 }
 app.addEventListener("click", async (ev) => {
   const id = ev.target.id; if (!id) return;
