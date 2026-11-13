@@ -1,9 +1,0 @@
-{
-  "name": "Damage Tracker",
-  "version": "1.0.1",
-  "manifest_version": 1,
-  "author": "kwmiller",
-  "description": "GM-only damage counters on monster tokens: ▼ adds a point of damage, ▲ takes it back. Players see nothing.",
-  "icon": "/damage-tracker/icon.svg",
-  "background_url": "/damage-tracker/background.html"
-}
