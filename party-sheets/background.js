@@ -23,7 +23,7 @@ async function toggle() {
 // ---------- hit points under the PCs' tokens, on the GM's screen only ----------
 // A token is matched to a character by the token's name (same name, or a shared word of 3+ letters), since players
 // always use the same tokens. The "14/24" is drawn on the map just under the token, left of centre (the Damage
-// Tracker's number sits right of centre), green above half, amber at half or below, red at 0 or less.
+// Tracker's number sits under monsters), green above half, amber at half or below, red at 0 or less.
 const HPL = ID + "/hp";
 let sheetChars = [], busy = false, again = false;
 const norm = (x) => String(x || "").trim().toLowerCase();
@@ -51,9 +51,10 @@ async function syncHP() {
     const add = [];
     for (const [id, w] of want) {
       if (have.has(id)) continue;
-      const b = await OBR.scene.items.getItemBounds([id]); const fs = Math.max(8, Math.round(b.height * 0.18));
-      add.push(buildText().textType("PLAIN").plainText(w.text).width(Math.round(fs * 5)).height(Math.round(fs * 1.5))
-        .position({ x: b.center.x - b.width * 0.12 - fs * 5, y: b.max.y - fs * 0.35 }).textAlign("RIGHT").textAlignVertical("TOP")
+      // Centred just above the token, clear of the name label underneath it.
+      const b = await OBR.scene.items.getItemBounds([id]); const fs = Math.max(8, Math.round(b.height * 0.15)), w5 = Math.round(fs * 5);
+      add.push(buildText().textType("PLAIN").plainText(w.text).width(w5).height(Math.round(fs * 1.4))
+        .position({ x: b.center.x - w5 / 2, y: b.min.y - fs * 1.25 }).textAlign("CENTER").textAlignVertical("TOP")
         .fontSize(fs).fontWeight(800).fillColor(w.color).strokeColor("#0b0d12").strokeWidth(Math.max(2, Math.round(fs * 0.16)))
         .attachedTo(id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true).metadata({ [HPL]: id }).build());
     }
