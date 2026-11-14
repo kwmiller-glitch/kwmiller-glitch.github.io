@@ -1,0 +1,55 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Effects</title>
+<style>
+html,body{margin:0;background:#1f2333;color:#fff;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:13.5px;overflow:hidden}
+main{padding:9px 11px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}.top b{font-size:14px}
+.x{border:0;background:none;color:#fff;font-size:17px;cursor:pointer;padding:0 2px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}
+.chips button,.cur button{border:1px solid rgba(255,255,255,.25);border-radius:12px;background:transparent;color:#fff;font:12.5px inherit;font-family:inherit;padding:2px 9px;cursor:pointer}
+.chips button[aria-pressed=true]{background:#b98cff;border-color:#b98cff;color:#1b1030;font-weight:700}
+.row{display:flex;gap:6px;align-items:center}
+input{font:inherit;padding:4px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.3);color:#fff;min-width:0}
+#name{flex:1}#rounds{width:46px;text-align:center}
+.go{border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(255,255,255,.12);color:#fff;font:600 13px inherit;font-family:inherit;padding:4px 10px;cursor:pointer}
+.hint{color:#b8bfcc;font-size:11.5px;margin-top:5px}
+.cur{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}.cur button{border-color:#b98cff;color:#e6d6ff}
+</style></head><body><main id="app"></main>
+<script type="module">
+import OBR from "./obr-sdk.js?v=16";
+import { ID, FX } from "./shared.js?v=16";
+// Add an effect to one token, or end one early. Quick picks, or type a name; rounds blank = until you remove it.
+const PICKS = ["Held", "Asleep", "Webbed", "Entangled", "Charmed", "Slowed"];
+const id = new URLSearchParams(location.search).get("id"), app = document.getElementById("app");
+let token = null, pick = "";
+const close = () => OBR.popover.close(ID + "/fx");
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+function draw() {
+  const fx = token && Array.isArray(token.metadata[FX]) ? token.metadata[FX] : [];
+  const name = (token && ((token.text && token.text.plainText) || token.name)) || "Token";
+  app.innerHTML = `<div class="top"><b>Effect on ${name.replace(/[<>&"]/g, "")}</b><button class="x" id="x" aria-label="Close">✕</button></div>
+    ${fx.length ? `<div class="cur">${fx.map((f, i) => `<button data-end="${i}" title="End this effect now">${f.n}${f.left ? " " + f.left : ""} ✕</button>`).join("")}</div>` : ""}
+    <div class="chips">${PICKS.map((p) => `<button data-pick="${p}" aria-pressed="${pick === p}">${p}</button>`).join("")}</div>
+    <form class="row" id="f"><input id="name" placeholder="or type one" autocomplete="off" value="${PICKS.includes(pick) ? "" : pick}"><input id="rounds" placeholder="rds" inputmode="numeric" autocomplete="off"><button class="go">Add</button></form>
+    <div class="hint">Rounds count down with the round pill. Blank = until you remove it. Shift + click another token for the same effect.</div>`;
+  const r = document.getElementById("rounds"); if (pick) r.focus(); else document.getElementById("name").focus();
+}
+app.addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.id === "x") return close();
+  if (b.dataset.pick) { pick = b.dataset.pick; draw(); return; }
+  if (b.dataset.end !== undefined) { const i = +b.dataset.end;
+    await OBR.scene.items.updateItems([token], (ds) => { for (const d of ds) { const l = (d.metadata[FX] || []).filter((_, j) => j !== i); if (l.length) d.metadata[FX] = l; else delete d.metadata[FX]; } });
+    [token] = await OBR.scene.items.getItems([id]); draw(); }
+});
+app.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const n = (document.getElementById("name").value.trim() || pick).slice(0, 24); if (!n) return;
+  const left = parseInt(document.getElementById("rounds").value, 10);
+  const f = { n, left: left > 0 ? left : null };
+  try { localStorage.setItem("dt-lastfx", JSON.stringify(f)); } catch (err) {}
+  await OBR.scene.items.updateItems([token], (ds) => { for (const d of ds) {
+    const l = (Array.isArray(d.metadata[FX]) ? d.metadata[FX] : []).filter((x) => x.n.toLowerCase() !== n.toLowerCase()); l.push(f); d.metadata[FX] = l; } });
+  close();
+});
+OBR.onReady(async () => { [token] = await OBR.scene.items.getItems([id]); draw(); });
+</script></body></html>

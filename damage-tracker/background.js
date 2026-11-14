@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=15";
-import { ID, DMG, PC, LABEL, MAX } from "./shared.js?v=15";
+import OBR, { buildText } from "./obr-sdk.js?v=16";
+import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=16";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -47,7 +47,7 @@ function addMenu() {
 
 // The damage tool (GM only). Pick it, then click a token: 1 damage per click; Shift + click takes one back.
 // "Clear all damage" sits in the tool's own bar at the top while it's picked. Pick the hand tool to go back.
-const TOOL = ID + "/tool", MODE = ID + "/hit";
+const TOOL = ID + "/tool", MODE = ID + "/hit", MODE_FX = ID + "/effects";
 async function tokenOf(item) {
   if (!item) return null;
   if (item.layer === "CHARACTER") return item;
@@ -79,6 +79,20 @@ function addTool() {
       if (!(await tokenOf(event.target))) await OBR.tool.activateTool("rodeo.owlbear.tool/move");
       return false;                       // don't select or move the token
     },
+    onToolDoubleClick: () => false,
+  });
+  // Second mode: effects (Held, Asleep, Webbed, …) with a number of rounds, shown under the token to everyone.
+  OBR.tool.createMode({
+    id: MODE_FX,
+    icons: [{ icon: "/damage-tracker/fx.svg", label: "Effects · Click: add or end an effect · Shift + click: the same effect again", filter: { activeTools: [TOOL] } }],
+    cursors: [{ cursor: "pointer", filter: { target: [onToken] } }, { cursor: "default" }],
+    preventDrag: { target: [onToken] },
+    onToolDown: async (context, event) => {
+      const t = await tokenOf(event.target); if (!t) return;
+      let last = null; try { last = JSON.parse(localStorage.getItem("dt-lastfx") || "null"); } catch (e) {}
+      if (event.shiftKey && last && last.n) addFx([t], last); else openFx(t);
+    },
+    onToolClick: async (context, event) => { if (!(await tokenOf(event.target))) await OBR.tool.activateTool("rodeo.owlbear.tool/move"); return false; },
     onToolDoubleClick: () => false,
   });
   OBR.tool.createAction({
@@ -150,10 +164,67 @@ async function sync() {
   if (again) { again = false; sync(); }
 }
 
+// ---------- effects on tokens (everyone sees them) ----------
+// Stored on the token, so every screen draws the same tag under it: "Held 4 · Webbed". The GM's copy counts the
+// rounds down each time the round pill moves on (and back up on ◀ undo), and removes an effect when it runs out.
+const fxOf = (t) => (Array.isArray(t.metadata[FX]) ? t.metadata[FX] : []);
+async function addFx(tokens, f) {
+  await OBR.scene.items.updateItems(tokens, (ds) => { for (const d of ds) {
+    const list = (Array.isArray(d.metadata[FX]) ? d.metadata[FX] : []).filter((x) => x.n.toLowerCase() !== f.n.toLowerCase());
+    list.push({ n: f.n, left: Number.isInteger(f.left) && f.left > 0 ? f.left : null }); d.metadata[FX] = list; } });
+}
+async function openFx(t) {
+  let left = 600, top = 300;
+  try { const p = await OBR.viewport.inverseTransformPoint(t.position); left = Math.round(p.x); top = Math.round(p.y); } catch (e) {}
+  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=16&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
+    anchorPosition: { left, top: top + 40 }, anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
+}
+let lastRound = null;
+async function onRound(round) {
+  if (lastRound === null || !round || !lastRound) { lastRound = round; return; }
+  const step = round - lastRound; lastRound = round; if (!step) return;
+  const tokens = await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && fxOf(i).some((f) => f.left !== null));
+  if (!tokens.length) return;
+  const ended = [];
+  await OBR.scene.items.updateItems(tokens, (ds) => { for (const d of ds) {
+    const keep = [];
+    for (const f of d.metadata[FX]) { if (f.left === null) { keep.push(f); continue; } const left = f.left - step;
+      if (left <= 0) ended.push(((d.text && d.text.plainText) || d.name || "Token") + ": " + f.n); else keep.push({ ...f, left }); }
+    if (keep.length) d.metadata[FX] = keep; else delete d.metadata[FX]; } });
+  if (ended.length) OBR.notification.show(ended.join(", ") + (ended.length > 1 ? " have" : " has") + " ended");
+}
+let fxBusy = false, fxAgain = false;
+async function syncFx() {
+  if (fxBusy) { fxAgain = true; return; } fxBusy = true;
+  try {
+    const tokens = await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && fxOf(i).length);
+    const look = (t) => { const fx = fxOf(t); return { text: fx.map((f) => f.left === null ? f.n : f.left === 1 ? f.n + " (last round)" : f.n + " " + f.left).join(" · "),
+      color: fx.some((f) => f.left === 1) ? "#ff8a80" : "#d9b8ff" }; };
+    const want = new Map(tokens.map((t) => [t.id, look(t)]));
+    const labels = await OBR.scene.local.getItems((i) => i.metadata[FXL] !== undefined);
+    const have = new Map(labels.map((l) => [l.metadata[FXL], l]));
+    const gone = labels.filter((l) => !want.has(l.metadata[FXL])).map((l) => l.id); if (gone.length) await OBR.scene.local.deleteItems(gone);
+    const stale = labels.filter((l) => { const w = want.get(l.metadata[FXL]); return w && (l.text.plainText !== w.text || (l.text.style || {}).fillColor !== w.color); });
+    if (stale.length) await OBR.scene.local.updateItems(stale, (ds) => { for (const d of ds) { const w = want.get(d.metadata[FXL]); d.text.plainText = w.text; if (d.text.style) d.text.style.fillColor = w.color; } });
+    const add = []; let dpi = 150; try { dpi = await OBR.scene.grid.getDpi(); } catch (e) {}
+    for (const t of tokens) {
+      if (have.has(t.id)) continue;
+      // Under the token, below its name label.
+      const cell = dpi * Math.abs((t.scale && t.scale.y) || 1), fs = Math.max(8, Math.round(cell * 0.13)), w = want.get(t.id), wd = Math.round(cell * 3);
+      add.push(buildText().textType("PLAIN").plainText(w.text).width(wd).height(Math.round(fs * 1.4))
+        .position({ x: t.position.x - wd / 2, y: t.position.y + cell / 2 + fs * 1.5 }).textAlign("CENTER").textAlignVertical("TOP")
+        .fontSize(fs).fontWeight(700).fillColor(w.color).strokeColor("#0b0d12").strokeWidth(Math.max(2, Math.round(fs * 0.16)))
+        .attachedTo(t.id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true).metadata({ [FXL]: t.id }).build());
+    }
+    if (add.length) await OBR.scene.local.addItems(add);
+  } catch (e) { console.warn("Damage Tracker effects:", e); }
+  fxBusy = false; if (fxAgain) { fxAgain = false; syncFx(); }
+}
+
 // ---------- typing a monster's hit points ----------
 const asked = new Set();
 async function openSetHP(ms, elementId) {
-  const url = "/damage-tracker/sethp.html?v=15&ids=" + ms.map((t) => t.id).join(",");
+  const url = "/damage-tracker/sethp.html?v=16&ids=" + ms.map((t) => t.id).join(",");
   if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
     anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
   let left = 600, top = 300;                                  // next to the token on screen
@@ -244,7 +315,15 @@ addEventListener("storage", (e) => { if (e.key === "ps-party") connectSheets(); 
 
 OBR.onReady(async () => {
   addMenu();
+  // Effects are drawn on everyone's screen, players included.
+  let fxUnsub = null;
+  const fxStart = () => { if (fxUnsub) fxUnsub(); fxUnsub = OBR.scene.items.onChange(() => syncFx()); syncFx(); };
+  if (await OBR.scene.isReady()) fxStart();
+  OBR.scene.onReadyChange((ready) => { if (ready) fxStart(); else if (fxUnsub) { fxUnsub(); fxUnsub = null; } });
   if ((await OBR.player.getRole()) !== "GM") return;      // players: nothing else to do
+  // The GM's copy counts effects down as the round pill moves on.
+  { const m = await OBR.room.getMetadata(); lastRound = ((m["thac0-helper/settings"] || {}).round) || 0; }
+  OBR.room.onMetadataChange((m) => onRound(((m["thac0-helper/settings"] || {}).round) || 0));
   addTool(); connectSheets();
   OBR.player.onChange((p) => onMyRoll(p.metadata || {}));
   let unsub = null;

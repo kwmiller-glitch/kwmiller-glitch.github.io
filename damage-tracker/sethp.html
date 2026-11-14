@@ -8,8 +8,8 @@ button{border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(
 </style></head><body>
 <form id="f"><label for="n" id="lab">Hit points</label><input id="n" inputmode="numeric" autocomplete="off" required><button>Set</button></form>
 <script type="module">
-import OBR from "./obr-sdk.js?v=15";
-import { ID, DMG, MAX } from "./shared.js?v=15";
+import OBR from "./obr-sdk.js?v=16";
+import { ID, DMG, MAX } from "./shared.js?v=16";
 // Type the hit points you have in mind for the selected monster(s). Enter sets them (and clears any damage); Esc cancels.
 const ids = (new URLSearchParams(location.search).get("ids") || "").split(",").filter(Boolean);
 const n = document.getElementById("n"); setTimeout(() => n.focus(), 50);
