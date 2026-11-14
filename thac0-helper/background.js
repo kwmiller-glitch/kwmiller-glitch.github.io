@@ -1,7 +1,7 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave } from "./shared.js?v=19";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave, sameCharacter } from "./shared.js?v=20";
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
@@ -42,7 +42,7 @@ async function showBanner() {
   if (phone) { try { vh = await OBR.viewport.getHeight(); } catch (e) {} }
   const low = phone && vh > 300;
   await OBR.popover.open({
-    id: BANNER, url: "/thac0-helper/banner.html?v=19#" + encodeURIComponent(JSON.stringify(lines)), width, height,
+    id: BANNER, url: "/thac0-helper/banner.html?v=20#" + encodeURIComponent(JSON.stringify(lines)), width, height,
     anchorReference: "POSITION", anchorPosition: { left, top: low ? vh - 84 : bannerTop(phone) },
     anchorOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -95,7 +95,7 @@ async function showTurn() {
   await OBR.popover.close(TURN);
   if (!want) return;
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html?v=19#" + encodeURIComponent(want), width: 340, height: 38,
+    id: TURN, url: "/thac0-helper/turn.html?v=20#" + encodeURIComponent(want), width: 340, height: 38,
     anchorReference: "POSITION", anchorPosition: { left, top: pillTop() },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -110,7 +110,7 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/thac0-helper/icon.svg", label: "THAC0 Helper", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=19", width: 340, height: 480, anchorElementId: elementId,
+      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=20", width: 340, height: 480, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },
@@ -122,8 +122,54 @@ function badge() {}
 let partyNow = [];
 async function link() {
   if (role !== "GM" || !partyNow.length) return;
-  if (linkPlayers(settings, partyNow)) { try { await OBR.room.setMetadata({ [KEY]: settings }); } catch (e) {} }
+  const a = linkPlayers(settings, partyNow), b = applySheets(settings, partyNow);
+  if (a || b) { try { await OBR.room.setMetadata({ [KEY]: settings }); } catch (e) {} }
 }
+
+// ---------- THAC0s straight from the party tracker's sheets (GM's copy only) ----------
+// Each player in the room is matched to a character: the "In Owlbear" name picked in Party Sheets first,
+// otherwise the character's name or the sheet's Player box. Their THAC0 then comes from the sheet, so a level-up
+// on the sheet is picked up automatically. Players who don't match keep working as before (a THAC0 typed in the panel).
+let sheetChars = null;
+const norm = (x) => String(x || "").trim().toLowerCase();
+function applySheets(s, players) {
+  if (!sheetChars) return false;
+  const live = sheetChars.filter((c) => !c.binned && !c.hidden && c.name && String(c.thac0 || "").trim() !== "" && !isNaN(+c.thac0));
+  let changed = false; const flags = {};
+  const move = (from, to) => {                               // carry weapons and Bless typed under the old name over, once
+    for (const k of ["weapons", "active", "bless"]) if (s[k][from] !== undefined) { if (s[k][to] === undefined) s[k][to] = s[k][from]; delete s[k][from]; }
+    delete s.thac0[from]; for (const id in s.ids) if (s.ids[id] === from) delete s.ids[id];
+    changed = true;
+  };
+  for (const p of players) {
+    if (!p || !p.id || p.role === "GM") continue;
+    const c = live.find((c) => c.obr && norm(c.obr) === norm(p.name))
+      || live.find((c) => !c.obr && (sameCharacter(p.name, c.name) || (c.player && sameCharacter(p.name, c.player))));
+    if (!c) continue;
+    const n = c.name, old = s.ids[p.id] && s.ids[p.id] !== n ? s.ids[p.id] : (s.thac0[p.name] !== undefined && p.name !== n ? p.name : null);
+    if (old && !s.sheet[old]) move(old, n);
+    if (s.thac0[n] !== +c.thac0) { s.thac0[n] = +c.thac0; changed = true; }
+    if (s.ids[p.id] !== n) { s.ids[p.id] = n; changed = true; }
+    flags[n] = true;
+  }
+  for (const n in s.sheet) { const c = live.find((c) => c.name === n); if (c) { flags[n] = true; if (s.thac0[n] !== +c.thac0) { s.thac0[n] = +c.thac0; changed = true; } } }
+  if (JSON.stringify(flags) !== JSON.stringify(s.sheet)) { s.sheet = flags; changed = true; }
+  return changed;
+}
+let sheetsOn = false;
+async function connectSheets() {
+  if (sheetsOn || role !== "GM") return;
+  let party = null; try { party = JSON.parse(localStorage.getItem("ps-party") || "null"); } catch (e) {}
+  const cfg = window.TRACKER_CONFIG; if (!party || !cfg) return;    // Party Sheets hasn't been given the party link yet
+  sheetsOn = true;
+  try {
+    const B = "https://www.gstatic.com/firebasejs/10.12.2/";
+    const [{ initializeApp }, F] = await Promise.all([import(B + "firebase-app.js"), import(B + "firebase-firestore.js")]);
+    const db = F.getFirestore(initializeApp(cfg.firebase, "thac0-helper"));
+    F.onSnapshot(F.collection(db, "parties", party, "characters"), (snap) => { sheetChars = snap.docs.map((d) => ({ id: d.id, ...d.data() })); link(); }, () => { sheetsOn = false; });
+  } catch (e) { sheetsOn = false; console.warn("THAC0 Helper: couldn't read the party tracker", e); }
+}
+addEventListener("storage", (e) => { if (e.key === "ps-party") connectSheets(); });   // Party Sheets was just given the link
 
 OBR.onReady(async () => {
   role = await OBR.player.getRole(); myId = await OBR.player.getId();
@@ -137,7 +183,7 @@ OBR.onReady(async () => {
   OBR.room.onMetadataChange((meta) => { settings = readSettings(meta); pendingSave = meta[SAVE_KEY] || null; badge(); showTurn(); link(); });
   // note the rolls already on the table, so they are not announced as new
   const self = { id: await OBR.player.getId(), name: await OBR.player.getName(), metadata: await OBR.player.getMetadata() };
-  partyNow = await OBR.party.getPlayers(); link();
+  partyNow = await OBR.party.getPlayers(); link(); connectSheets();
   consider(self); partyNow.forEach(consider);
   ready = true;
   OBR.player.onChange((p) => consider(p));

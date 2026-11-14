@@ -45,6 +45,9 @@ h2{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
 input{width:100%;font:inherit;padding:7px 9px;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--text)}
 .btn{margin-top:8px;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.08);color:var(--text);font:600 13px inherit;font-family:inherit;padding:6px 12px;cursor:pointer}
 .foot{margin-top:10px;text-align:right}
+.lk{font-size:12.5px;margin:-6px 0 10px;color:var(--muted)}.lkb{border:0;background:none;color:var(--text);font:12.5px inherit;font-family:inherit;cursor:pointer;padding:0;text-decoration:underline dotted}.lkb i,.lk i{color:var(--muted);font-style:normal}
+.pickl{display:flex;flex-wrap:wrap;gap:5px;margin:-4px 0 10px}.pickl button{border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font:12.5px inherit;font-family:inherit;padding:2px 9px;cursor:pointer}.pickl .clr{border-style:dashed;color:var(--muted)}
+.unm{margin:-4px 0 8px}
 .err{color:#ef9a9a}
 </style></head><body>
 <header><h1>Party Sheets</h1><button class="x" id="x" title="Close (Esc)" aria-label="Close">✕</button></header>
@@ -67,6 +70,17 @@ const callFor = (c, k) => called && called.id === c.id && called.k === k && Date
 const inPlay = (c) => (typeof c.inplay === "boolean" ? c.inplay : +String(c.xp || "").replace(/[^0-9]/g, "") > 0);
 
 let party = LS.get("ps-party", null), chars = [], sel = LS.get("ps-sel", null), showAll = false, api = null, err = "";
+// ---------- who in Owlbear plays whom (used by the THAC0 Helper to take THAC0s from the sheets) ----------
+// The "In Owlbear" name picked here wins; otherwise a player whose Owlbear name matches the character's name
+// or the sheet's Player box is matched automatically (same name, or a shared word of 3+ letters).
+let people = [], picking = false;
+const norm = (x) => String(x || "").trim().toLowerCase();
+const sameName = (a, b) => { a = norm(a); b = norm(b); if (!a || !b) return false; if (a === b) return true; const wb = b.split(/\s+/); return a.split(/\s+/).some((w) => w.length > 2 && wb.includes(w)); };
+const autoMatch = (c) => people.find((p) => sameName(p.name, c.name) || (c.player && sameName(p.name, c.player)));
+function linkOf(c) {
+  if (c.obr) return { name: c.obr, here: people.some((p) => norm(p.name) === norm(c.obr)), auto: false };
+  const p = autoMatch(c); return p ? { name: p.name, here: true, auto: true } : null;
+}
 
 // ---------- closing: ✕, Esc, and a click outside (Owlbear) ----------
 const close = () => { try { new BroadcastChannel("party-sheets").postMessage("closed"); } catch (e) {} OBR.popover.close("party-sheets/panel"); };
@@ -111,7 +125,10 @@ function cardHTML(c) {
     return `<div><span class="k">${k.toUpperCase()}</span><span class="v">${shown}</span>${adj.length ? `<span class="tip"><b>${ABNAME[k]} ${shown}</b>${adj.map(([a, b]) => `${a}: <span>${esc(b)}</span>`).join("<br>")}</span>` : ""}</div>`;
   }).join("");
   const thief = THIEF.filter(([k]) => String(c[k] ?? "").trim());
-  return `<div class="card"><p class="nm">${esc(c.name || "Unnamed character")}</p><p class="sub">${esc(sub)}${c.player ? ` · played by ${esc(c.player)}` : ""}</p>
+  const lk = linkOf(c);
+  const linkLine = `<div class="lk"><span class="k2">In Owlbear:</span> <button class="lkb" id="pick" title="Who plays this character in Owlbear (for the THAC0 Helper)">${lk ? `${esc(lk.name)}${lk.auto ? " <i>(matched by name)</i>" : ""}${lk.here ? "" : " <i>(not here)</i>"}` : "<i>not matched, pick</i>"} ▾</button></div>
+    ${picking ? `<div class="pickl">${people.map((p) => `<button data-obr="${esc(p.name)}">${esc(p.name)}</button>`).join("") || `<span class="hint">No players in the room right now.</span>`}${c.obr ? `<button data-obr="" class="clr">Clear (match by name)</button>` : ""}</div>` : ""}`;
+  return `<div class="card"><p class="nm">${esc(c.name || "Unnamed character")}</p><p class="sub">${esc(sub)}${c.player ? ` · played by ${esc(c.player)}` : ""}</p>${linkLine}
     <div class="big">
       <div><span class="k">AC</span><span class="v">${esc(c.ac || "—")}</span></div>
       <div><span class="k">THAC0</span><span class="v">${esc(c.thac0 || "—")}</span></div>
@@ -133,6 +150,7 @@ function draw() {
   if (!list.some((c) => c.id === sel)) sel = list[0] && list[0].id;
   const c = list.find((x) => x.id === sel);
   app.innerHTML = `<div class="who">${list.map((x) => `<button data-sel="${esc(x.id)}" aria-pressed="${x.id === sel}">${esc(x.name || "Unnamed")}</button>`).join("")}${playing.length && playing.length < live.length ? `<button class="more" id="all">${showAll ? "Only in play" : "+ Not in play"}</button>` : ""}</div>
+    ${(() => { const un = people.filter((p) => !live.some((x) => { const l = linkOf(x); return l && norm(l.name) === norm(p.name); })); return un.length ? `<p class="hint unm">Not matched to a sheet: ${un.map((p) => esc(p.name)).join(", ")}</p>` : ""; })()}
     ${c ? cardHTML(c) : ""}${err ? `<p class="err">${esc(err)}</p>` : ""}
     <div class="foot"><button class="link" id="relink">Use a different party link</button></div>`;
 }
@@ -144,10 +162,13 @@ app.addEventListener("click", (ev) => {
     party = m[1]; LS.set("ps-party", party); err = ""; draw(); connect(); return; }
   if (b.id === "relink") { party = null; LS.set("ps-party", null); chars = []; location.reload(); return; }
   if (b.id === "all") { showAll = !showAll; draw(); return; }
-  if (b.dataset.sel) { sel = b.dataset.sel; LS.set("ps-sel", sel); draw(); return; }
+  if (b.dataset.sel) { sel = b.dataset.sel; picking = false; LS.set("ps-sel", sel); draw(); return; }
   if (b.dataset.save) { const c = chars.find((x) => x.id === sel); if (!c) return; const k = b.dataset.save, sv = SAVES.find((x) => x[0] === k);
     const next = callFor(c, k) ? undefined : { id: c.id, name: c.name || "", player: c.player || "", k, label: sv[2], need: num(c[k]), at: Date.now() };
     called = next || null; draw(); OBR.room.setMetadata({ [SAVE_KEY]: next }).catch(() => {}); return; }
+  if (b.id === "pick") { picking = !picking; draw(); return; }
+  if (b.dataset.obr !== undefined) { const c = chars.find((x) => x.id === sel); picking = false;
+    if (c) { c.obr = b.dataset.obr; draw(); api.update(c.id, { obr: b.dataset.obr }).catch(() => { err = "Couldn’t save that."; draw(); }); } return; }
   if (b.dataset.hp) { const c = chars.find((x) => x.id === sel); if (c) bumpHP(c, +b.dataset.hp); }
 });
 
@@ -160,7 +181,9 @@ const soon = () => { if (!queued) { queued = true; requestAnimationFrame(() => (
 new MutationObserver(soon).observe(app, { childList: true, subtree: true }); new ResizeObserver(soon).observe(app);
 addEventListener("resize", soon); setTimeout(soon, 400); setTimeout(soon, 1200);
 
-OBR.onReady(async () => { called = (await OBR.room.getMetadata())[SAVE_KEY] || null; draw();
+OBR.onReady(async () => { called = (await OBR.room.getMetadata())[SAVE_KEY] || null;
+  const who = (ps) => { people = ps.filter((p) => p.role !== "GM").map((p) => ({ id: p.id, name: p.name })); draw(); };
+  who(await OBR.party.getPlayers()); OBR.party.onChange(who);
   OBR.room.onMetadataChange((m) => { const v = m[SAVE_KEY] || null; if (JSON.stringify(v) !== JSON.stringify(called)) { called = v; draw(); } }); });
 draw(); if (party) connect();
 </script></body></html>

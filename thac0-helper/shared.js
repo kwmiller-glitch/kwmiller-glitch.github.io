@@ -8,7 +8,7 @@ export function readSettings(meta) {
   const obj = (x) => (x && typeof x === "object" && !Array.isArray(x) ? x : {});
   return { on: !!s.on, thac0: obj(s.thac0), weapons: obj(s.weapons), active: obj(s.active), bless: obj(s.bless),
            round: Number.isInteger(s.round) && s.round > 0 ? s.round : 0, turn: ["party", "monsters", "over"].includes(s.turn) ? s.turn : "",
-           first: s.first === "party" || s.first === "monsters" ? s.first : "", hist: Array.isArray(s.hist) ? s.hist.slice(-10) : [], ids: obj(s.ids) };
+           first: s.first === "party" || s.first === "monsters" ? s.first : "", hist: Array.isArray(s.hist) ? s.hist.slice(-10) : [], ids: obj(s.ids), sheet: obj(s.sheet) };
 }
 
 // The d20 result of a finished, visible roll made only of d20s (one d20, or two at advantage/disadvantage).
