@@ -25,9 +25,12 @@ main{padding:0 12px 12px}
 .arr button:hover{background:rgba(255,255,255,.14)}
 h2{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px}
 .sv{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
-.sv div,.ab div{background:var(--box);border-radius:8px;padding:5px 2px;text-align:center}
-.sv .v,.ab .v{font-size:18px}
-.sv .k{font-size:9.5px;letter-spacing:.02em;text-transform:none;line-height:1.15;min-height:22px;display:flex;align-items:center;justify-content:center}
+.ab div{background:var(--box);border-radius:8px;padding:5px 2px;text-align:center}
+.svb{background:var(--box);border:1px solid transparent;border-radius:8px;padding:5px 2px;text-align:center;color:var(--text);font-family:inherit;cursor:pointer}
+.svb:hover{background:rgba(255,255,255,.14)}.svb:disabled{cursor:default;opacity:.6}
+.svb.on{border-color:var(--gold);background:rgba(224,184,79,.18)}.svb .wait{display:block;font-size:10px;color:var(--gold);font-weight:700}
+.svb .v,.ab .v{font-size:18px}
+.svb .k{font-size:9.5px;letter-spacing:.02em;text-transform:none;line-height:1.15;min-height:22px;display:flex;align-items:center;justify-content:center}
 .ab{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
 .ab div{position:relative;cursor:default}
 .ab div:hover{background:rgba(255,255,255,.14)}
@@ -55,7 +58,11 @@ const app = document.getElementById("app");
 const LS = { get: (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
              set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const SAVES = [["sv1", "Paralyze, poison, death"], ["sv2", "Rod, staff, wand"], ["sv3", "Petrify, polymorph"], ["sv4", "Breath weapon"], ["sv5", "Spell"]];
+const SAVES = [["sv1", "Paralyze, poison, death", "paralyzation, poison or death magic"], ["sv2", "Rod, staff, wand", "rod, staff or wand"], ["sv3", "Petrify, polymorph", "petrification or polymorph"], ["sv4", "Breath weapon", "breath weapon"], ["sv5", "Spell", "spell"]];
+// A called save is kept in the room for the THAC0 Helper to read: the character's next d20 answers it.
+const SAVE_KEY = "party-sheets/save", SAVE_TTL = 3 * 60 * 1000;
+let called = null;
+const callFor = (c, k) => called && called.id === c.id && called.k === k && Date.now() - called.at < SAVE_TTL;
 // Same rule as the tracker: the "In play" tick decides; never ticked or unticked yet = in play if it has XP.
 const inPlay = (c) => (typeof c.inplay === "boolean" ? c.inplay : +String(c.xp || "").replace(/[^0-9]/g, "") > 0);
 
@@ -111,7 +118,8 @@ function cardHTML(c) {
       <div><span class="k">Hit points</span><span class="hp"><span class="arr"><button data-hp="1" title="Up 1" aria-label="Hit points up 1">▲</button><button data-hp="-1" title="Down 1" aria-label="Hit points down 1">▼</button></span><span class="v">${hp ?? "—"}</span><small>/ ${esc(c.hpmax || "—")}</small></span></div>
       <div><span class="k">Move</span><span class="v">${esc(c.move || "—")}</span></div>
     </div>
-    <h2>Saving throws</h2><div class="sv">${SAVES.map(([k, l]) => `<div><span class="k">${l}</span><span class="v">${esc(c[k] || "—")}</span></div>`).join("")}</div>
+    <h2>Saving throws <span style="text-transform:none;letter-spacing:0;font-weight:400">(click one to call it; their next d20 is the save)</span></h2><div class="sv">${SAVES.map(([k, l, full]) => { const on = callFor(c, k);
+      return `<button class="svb${on ? " on" : ""}" data-save="${k}" ${num(c[k]) === null ? "disabled" : ""} title="${on ? "Waiting for the roll. Click to cancel." : `Call a save vs. ${full}`}"><span class="k">${l}</span><span class="v">${esc(c[k] || "—")}</span>${on ? `<span class="wait">waiting…</span>` : ""}</button>`; }).join("")}</div>
     <h2>Abilities <span style="text-transform:none;letter-spacing:0;font-weight:400">(point at one for its bonuses)</span></h2><div class="ab">${abil}</div>
     ${thief.length ? `<h2>Thief skills</h2><div class="th">${thief.map(([k, l]) => `<span>${l}</span><span>${esc(c[k])}${/%$/.test(String(c[k]).trim()) ? "" : "%"}</span>`).join("")}</div>` : ""}
   </div>`;
@@ -137,6 +145,9 @@ app.addEventListener("click", (ev) => {
   if (b.id === "relink") { party = null; LS.set("ps-party", null); chars = []; location.reload(); return; }
   if (b.id === "all") { showAll = !showAll; draw(); return; }
   if (b.dataset.sel) { sel = b.dataset.sel; LS.set("ps-sel", sel); draw(); return; }
+  if (b.dataset.save) { const c = chars.find((x) => x.id === sel); if (!c) return; const k = b.dataset.save, sv = SAVES.find((x) => x[0] === k);
+    const next = callFor(c, k) ? undefined : { id: c.id, name: c.name || "", k, label: sv[2], need: num(c[k]), at: Date.now() };
+    called = next || null; draw(); OBR.room.setMetadata({ [SAVE_KEY]: next }).catch(() => {}); return; }
   if (b.dataset.hp) { const c = chars.find((x) => x.id === sel); if (c) bumpHP(c, +b.dataset.hp); }
 });
 
@@ -149,5 +160,7 @@ const soon = () => { if (!queued) { queued = true; requestAnimationFrame(() => (
 new MutationObserver(soon).observe(app, { childList: true, subtree: true }); new ResizeObserver(soon).observe(app);
 addEventListener("resize", soon); setTimeout(soon, 400); setTimeout(soon, 1200);
 
+OBR.onReady(async () => { called = (await OBR.room.getMetadata())[SAVE_KEY] || null; draw();
+  OBR.room.onMetadataChange((m) => { const v = m[SAVE_KEY] || null; if (JSON.stringify(v) !== JSON.stringify(called)) { called = v; draw(); } }); });
 draw(); if (party) connect();
 </script></body></html>

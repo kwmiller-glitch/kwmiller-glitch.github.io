@@ -121,3 +121,25 @@ export function linkPlayers(settings, players) {
   }
   return changed;
 }
+
+// ---------- Saving throws called from the Party Sheets panel ----------
+// The DM clicks a save on a character's sheet; that character's next d20 is read as the save:
+// it succeeds if the roll (plus any Dice +/- bonus) is at least the number on the sheet (PHB: "equal to or greater").
+export const SAVE_KEY = "party-sheets/save";
+export const SAVE_TTL = 3 * 60 * 1000;   // a called save waits up to 3 minutes for its roll
+export function describeSave(name, r, sv) {
+  return { kind: "save", t: Date.now(), name, die: r.used, faces: r.faces, comb: r.comb, bonus: r.bonus, total: r.total, need: sv.need, label: sv.label, ok: r.total >= sv.need };
+}
+export function saveText(e) {
+  const b = e.bonus ? (e.bonus > 0 ? " + " + e.bonus : " − " + Math.abs(e.bonus)) : "";
+  const adv = e.comb === "HIGHEST" ? " (best of " + e.faces.join(", ") + ")" : e.comb === "LOWEST" ? " (worst of " + e.faces.join(", ") + ")" : "";
+  return "saves vs. " + e.label + ": rolled " + e.die + adv + b + " (needs " + e.need + ")";
+}
+// Does this Owlbear name belong to that character? Same name, or the same first word ("Aldric" / "Brother Aldric" also tried word by word).
+export function sameCharacter(owlbearName, charName) {
+  const a = String(owlbearName || "").trim().toLowerCase(), b = String(charName || "").trim().toLowerCase();
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const wa = a.split(/\s+/), wb = b.split(/\s+/);
+  return wa.some((w) => w.length > 2 && wb.includes(w));
+}

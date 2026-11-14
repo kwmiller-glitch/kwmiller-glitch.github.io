@@ -8,7 +8,7 @@ html,body{margin:0;background:transparent;overflow:hidden;font-family:"Segoe UI"
 </style></head><body><div class="p" id="p"></div>
 <script type="module">
 import OBR from "./obr-sdk.js";
-import { KEY, readSettings, nextRound, undo, setFirst, stepTurn, turnWords, esc } from "./shared.js?v=16";
+import { KEY, readSettings, nextRound, undo, setFirst, stepTurn, turnWords, esc } from "./shared.js?v=17";
 let s = {}; try { s = JSON.parse(decodeURIComponent(location.hash.slice(1))); } catch (e) {}
 const t = turnWords(s);
 const p = document.getElementById("p"); p.className = "p " + (s.turn || "");
