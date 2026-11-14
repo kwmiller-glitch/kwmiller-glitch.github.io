@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AD&amp;D 2E Spell Dictionary</title>
+<link rel="modulepreload" href="obr-sdk.js?v=4">
 <style>
 :root{--blue:#1d4f91;--ink:#1b1b1b;--muted:#5b6068;--rule:#b9bdc4;--page:#fff;--panel:#f1f3f6;--hi:#e3ebf7;--star:#c48a00;
 --head:"Franklin Gothic Medium","Franklin Gothic","Arial Narrow","Segoe UI Semibold","Trebuchet MS",Arial,sans-serif;
@@ -153,8 +154,10 @@ q.addEventListener("input",()=>{ const t=q.value.trim();
   draw(); });
 [cs,ls,ss].forEach(x=>x.addEventListener("change",()=>{ if(q.value.trim()) preSearch=null; })); ls.addEventListener("change",draw); ss.addEventListener("change",draw); cs.addEventListener("change",()=>{fill();draw();});
 </script><script type="module">
+// Owlbear's toolkit is imported up front (not on demand), so it's connected before the page finishes loading.
+// Fetched late on a first, uncached visit, it can miss Owlbear's hello: then ✕, Esc and the resizing do nothing.
+import OBR from "./obr-sdk.js?v=4";
 if (/[?&]obr=1/.test(location.search)) {
-  const { default: OBR } = await import("./obr-sdk.js?v=3");
   window.__obrClose = () => { const go = () => OBR.popover.close("spell-book/panel"); if (OBR.isReady) go(); else OBR.onReady(go); };
   // The panel is only as big as it needs to be: narrow while you search, full width once a spell is open,
   // and only as tall as what's showing (up to the screen's height).
