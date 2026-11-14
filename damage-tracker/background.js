@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=10";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=10";
+import OBR, { buildText } from "./obr-sdk.js?v=11";
+import { ID, DMG, PC, LABEL } from "./shared.js?v=11";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -7,7 +7,12 @@ const onToken = { key: "layer", value: "CHARACTER" };
 const damaged = { key: ["metadata", DMG], value: undefined, operator: "!=" };
 
 function change(items, fn) {
-  return OBR.scene.items.updateItems(items, (drafts) => {
+  // PCs' tokens take the damage off their hit points on the sheet instead (see "PCs" below); monsters get the counter.
+  const pcs = items.filter((t) => charFor(t)), rest = items.filter((t) => !charFor(t));
+  const d = fn(0);                                          // +1 damage, −1 take back, 0 clear (clearing does nothing to PCs)
+  if (d) pcs.forEach((t) => bumpHP(charFor(t), d));
+  if (!rest.length) return Promise.resolve();
+  return OBR.scene.items.updateItems(rest, (drafts) => {
     for (const d of drafts) { const n = fn(+d.metadata[DMG] || 0); if (n > 0) d.metadata[DMG] = n; else delete d.metadata[DMG]; }
   });
 }
@@ -51,7 +56,10 @@ function addTool() {
     // Counted on each press (not each click), so rapid clicking is never mistaken for a double-click and lost.
     onToolDown: async (context, event) => {
       const t = await tokenOf(event.target);
-      if (t) bump(t.id, event.shiftKey ? -1 : 1);
+      if (!t) return;
+      const c = charFor(t);
+      if (c) bumpHP(c, event.shiftKey ? -1 : 1);            // a PC: straight off their hit points on the sheet
+      else bump(t.id, event.shiftKey ? -1 : 1);
     },
     // A click on empty map (not a token) means you're done hitting things: switch back to the move tool.
     // The damage numbers stay on the tokens.
@@ -126,10 +134,48 @@ async function sync() {
   if (again) { again = false; sync(); }
 }
 
+// ---------- PCs: damage comes off the hit points on their party tracker sheet ----------
+// A token is a PC when its name matches a character in the party tracker (same name, or a shared word of 3+ letters),
+// as in Party Sheets. Clicks are added up and saved to the sheet a moment after you stop, so rapid clicks all count;
+// the HP number above the token (Party Sheets) and the tracker update from that. Shift + click heals 1.
+let sheetChars = [];
+const norm = (x) => String(x || "").trim().toLowerCase();
+const sameName = (a, b) => { a = norm(a); b = norm(b); if (!a || !b) return false; if (a === b) return true; const wb = b.split(/\s+/); return a.split(/\s+/).some((w) => w.length > 2 && wb.includes(w)); };
+const numOf = (v) => { const n = parseInt(String(v ?? "").replace(/[^\d-]/g, ""), 10); return isNaN(n) ? null : n; };
+function charFor(t) {
+  const name = (t.text && t.text.plainText) || t.name || "", live = sheetChars.filter((c) => !c.binned && !c.hidden && c.name && numOf(c.hpmax) !== null);
+  return live.find((c) => norm(c.name) === norm(name)) || live.find((c) => sameName(name, c.name)) || null;
+}
+let hpPend = new Map(), hpT = null, sheetUpdate = null;
+function bumpHP(c, d) { hpPend.set(c.id, (hpPend.get(c.id) || 0) + d); clearTimeout(hpT); hpT = setTimeout(flushHP, 350); }
+async function flushHP() {
+  const p = hpPend; hpPend = new Map(); if (!sheetUpdate) return;
+  for (const [id, dmg] of p) {
+    const c = sheetChars.find((x) => x.id === id); if (!c || !dmg) continue;
+    const now = numOf(c.hp) ?? numOf(c.hpmax) ?? 0;
+    try { await sheetUpdate(id, { hp: String(now - dmg) }); } catch (e) { console.warn("Damage Tracker: couldn't save hit points", e); }
+  }
+}
+let fbOn = false;
+async function connectSheets() {
+  if (fbOn) return;
+  let party = null; try { party = JSON.parse(localStorage.getItem("ps-party") || "null"); } catch (e) {}
+  const cfg = window.TRACKER_CONFIG; if (!party || !cfg) return;    // Party Sheets hasn't been given the party link here yet
+  fbOn = true;
+  try {
+    const B = "https://www.gstatic.com/firebasejs/10.12.2/";
+    const [{ initializeApp }, F] = await Promise.all([import(B + "firebase-app.js"), import(B + "firebase-firestore.js")]);
+    const db = F.getFirestore(initializeApp(cfg.firebase, "damage-tracker"));
+    sheetUpdate = (id, p) => F.updateDoc(F.doc(db, "parties", party, "characters", id), p);
+    F.onSnapshot(F.collection(db, "parties", party, "characters"), (snap) => { sheetChars = snap.docs.map((d) => ({ id: d.id, ...d.data() })); }, () => { fbOn = false; });
+  } catch (e) { fbOn = false; }
+}
+addEventListener("storage", (e) => { if (e.key === "ps-party") connectSheets(); });
+
 OBR.onReady(async () => {
   addMenu();
   if ((await OBR.player.getRole()) !== "GM") return;      // players: nothing else to do
-  addTool();
+  addTool(); connectSheets();
   let unsub = null;
   const start = () => { if (unsub) unsub(); unsub = OBR.scene.items.onChange(() => sync()); sync(); };
   if (await OBR.scene.isReady()) start();
