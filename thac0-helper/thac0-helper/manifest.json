@@ -1,9 +1,0 @@
-{
-  "name": "THAC0 Helper",
-  "version": "2.0.0",
-  "manifest_version": 1,
-  "author": "Your DM",
-  "description": "AD&D 2nd Edition: when the DM switches it on, every d20 rolled with Owlbear's Dice shows which Armor Class it hits.",
-  "icon": "/thac0-helper/icon.svg",
-  "background_url": "/thac0-helper/background.html"
-}
