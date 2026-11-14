@@ -50,7 +50,7 @@ details.move button{margin-top:4px;border:1px solid var(--line);border-radius:6p
 </style></head><body><main id="app"><p class="hint">Loading…</p></main>
 <script type="module">
 import OBR from "./obr-sdk.js";
-import { KEY, ID, readSettings, activeWeapon, acText, rollText, esc, LOG_KEY, blessLeft, turnText, nextRound, undo, canUndo, setFirst, stepTurn, other, canon } from "./shared.js?v=15";
+import { KEY, ID, readSettings, activeWeapon, acText, rollText, esc, LOG_KEY, blessLeft, turnText, nextRound, undo, canUndo, setFirst, stepTurn, other, canon } from "./shared.js?v=16";
 const app = document.getElementById("app");
 let role = "PLAYER", myName = "", myId = "", settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "", first: "", hist: [] }, players = [], log = [], adding = null, renaming = null, moveMsg = "";
 const saveSettings = (s) => OBR.room.setMetadata({ [KEY]: s });
@@ -74,7 +74,7 @@ function draw() {
   const names = [...new Set([...here, ...Object.keys(settings.thac0)])].sort((a, b) => a.localeCompare(b));
   app.innerHTML = `<h1>THAC0 Helper</h1>
     <button class="switch" id="sw" aria-pressed="${settings.on}"><span>AC calculator ${settings.on ? "on" : "off"}</span><span class="pill"></span></button>
-    <p class="hint">${settings.on ? "Every d20 a player rolls now shows the Armor Class it hits. Switch it off for saving throws and checks." : "Off: d20s are left alone. Switch it on when the attacks start."}</p>
+
     <div class="cb">${settings.round ? `<div class="top"><button id="prevrd" title="Undo the last step"${canUndo(settings) ? "" : " disabled"}>◀</button><span class="rd">Round ${settings.round}</span><button id="nextrd" title="Skip straight to the next round">Next round</button><button class="end" id="endcb" title="Combat over: hide the round from everyone’s screen and clear Bless">End</button></div>
       ${(() => { const S = { party: "Party", monsters: "Monsters" }, t = settings.turn, f = settings.first;
         if (!t) return `<p class="step">Who won initiative?</p><div class="seg"><button class="pt" data-first="party">Party first</button><button class="mo" data-first="monsters">Monsters first</button></div>`;
