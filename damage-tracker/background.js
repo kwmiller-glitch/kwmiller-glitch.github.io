@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=11";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=11";
+import OBR, { buildText } from "./obr-sdk.js?v=12";
+import { ID, DMG, PC, LABEL } from "./shared.js?v=12";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -10,7 +10,7 @@ function change(items, fn) {
   // PCs' tokens take the damage off their hit points on the sheet instead (see "PCs" below); monsters get the counter.
   const pcs = items.filter((t) => charFor(t)), rest = items.filter((t) => !charFor(t));
   const d = fn(0);                                          // +1 damage, −1 take back, 0 clear (clearing does nothing to PCs)
-  if (d) pcs.forEach((t) => bumpHP(charFor(t), d));
+  if (d) pcs.forEach((t) => bumpHP(charFor(t), d, t.id));
   if (!rest.length) return Promise.resolve();
   return OBR.scene.items.updateItems(rest, (drafts) => {
     for (const d of drafts) { const n = fn(+d.metadata[DMG] || 0); if (n > 0) d.metadata[DMG] = n; else delete d.metadata[DMG]; }
@@ -58,7 +58,7 @@ function addTool() {
       const t = await tokenOf(event.target);
       if (!t) return;
       const c = charFor(t);
-      if (c) bumpHP(c, event.shiftKey ? -1 : 1);            // a PC: straight off their hit points on the sheet
+      if (c) bumpHP(c, event.shiftKey ? -1 : 1, t.id);      // a PC: straight off their hit points on the sheet
       else bump(t.id, event.shiftKey ? -1 : 1);
     },
     // A click on empty map (not a token) means you're done hitting things: switch back to the move tool.
@@ -147,7 +147,20 @@ function charFor(t) {
   return live.find((c) => norm(c.name) === norm(name)) || live.find((c) => sameName(name, c.name)) || null;
 }
 let hpPend = new Map(), hpT = null, sheetUpdate = null;
-function bumpHP(c, d) { hpPend.set(c.id, (hpPend.get(c.id) || 0) + d); clearTimeout(hpT); hpT = setTimeout(flushHP, 350); }
+function bumpHP(c, d, tokenId) {
+  hpPend.set(c.id, (hpPend.get(c.id) || 0) + d); clearTimeout(hpT); hpT = setTimeout(flushHP, 350);
+  if (tokenId) showHP(c, tokenId);
+}
+// Change the HP number above the token (drawn by Party Sheets on this screen) at once, before the sheet is saved,
+// so clicking feels instant; Party Sheets redraws it from the sheet a moment later with the same number.
+async function showHP(c, tokenId) {
+  const max = numOf(c.hpmax), hp = (numOf(c.hp) ?? max ?? 0) - (hpPend.get(c.id) || 0);
+  const color = hp <= 0 ? "#ff5a5a" : max && hp * 2 <= max ? "#ffc94d" : "#8ff09a";
+  try {
+    const ls = await OBR.scene.local.getItems((i) => i.metadata["party-sheets/hp"] === tokenId);
+    if (ls.length) await OBR.scene.local.updateItems(ls, (ds) => { for (const x of ds) { x.text.plainText = hp + "/" + max; x.text.style.fillColor = color; } });
+  } catch (e) {}
+}
 async function flushHP() {
   const p = hpPend; hpPend = new Map(); if (!sheetUpdate) return;
   for (const [id, dmg] of p) {
