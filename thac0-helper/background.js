@@ -1,7 +1,7 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave, sameCharacter } from "./shared.js?v=21";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave, sameCharacter } from "./shared.js?v=22";
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
@@ -42,7 +42,7 @@ async function showBanner() {
   if (phone) { try { vh = await OBR.viewport.getHeight(); } catch (e) {} }
   const low = phone && vh > 300;
   await OBR.popover.open({
-    id: BANNER, url: "/thac0-helper/banner.html?v=21#" + encodeURIComponent(JSON.stringify(lines)), width, height,
+    id: BANNER, url: "/thac0-helper/banner.html?v=22#" + encodeURIComponent(JSON.stringify(lines)), width, height,
     anchorReference: "POSITION", anchorPosition: { left, top: low ? vh - 84 : bannerTop(phone) },
     anchorOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -57,6 +57,16 @@ function consider(player) {
   const key = rollKey(player.id, roll); if (seen.has(key)) return; seen.add(key);
   if (!ready) return;                                       // rolls made before we started are ignored
   const who = canon(settings, player);                     // the saved name, even if they've renamed themselves since
+  // A party save (several characters at once): each matched player's roll answers their own character's save;
+  // the DM's roll answers for a character whose player isn't here or isn't matched.
+  const gm = groupFor(player, who);
+  if (gm) {
+    usedMembers.add(groupSave.at + "/" + gm.id);
+    const entry = describeSave(gm.name, r, { need: gm.need, label: groupSave.label }); entry.k = key;
+    remember(entry); lines.push(entry); showBanner();
+    if (role === "GM") recordGroup(gm.id, entry);
+    return;
+  }
   // A saving throw the DM called from Party Sheets takes this roll, whether or not the AC calculator is on.
   const sv = saveFor(player, who);
   if (sv) {
@@ -73,6 +83,29 @@ function consider(player) {
   remember(entry);
   if (onPhone && player.id !== myId) return;               // on a phone, only your own rolls pop up, to save space
   lines.push(entry); showBanner();
+}
+
+// ---------- party saves ----------
+let groupSave = null; const usedMembers = new Set();
+const GROUP_KEY = "party-sheets/group";
+function groupFor(player, who) {
+  const g = groupSave;
+  if (!g || g.done || !Array.isArray(g.members) || Date.now() - g.at > SAVE_TTL) return null;
+  const open = g.members.filter((m) => !(g.results || {})[m.id] && !usedMembers.has(g.at + "/" + m.id));
+  if (player.role === "GM" || player.id === myId && role === "GM") {
+    // the DM rolls for a character nobody in the room is playing
+    const playing = new Set(partyNow.filter((p) => p.role !== "GM").map((p) => canon(settings, p)));
+    return open.find((m) => !playing.has(m.name)) || null;
+  }
+  return open.find((m) => m.name === who) || null;
+}
+async function recordGroup(memberId, e) {
+  try {
+    const m = await OBR.room.getMetadata(), g = m[GROUP_KEY]; if (!g || g.at !== groupSave.at) return;
+    const results = { ...(g.results || {}), [memberId]: { total: e.total, ok: e.ok } };
+    const done = g.members.every((x) => results[x.id]);
+    await OBR.room.setMetadata({ [GROUP_KEY]: { ...g, results, done } });
+  } catch (err) {}
 }
 
 // Which roll answers a called save: simply the next d20 anyone rolls, the DM included. The DM picked the character
@@ -95,7 +128,7 @@ async function showTurn() {
   await OBR.popover.close(TURN);
   if (!want) return;
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html?v=21#" + encodeURIComponent(want), width: 340, height: 38,
+    id: TURN, url: "/thac0-helper/turn.html?v=22#" + encodeURIComponent(want), width: 340, height: 38,
     anchorReference: "POSITION", anchorPosition: { left, top: pillTop() },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -110,7 +143,7 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/thac0-helper/icon.svg", label: "THAC0 Helper", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=21", width: 340, height: 480, anchorElementId: elementId,
+      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=22", width: 340, height: 480, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },
@@ -198,12 +231,12 @@ OBR.onReady(async () => {
   role = await OBR.player.getRole(); myId = await OBR.player.getId();
   try { onPhone = isPhone(await OBR.viewport.getWidth()); } catch (e) { onPhone = isPhone(1200); }
   try { addButton().catch(() => {}); } catch (e) {}
-  { const meta = await OBR.room.getMetadata(); settings = readSettings(meta); pendingSave = meta[SAVE_KEY] || null; } badge();
+  { const meta = await OBR.room.getMetadata(); settings = readSettings(meta); pendingSave = meta[SAVE_KEY] || null; groupSave = meta[GROUP_KEY] || null; } badge();
   // Drop the pill below the options bar while a tool that has one is picked; put it back for the move tool.
   const toolChanged = (id) => { const low = !NO_BAR.includes(id); if (low !== lowered) { lowered = low; showTurn(); } };
   try { lowered = !NO_BAR.includes(await OBR.tool.getActiveTool()); OBR.tool.onToolChange(toolChanged); } catch (e) {}
   showTurn();
-  OBR.room.onMetadataChange((meta) => { settings = readSettings(meta); pendingSave = meta[SAVE_KEY] || null; badge(); showTurn(); link(); });
+  OBR.room.onMetadataChange((meta) => { settings = readSettings(meta); pendingSave = meta[SAVE_KEY] || null; groupSave = meta[GROUP_KEY] || null; badge(); showTurn(); link(); });
   // note the rolls already on the table, so they are not announced as new
   const self = { id: await OBR.player.getId(), name: await OBR.player.getName(), metadata: await OBR.player.getMetadata() };
   partyNow = await OBR.party.getPlayers(); link(); connectSheets();
