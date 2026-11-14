@@ -15,7 +15,7 @@ async function toggle() {
   try { vw = await OBR.viewport.getWidth(); vh = await OBR.viewport.getHeight(); } catch (e) {}
   const width = Math.round(Math.min(900, Math.max(560, vw * 0.5))), height = Math.max(420, vh - 110);
   await OBR.popover.open({
-    id: PANEL, url: "/spell-book/spells.html?obr=1&v=4", width, height,
+    id: PANEL, url: `/spell-book/spells.html?obr=1&v=5&mw=${width}&mh=${height}`, width: Math.min(460, width), height: 160,
     anchorReference: "POSITION", anchorPosition: { left: vw - 76, top: 66 },
     anchorOrigin: { horizontal: "RIGHT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" },
   });
