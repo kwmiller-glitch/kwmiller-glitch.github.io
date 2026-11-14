@@ -1,6 +1,6 @@
 import OBR from "./obr-sdk.js?v=2";
 
-// A book button in the toolbar, for the GM only. Clicking it opens the spell dictionary in a tall panel
+// A book button in the toolbar, for everyone. Clicking it opens the spell dictionary in a tall panel
 // on the right-hand side of the screen; clicking it again, ✕ or Esc in the panel, or a click anywhere outside it closes it.
 const ID = "spell-book", PANEL = ID + "/panel";
 // The panel says "closed" as it goes away (✕, Esc or a click outside). Clicking the book itself counts as a click
@@ -22,11 +22,11 @@ async function toggle() {
   open = true;
 }
 
+// Everyone gets the book (GM and players); each person's My spells list is kept in their own browser.
 OBR.onReady(async () => {
-  if ((await OBR.player.getRole()) !== "GM") return;
   OBR.tool.create({
     id: ID + "/button",
-    icons: [{ icon: "/spell-book/icon.svg?v=2", label: "Spell Book", filter: { roles: ["GM"] } }],
+    icons: [{ icon: "/spell-book/icon.svg?v=2", label: "Spell Book" }],
     onClick: () => { toggle(); return false; },
   });
 });
