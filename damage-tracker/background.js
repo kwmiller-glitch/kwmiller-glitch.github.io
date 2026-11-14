@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=13";
-import { ID, DMG, PC, LABEL, MAX } from "./shared.js?v=13";
+import OBR, { buildText } from "./obr-sdk.js?v=14";
+import { ID, DMG, PC, LABEL, MAX } from "./shared.js?v=14";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -38,11 +38,7 @@ function addMenu() {
   OBR.contextMenu.create({
     id: ID + "/typehp",
     icons: [{ icon: "/damage-tracker/type.svg", label: "Type hit points", filter: { roles: ["GM"], every: [onToken, notPC] } }],
-    onClick: (ctx, elementId) => {
-      const ms = ctx.items.filter((t) => !charFor(t)); if (!ms.length) return;
-      OBR.popover.open({ id: ID + "/sethp", url: "/damage-tracker/sethp.html?v=13&ids=" + ms.map((t) => t.id).join(","), width: 270, height: 56,
-        anchorElementId: elementId, anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
-    },
+    onClick: (ctx, elementId) => { const ms = ctx.items.filter((t) => !charFor(t)); if (ms.length) openSetHP(ms, elementId); },
   });
   OBR.contextMenu.create({
     id: ID + "/clear",
@@ -64,7 +60,7 @@ function addTool() {
   OBR.tool.create({ id: TOOL, icons: [{ icon: "/damage-tracker/icon.svg", label: "Damage (click a monster)", filter: { roles: ["GM"] } }], defaultMode: MODE });
   OBR.tool.createMode({
     id: MODE,
-    icons: [{ icon: "/damage-tracker/down.svg", label: "Click: 1 damage · Shift + click: take one back", filter: { activeTools: [TOOL] } }],
+    icons: [{ icon: "/damage-tracker/down.svg", label: "Click: 1 damage · Shift + click: take one back · Alt + click: type a monster’s hit points", filter: { activeTools: [TOOL] } }],
     cursors: [{ cursor: "pointer", filter: { target: [onToken] } }, { cursor: "default" }],
     preventDrag: { target: [onToken] },
     // Counted on each press (not each click), so rapid clicking is never mistaken for a double-click and lost.
@@ -72,6 +68,9 @@ function addTool() {
       const t = await tokenOf(event.target);
       if (!t) return;
       const c = charFor(t);
+      // A monster with no hit points yet: the first click asks for them (a small box by the token), instead of counting
+      // damage. Alt + click asks again any time. Press Esc in the box to skip, and later clicks just count damage.
+      if (!c && (event.altKey || (!(+t.metadata[MAX] > 0) && !asked.has(t.id)))) { asked.add(t.id); openSetHP([t]); return; }
       if (c) bumpHP(c, event.shiftKey ? -1 : 1, t.id);      // a PC: straight off their hit points on the sheet
       else bump(t.id, event.shiftKey ? -1 : 1);
     },
@@ -150,6 +149,18 @@ async function sync() {
   } catch (e) { console.warn("Damage Tracker:", e); }
   busy = false;
   if (again) { again = false; sync(); }
+}
+
+// ---------- typing a monster's hit points ----------
+const asked = new Set();
+async function openSetHP(ms, elementId) {
+  const url = "/damage-tracker/sethp.html?v=14&ids=" + ms.map((t) => t.id).join(",");
+  if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
+    anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
+  let left = 600, top = 300;                                  // next to the token on screen
+  try { const p = await OBR.viewport.inverseTransformPoint(ms[0].position); left = Math.round(p.x); top = Math.round(p.y); } catch (e) {}
+  return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorReference: "POSITION", anchorPosition: { left, top: top + 40 },
+    anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
 }
 
 // ---------- monsters' hit points from the dice tray ----------
