@@ -46,8 +46,8 @@ async function syncHP() {
     const have = new Map(labels.map((l) => [l.metadata[HPL], l]));
     const gone = labels.filter((l) => !want.has(l.metadata[HPL])).map((l) => l.id);
     if (gone.length) await OBR.scene.local.deleteItems(gone);
-    const stale = labels.filter((l) => { const w = want.get(l.metadata[HPL]); return w && (l.text.plainText !== w.text || l.text.style.fillColor !== w.color); });
-    if (stale.length) await OBR.scene.local.updateItems(stale, (ds) => { for (const d of ds) { const w = want.get(d.metadata[HPL]); d.text.plainText = w.text; d.text.style.fillColor = w.color; } });
+    const stale = labels.filter((l) => { const w = want.get(l.metadata[HPL]); return w && (l.text.plainText !== w.text || (l.text.style || {}).fillColor !== w.color); });
+    if (stale.length) await OBR.scene.local.updateItems(stale, (ds) => { for (const d of ds) { const w = want.get(d.metadata[HPL]); d.text.plainText = w.text; if (d.text.style) d.text.style.fillColor = w.color; } });
     const add = []; let dpi = 150; try { dpi = await OBR.scene.grid.getDpi(); } catch (e) {}
     for (const [id, w] of want) {
       if (have.has(id)) continue;

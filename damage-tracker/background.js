@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=12";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=12";
+import OBR, { buildText } from "./obr-sdk.js?v=13";
+import { ID, DMG, PC, LABEL, MAX } from "./shared.js?v=13";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -29,6 +29,11 @@ function addMenu() {
     icons: [{ icon: "/damage-tracker/up.svg", label: "Take back 1 damage", filter: { roles: ["GM"], every: [onToken, notPC, damaged] } }],
     onClick: (ctx) => change(ctx.items, (n) => n - 1),
     shortcut: "k",               // k takes 1 back
+  });
+  OBR.contextMenu.create({
+    id: ID + "/rollhp",
+    icons: [{ icon: "/damage-tracker/roll.svg", label: "Roll hit points in the dice tray", filter: { roles: ["GM"], every: [onToken, notPC] } }],
+    onClick: (ctx) => armRoll(ctx.items),
   });
   OBR.contextMenu.create({
     id: ID + "/clear",
@@ -107,24 +112,28 @@ async function sync() {
   if (busy) { again = true; return; } busy = true;
   try {
     const dmgOf = (i) => Math.max(0, (+i.metadata[DMG] || 0) + delta(i.id));
-    const tokens = (await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && dmgOf(i) > 0));
+    const maxOf = (i) => (Number.isInteger(i.metadata[MAX]) && i.metadata[MAX] > 0 ? i.metadata[MAX] : 0);
+    const tokens = (await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && (dmgOf(i) > 0 || maxOf(i) > 0)));
+    // With hit points rolled: "8/11", green above half, amber at half or below, red at 0 or less. Without: "−3" in red.
+    const look = (t) => { const d = dmgOf(t), m = maxOf(t);
+      if (!m) return { text: "−" + d, color: "#ff4a4a" };
+      const hp = m - d; return { text: hp + "/" + m, color: hp <= 0 ? "#ff5a5a" : hp * 2 <= m ? "#ffc94d" : "#8ff09a" }; };
     const labels = await OBR.scene.local.getItems((i) => i.metadata[LABEL] !== undefined);
-    const want = new Map(tokens.map((t) => [t.id, "−" + dmgOf(t)]));
+    const want = new Map(tokens.map((t) => [t.id, look(t)]));
     const have = new Map(labels.map((l) => [l.metadata[LABEL], l]));
     const gone = labels.filter((l) => !want.has(l.metadata[LABEL])).map((l) => l.id);
     if (gone.length) await OBR.scene.local.deleteItems(gone);
-    const stale = labels.filter((l) => want.has(l.metadata[LABEL]) && l.text.plainText !== want.get(l.metadata[LABEL]));
-    if (stale.length) await OBR.scene.local.updateItems(stale, (ds) => { for (const d of ds) d.text.plainText = want.get(d.metadata[LABEL]); });
-    const add = [];
+    const stale = labels.filter((l) => { const w = want.get(l.metadata[LABEL]); return w && (l.text.plainText !== w.text || (l.text.style || {}).fillColor !== w.color); });
+    if (stale.length) await OBR.scene.local.updateItems(stale, (ds) => { for (const d of ds) { const w = want.get(d.metadata[LABEL]); d.text.plainText = w.text; if (d.text.style) d.text.style.fillColor = w.color; } });
+    const add = []; let dpi = 150; try { dpi = await OBR.scene.grid.getDpi(); } catch (e) {}
     for (const t of tokens) {
       if (have.has(t.id)) continue;
-      const b = await OBR.scene.items.getItemBounds([t.id]);
-      // Plain red text with a dark outline, just under the token's bottom edge, right of centre (clear of the name label).
-      // It's drawn as part of the map, so it keeps the same size relative to the token at every zoom.
-      const fs = Math.max(8, Math.round(b.height * 0.2));
-      add.push(buildText().textType("PLAIN").plainText(want.get(t.id)).width(Math.round(b.width * 0.5)).height(Math.round(fs * 1.4))
-        .position({ x: b.center.x + b.width * 0.12, y: b.max.y - fs * 0.35 }).textAlign("LEFT").textAlignVertical("TOP")
-        .fontSize(fs).fontWeight(800).fillColor("#ff4a4a").strokeColor("#1a0000").strokeWidth(Math.max(2, Math.round(fs * 0.16)))
+      // Centred just above the token's grid square, like the PCs' hit points, drawn as part of the map
+      // (so it keeps its size relative to the token at every zoom). Only on the GM's screen.
+      const cell = dpi * Math.abs((t.scale && t.scale.y) || 1), fs = Math.max(8, Math.round(cell * 0.15)), w5 = Math.round(fs * 5), w = want.get(t.id);
+      add.push(buildText().textType("PLAIN").plainText(w.text).width(w5).height(Math.round(fs * 1.4))
+        .position({ x: t.position.x - w5 / 2, y: t.position.y - cell / 2 - fs * 0.85 }).textAlign("CENTER").textAlignVertical("TOP")
+        .fontSize(fs).fontWeight(800).fillColor(w.color).strokeColor("#0b0d12").strokeWidth(Math.max(2, Math.round(fs * 0.16)))
         .attachedTo(t.id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true)
         .metadata({ [LABEL]: t.id }).build());
     }
@@ -132,6 +141,35 @@ async function sync() {
   } catch (e) { console.warn("Damage Tracker:", e); }
   busy = false;
   if (again) { again = false; sync(); }
+}
+
+// ---------- monsters' hit points from the dice tray ----------
+// "Roll hit points" (token menu, GM only) on one or more selected monsters; then roll their hit dice in the dice tray.
+// Each finished roll you make (every die added up, plus any +/- bonus) becomes the next selected monster's hit points,
+// and any damage already on it is cleared. Waits 3 minutes. Hidden rolls can't be read, so roll them openly.
+const DICE = "rodeo.owlbear.dice/";
+let rollQueue = [], rollAt = 0, seenRoll = "";
+const rollKeyOf = (m) => { const r = m[DICE + "roll"]; if (!r) return ""; const ids = []; const walk = (d) => (d.dice || []).forEach((x) => (x && x.id ? ids.push(x.id) : x && walk(x))); walk(r); return ids.join(","); };
+function rollTotal(m) {
+  const r = m[DICE + "roll"], v = m[DICE + "rollValues"]; if (!r || !v || r.hidden) return null;
+  let sum = typeof r.bonus === "number" ? r.bonus : 0, ok = true, n = 0;
+  const walk = (d) => (d.dice || []).forEach((x) => { if (x && x.id) { const val = v[x.id]; if (typeof val !== "number") ok = false; else { sum += val; n++; } } else if (x) { if (typeof x.bonus === "number") sum += x.bonus; walk(x); } });
+  walk(r); return ok && n ? sum : null;
+}
+async function armRoll(items) {
+  const ms = items.filter((t) => !charFor(t)); if (!ms.length) return;
+  rollQueue = ms.map((t) => t.id); rollAt = Date.now(); seenRoll = rollKeyOf(await OBR.player.getMetadata());
+  OBR.notification.show(ms.length === 1 ? "Roll this monster’s hit dice in the dice tray." : `Roll hit dice ${ms.length} times in the dice tray, one roll per monster.`);
+}
+async function onMyRoll(meta) {
+  if (!rollQueue.length || Date.now() - rollAt > 3 * 60 * 1000) { rollQueue = []; return; }
+  const key = rollKeyOf(meta), total = rollTotal(meta);
+  if (!key || key === seenRoll || total === null) return;   // not a new, finished, visible roll yet
+  seenRoll = key; const id = rollQueue.shift();
+  const [t] = await OBR.scene.items.getItems([id]); if (!t) return;
+  await OBR.scene.items.updateItems([t], (ds) => { for (const d of ds) { d.metadata[MAX] = Math.max(1, total); delete d.metadata[DMG]; } });
+  const name = (t.text && t.text.plainText) || t.name || "Monster";
+  OBR.notification.show(`${name}: ${Math.max(1, total)} hit points` + (rollQueue.length ? ` · ${rollQueue.length} more to roll` : ""));
 }
 
 // ---------- PCs: damage comes off the hit points on their party tracker sheet ----------
@@ -158,7 +196,7 @@ async function showHP(c, tokenId) {
   const color = hp <= 0 ? "#ff5a5a" : max && hp * 2 <= max ? "#ffc94d" : "#8ff09a";
   try {
     const ls = await OBR.scene.local.getItems((i) => i.metadata["party-sheets/hp"] === tokenId);
-    if (ls.length) await OBR.scene.local.updateItems(ls, (ds) => { for (const x of ds) { x.text.plainText = hp + "/" + max; x.text.style.fillColor = color; } });
+    if (ls.length) await OBR.scene.local.updateItems(ls, (ds) => { for (const x of ds) { x.text.plainText = hp + "/" + max; if (x.text.style) x.text.style.fillColor = color; } });
   } catch (e) {}
 }
 async function flushHP() {
@@ -189,6 +227,7 @@ OBR.onReady(async () => {
   addMenu();
   if ((await OBR.player.getRole()) !== "GM") return;      // players: nothing else to do
   addTool(); connectSheets();
+  OBR.player.onChange((p) => onMyRoll(p.metadata || {}));
   let unsub = null;
   const start = () => { if (unsub) unsub(); unsub = OBR.scene.items.onChange(() => sync()); sync(); };
   if (await OBR.scene.isReady()) start();
