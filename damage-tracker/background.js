@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=14";
-import { ID, DMG, PC, LABEL, MAX } from "./shared.js?v=14";
+import OBR, { buildText } from "./obr-sdk.js?v=15";
+import { ID, DMG, PC, LABEL, MAX } from "./shared.js?v=15";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -22,13 +22,11 @@ function addMenu() {
     id: ID + "/down",
     icons: [{ icon: "/damage-tracker/down.svg", label: "1 damage", filter: { roles: ["GM"], every: [onToken, notPC] } }],
     onClick: (ctx) => change(ctx.items, (n) => n + 1),
-    shortcut: "j",               // select a monster, press j: 1 damage (if Owlbear honours it)
   });
   OBR.contextMenu.create({
     id: ID + "/up",
     icons: [{ icon: "/damage-tracker/up.svg", label: "Take back 1 damage", filter: { roles: ["GM"], every: [onToken, notPC, damaged] } }],
     onClick: (ctx) => change(ctx.items, (n) => n - 1),
-    shortcut: "k",               // k takes 1 back
   });
   OBR.contextMenu.create({
     id: ID + "/rollhp",
@@ -57,7 +55,8 @@ async function tokenOf(item) {
   return null;
 }
 function addTool() {
-  OBR.tool.create({ id: TOOL, icons: [{ icon: "/damage-tracker/icon.svg", label: "Damage (click a monster)", filter: { roles: ["GM"] } }], defaultMode: MODE });
+  // J picks the tool from the keyboard (Owlbear's own tools use keys like W for move).
+  OBR.tool.create({ id: TOOL, icons: [{ icon: "/damage-tracker/icon.svg", label: "Damage (click a monster)", filter: { roles: ["GM"] } }], defaultMode: MODE, shortcut: "J" });
   OBR.tool.createMode({
     id: MODE,
     icons: [{ icon: "/damage-tracker/down.svg", label: "Click: 1 damage · Shift + click: take one back · Alt + click: type a monster’s hit points", filter: { activeTools: [TOOL] } }],
@@ -154,7 +153,7 @@ async function sync() {
 // ---------- typing a monster's hit points ----------
 const asked = new Set();
 async function openSetHP(ms, elementId) {
-  const url = "/damage-tracker/sethp.html?v=14&ids=" + ms.map((t) => t.id).join(",");
+  const url = "/damage-tracker/sethp.html?v=15&ids=" + ms.map((t) => t.id).join(",");
   if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
     anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
   let left = 600, top = 300;                                  // next to the token on screen
