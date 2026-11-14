@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Set hit points</title>
+<style>
+html,body{margin:0;background:#1f2333;color:#fff;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;overflow:hidden}
+form{display:flex;align-items:center;gap:8px;padding:10px 12px}
+label{font-weight:600;white-space:nowrap}
+input{width:58px;font:700 18px inherit;font-family:inherit;text-align:center;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.3);color:#fff}
+button{border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(255,255,255,.1);color:#fff;font:600 13px inherit;font-family:inherit;padding:5px 10px;cursor:pointer}
+</style></head><body>
+<form id="f"><label for="n" id="lab">Hit points</label><input id="n" inputmode="numeric" autocomplete="off" required><button>Set</button></form>
+<script type="module">
+import OBR from "./obr-sdk.js?v=13";
+import { ID, DMG, MAX } from "./shared.js?v=13";
+// Type the hit points you have in mind for the selected monster(s). Enter sets them (and clears any damage); Esc cancels.
+const ids = (new URLSearchParams(location.search).get("ids") || "").split(",").filter(Boolean);
+const n = document.getElementById("n"); setTimeout(() => n.focus(), 50);
+if (ids.length > 1) document.getElementById("lab").textContent = `HP, each of ${ids.length}`;
+const close = () => OBR.popover.close(ID + "/sethp");
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+document.getElementById("f").addEventListener("submit", async (e) => {
+  e.preventDefault(); const v = parseInt(n.value.replace(/[^\d]/g, ""), 10); if (!v) return;
+  const items = await OBR.scene.items.getItems(ids);
+  await OBR.scene.items.updateItems(items, (ds) => { for (const d of ds) { d.metadata[MAX] = v; delete d.metadata[DMG]; } });
+  close();
+});
+</script></body></html>

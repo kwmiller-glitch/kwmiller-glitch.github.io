@@ -36,6 +36,15 @@ function addMenu() {
     onClick: (ctx) => armRoll(ctx.items),
   });
   OBR.contextMenu.create({
+    id: ID + "/typehp",
+    icons: [{ icon: "/damage-tracker/type.svg", label: "Type hit points", filter: { roles: ["GM"], every: [onToken, notPC] } }],
+    onClick: (ctx, elementId) => {
+      const ms = ctx.items.filter((t) => !charFor(t)); if (!ms.length) return;
+      OBR.popover.open({ id: ID + "/sethp", url: "/damage-tracker/sethp.html?v=13&ids=" + ms.map((t) => t.id).join(","), width: 270, height: 56,
+        anchorElementId: elementId, anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
+    },
+  });
+  OBR.contextMenu.create({
     id: ID + "/clear",
     icons: [{ icon: "/damage-tracker/clear.svg", label: "Clear damage", filter: { roles: ["GM"], every: [onToken, damaged] } }],
     onClick: (ctx) => change(ctx.items, () => 0),
