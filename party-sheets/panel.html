@@ -146,7 +146,7 @@ app.addEventListener("click", (ev) => {
   if (b.id === "all") { showAll = !showAll; draw(); return; }
   if (b.dataset.sel) { sel = b.dataset.sel; LS.set("ps-sel", sel); draw(); return; }
   if (b.dataset.save) { const c = chars.find((x) => x.id === sel); if (!c) return; const k = b.dataset.save, sv = SAVES.find((x) => x[0] === k);
-    const next = callFor(c, k) ? undefined : { id: c.id, name: c.name || "", k, label: sv[2], need: num(c[k]), at: Date.now() };
+    const next = callFor(c, k) ? undefined : { id: c.id, name: c.name || "", player: c.player || "", k, label: sv[2], need: num(c[k]), at: Date.now() };
     called = next || null; draw(); OBR.room.setMetadata({ [SAVE_KEY]: next }).catch(() => {}); return; }
   if (b.dataset.hp) { const c = chars.find((x) => x.id === sel); if (c) bumpHP(c, +b.dataset.hp); }
 });
