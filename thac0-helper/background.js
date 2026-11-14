@@ -1,7 +1,7 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave, sameCharacter } from "./shared.js?v=20";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave, sameCharacter } from "./shared.js?v=21";
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
@@ -42,7 +42,7 @@ async function showBanner() {
   if (phone) { try { vh = await OBR.viewport.getHeight(); } catch (e) {} }
   const low = phone && vh > 300;
   await OBR.popover.open({
-    id: BANNER, url: "/thac0-helper/banner.html?v=20#" + encodeURIComponent(JSON.stringify(lines)), width, height,
+    id: BANNER, url: "/thac0-helper/banner.html?v=21#" + encodeURIComponent(JSON.stringify(lines)), width, height,
     anchorReference: "POSITION", anchorPosition: { left, top: low ? vh - 84 : bannerTop(phone) },
     anchorOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -95,7 +95,7 @@ async function showTurn() {
   await OBR.popover.close(TURN);
   if (!want) return;
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html?v=20#" + encodeURIComponent(want), width: 340, height: 38,
+    id: TURN, url: "/thac0-helper/turn.html?v=21#" + encodeURIComponent(want), width: 340, height: 38,
     anchorReference: "POSITION", anchorPosition: { left, top: pillTop() },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -110,7 +110,7 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/thac0-helper/icon.svg", label: "THAC0 Helper", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=20", width: 340, height: 480, anchorElementId: elementId,
+      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=21", width: 340, height: 480, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },
@@ -150,10 +150,32 @@ function applySheets(s, players) {
     if (old && !s.sheet[old]) move(old, n);
     if (s.thac0[n] !== +c.thac0) { s.thac0[n] = +c.thac0; changed = true; }
     if (s.ids[p.id] !== n) { s.ids[p.id] = n; changed = true; }
+    if (sheetWeapons(s, c, n)) changed = true;
     flags[n] = true;
   }
-  for (const n in s.sheet) { const c = live.find((c) => c.name === n); if (c) { flags[n] = true; if (s.thac0[n] !== +c.thac0) { s.thac0[n] = +c.thac0; changed = true; } } }
+  for (const n in s.sheet) { const c = live.find((c) => c.name === n); if (c) { flags[n] = true; if (s.thac0[n] !== +c.thac0) { s.thac0[n] = +c.thac0; changed = true; } if (sheetWeapons(s, c, n)) changed = true; } }
   if (JSON.stringify(flags) !== JSON.stringify(s.sheet)) { s.sheet = flags; changed = true; }
+  return changed;
+}
+// Weapons come from the sheet's Weapons box (up to 3: name, bonus to hit, Spec.), and the one in use from the
+// choice made in Party Sheets. Weapons set up earlier in this panel are copied onto the sheet once, if its box is empty.
+const sheetList = (c) => [1, 2, 3].map((i) => ({ n: String(c["w" + i + "n"] || "").trim(), b: parseInt(String(c["w" + i + "b"] || "0").replace(/[^\d-]/g, ""), 10) || 0, s: !!c["w" + i + "s"] })).filter((w) => w.n);
+let sheetApi = null; const copied = new Set();
+function sheetWeapons(s, c, n) {
+  const list = sheetList(c);
+  if (!list.length) {
+    const old = (s.weapons[n] || []).slice(0, 3);
+    if (old.length && sheetApi && !copied.has(c.id)) {          // one-time copy of this panel's weapons onto the sheet
+      copied.add(c.id); const p = {}; old.forEach((w, i) => { p["w" + (i + 1) + "n"] = w.n; p["w" + (i + 1) + "b"] = String(w.b || 0); p["w" + (i + 1) + "s"] = !!w.s; });
+      if (Number.isInteger(s.active[n]) && s.active[n] < 3) p.wact = s.active[n] + 1;
+      sheetApi(c.id, p).catch(() => copied.delete(c.id));
+    }
+    return false;
+  }
+  let changed = false;
+  if (JSON.stringify(s.weapons[n] || []) !== JSON.stringify(list)) { s.weapons[n] = list; changed = true; }
+  const a = Number.isInteger(c.wact) && c.wact >= 1 && c.wact <= list.length ? c.wact - 1 : undefined;
+  if (s.active[n] !== a) { if (a === undefined) delete s.active[n]; else s.active[n] = a; changed = true; }
   return changed;
 }
 let sheetsOn = false;
@@ -166,6 +188,7 @@ async function connectSheets() {
     const B = "https://www.gstatic.com/firebasejs/10.12.2/";
     const [{ initializeApp }, F] = await Promise.all([import(B + "firebase-app.js"), import(B + "firebase-firestore.js")]);
     const db = F.getFirestore(initializeApp(cfg.firebase, "thac0-helper"));
+    sheetApi = (id, p) => F.updateDoc(F.doc(db, "parties", party, "characters", id), p);
     F.onSnapshot(F.collection(db, "parties", party, "characters"), (snap) => { sheetChars = snap.docs.map((d) => ({ id: d.id, ...d.data() })); link(); }, () => { sheetsOn = false; });
   } catch (e) { sheetsOn = false; console.warn("THAC0 Helper: couldn't read the party tracker", e); }
 }

@@ -48,6 +48,9 @@ input{width:100%;font:inherit;padding:7px 9px;border-radius:6px;border:1px solid
 .lk{font-size:12.5px;margin:-6px 0 10px;color:var(--muted)}.lkb{border:0;background:none;color:var(--text);font:12.5px inherit;font-family:inherit;cursor:pointer;padding:0;text-decoration:underline dotted}.lkb i,.lk i{color:var(--muted);font-style:normal}
 .pickl{display:flex;flex-wrap:wrap;gap:5px;margin:-4px 0 10px}.pickl button{border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font:12.5px inherit;font-family:inherit;padding:2px 9px;cursor:pointer}.pickl .clr{border-style:dashed;color:var(--muted)}
 .unm{margin:-4px 0 8px}
+.wch{display:flex;flex-wrap:wrap;gap:5px;align-items:center}.wch button{border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font:12.5px inherit;font-family:inherit;padding:3px 10px;cursor:pointer}
+.wch button[aria-pressed=true]{background:#4caf50;border-color:#4caf50;color:#fff;font-weight:700}.wch .wb{opacity:.8;font-size:11.5px}.wch .sp{font-size:10px;font-weight:700;padding:0 4px;border-radius:3px;background:rgba(255,255,255,.2)}
+.wch .bless{margin-left:auto}.wch .bless[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#222}
 .err{color:#ef9a9a}
 </style></head><body>
 <header><h1>Party Sheets</h1><button class="x" id="x" title="Close (Esc)" aria-label="Close">✕</button></header>
@@ -116,6 +119,19 @@ function setupHTML() {
     <button class="btn" id="save">Use this link</button>${err ? `<p class="err">${esc(err)}</p>` : ""}`;
 }
 
+// ---------- weapon in use and Bless: read by the THAC0 Helper for the attack banner ----------
+// Weapons come from the sheet's Weapons box; the one picked here is saved on the sheet (wact: 1-3, 0 = none).
+// Bless is kept with the THAC0 Helper's room settings, as before (+1 to hit; counts down 6 rounds in combat).
+const TKEY = "thac0-helper/settings"; let tset = {};
+const wlist = (c) => [1, 2, 3].map((i) => ({ i, n: String(c["w" + i + "n"] || "").trim(), b: String(c["w" + i + "b"] || "").trim(), s: !!c["w" + i + "s"] })).filter((w) => w.n);
+function weaponHTML(c) {
+  const ws = wlist(c), act = Number.isInteger(c.wact) ? c.wact : 0, bl = (tset.bless || {})[c.name];
+  const left = Number.isInteger(bl) && tset.round ? bl + 6 - tset.round : null;
+  const bonus = (w) => { const v = parseInt(w.b.replace(/[^\d-]/g, ""), 10) || 0; return v ? ` <span class="wb">${v > 0 ? "+" : "−"}${Math.abs(v)}</span>` : ""; };
+  return `<h2>Attacking with</h2><div class="wch">${ws.length ? `<button data-w="0" aria-pressed="${act === 0}">None</button>${ws.map((w) => `<button data-w="${w.i}" aria-pressed="${act === w.i}">${esc(w.n)}${bonus(w)}${w.s ? ` <span class="sp">SPEC</span>` : ""}</button>`).join("")}` : `<span class="hint">No weapons on the sheet yet (Weapons box, under the ability scores).</span>`}
+    <button class="bless" id="bless" aria-pressed="${!!bl}" title="Bless: +1 to attack rolls">${bl ? "Blessed +1" + (left !== null ? ` · ${left} rd` : "") : "Bless"}</button></div>`;
+}
+
 function cardHTML(c) {
   const hp = hpPend && hpPend.id === c.id ? hpPend.v : hpOf(c);
   const sub = [c.race, [c.cls, c.level].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
@@ -135,6 +151,7 @@ function cardHTML(c) {
       <div><span class="k">Hit points</span><span class="hp"><span class="arr"><button data-hp="1" title="Up 1" aria-label="Hit points up 1">▲</button><button data-hp="-1" title="Down 1" aria-label="Hit points down 1">▼</button></span><span class="v">${hp ?? "—"}</span><small>/ ${esc(c.hpmax || "—")}</small></span></div>
       <div><span class="k">Move</span><span class="v">${esc(c.move || "—")}</span></div>
     </div>
+    ${weaponHTML(c)}
     <h2>Saving throws <span style="text-transform:none;letter-spacing:0;font-weight:400">(click one to call it; their next d20 is the save)</span></h2><div class="sv">${SAVES.map(([k, l, full]) => { const on = callFor(c, k);
       return `<button class="svb${on ? " on" : ""}" data-save="${k}" ${num(c[k]) === null ? "disabled" : ""} title="${on ? "Waiting for the roll. Click to cancel." : `Call a save vs. ${full}`}"><span class="k">${l}</span><span class="v">${esc(c[k] || "—")}</span>${on ? `<span class="wait">waiting…</span>` : ""}</button>`; }).join("")}</div>
     <h2>Abilities <span style="text-transform:none;letter-spacing:0;font-weight:400">(point at one for its bonuses)</span></h2><div class="ab">${abil}</div>
@@ -166,6 +183,12 @@ app.addEventListener("click", (ev) => {
   if (b.dataset.save) { const c = chars.find((x) => x.id === sel); if (!c) return; const k = b.dataset.save, sv = SAVES.find((x) => x[0] === k);
     const next = callFor(c, k) ? undefined : { id: c.id, name: c.name || "", player: c.player || "", k, label: sv[2], need: num(c[k]), at: Date.now() };
     called = next || null; draw(); OBR.room.setMetadata({ [SAVE_KEY]: next }).catch(() => {}); return; }
+  if (b.dataset.w !== undefined) { const c = chars.find((x) => x.id === sel); if (!c) return; c.wact = +b.dataset.w; draw();
+    api.update(c.id, { wact: +b.dataset.w }).catch(() => { err = "Couldn’t save the weapon."; draw(); }); return; }
+  if (b.id === "bless") { const c = chars.find((x) => x.id === sel); if (!c || !c.name) return;
+    OBR.room.getMetadata().then((m) => { const t = m[TKEY] || {}; const bless = { ...(t.bless || {}) };
+      if (bless[c.name]) delete bless[c.name]; else bless[c.name] = t.round || true;
+      tset = { ...t, bless }; draw(); return OBR.room.setMetadata({ [TKEY]: tset }); }).catch(() => {}); return; }
   if (b.id === "pick") { picking = !picking; draw(); return; }
   if (b.dataset.obr !== undefined) { const c = chars.find((x) => x.id === sel); picking = false;
     if (c) { c.obr = b.dataset.obr; draw(); api.update(c.id, { obr: b.dataset.obr }).catch(() => { err = "Couldn’t save that."; draw(); }); } return; }
@@ -181,9 +204,10 @@ const soon = () => { if (!queued) { queued = true; requestAnimationFrame(() => (
 new MutationObserver(soon).observe(app, { childList: true, subtree: true }); new ResizeObserver(soon).observe(app);
 addEventListener("resize", soon); setTimeout(soon, 400); setTimeout(soon, 1200);
 
-OBR.onReady(async () => { called = (await OBR.room.getMetadata())[SAVE_KEY] || null;
+OBR.onReady(async () => { { const m = await OBR.room.getMetadata(); called = m[SAVE_KEY] || null; tset = m[TKEY] || {}; }
   const who = (ps) => { people = ps.filter((p) => p.role !== "GM").map((p) => ({ id: p.id, name: p.name })); draw(); };
   who(await OBR.party.getPlayers()); OBR.party.onChange(who);
-  OBR.room.onMetadataChange((m) => { const v = m[SAVE_KEY] || null; if (JSON.stringify(v) !== JSON.stringify(called)) { called = v; draw(); } }); });
+  OBR.room.onMetadataChange((m) => { const v = m[SAVE_KEY] || null, t = m[TKEY] || {};
+    if (JSON.stringify(v) !== JSON.stringify(called) || JSON.stringify([t.bless, t.round]) !== JSON.stringify([tset.bless, tset.round])) { called = v; tset = t; draw(); } }); });
 draw(); if (party) connect();
 </script></body></html>

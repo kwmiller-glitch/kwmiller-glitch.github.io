@@ -15,7 +15,7 @@ html,body{margin:0;background:transparent;overflow:hidden;font-family:"Segoe UI"
 </style></head><body><div class="b" id="b" title="Click to hide"></div>
 <script type="module">
 import OBR from "./obr-sdk.js";
-import { acText, rollTextShort, saveText, esc, ID } from "./shared.js?v=20";
+import { acText, rollTextShort, saveText, esc, ID } from "./shared.js?v=21";
 let lines = []; try { lines = JSON.parse(decodeURIComponent(location.hash.slice(1))); } catch (e) {}
 // Newest roll on top at full size; older ones below it, a little smaller and dimmer.
 document.getElementById("b").innerHTML = lines.slice().reverse().map((e, i) => e.kind === "save"
