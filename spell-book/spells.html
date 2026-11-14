@@ -167,13 +167,15 @@ if (/[?&]obr=1/.test(location.search)) {
       const w = document.getElementById("det") ? MW : NW;
       if (w !== curW) { curW = w; await OBR.popover.setWidth("spell-book/panel", w); }
       await new Promise((r) => requestAnimationFrame(() => r()));
-      const h = Math.min(MH, Math.ceil(document.querySelector("header").offsetHeight + document.querySelector("main").scrollHeight + 2));
+      const h = Math.min(MH, Math.ceil(document.querySelector("header").offsetHeight + document.querySelector("main").scrollHeight + 14));
       if (Math.abs(h - curH) > 2) { curH = h; await OBR.popover.setHeight("spell-book/panel", h); }
     };
     const soon = () => { if (!queued) { queued = true; requestAnimationFrame(() => (OBR.isReady ? fit() : OBR.onReady(fit))); } };
     new MutationObserver(soon).observe(document.getElementById("view"), { childList: true, subtree: true });
     new ResizeObserver(soon).observe(document.querySelector("main"));
-    soon();
+    // Owlbear resizes the panel a moment after it's asked, and text re-wraps at the new width, so measure again then too.
+    addEventListener("resize", soon);
+    soon(); setTimeout(soon, 400); setTimeout(soon, 1200);
   }
 }
 </script>
