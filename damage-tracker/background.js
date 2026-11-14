@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=9";
-import { ID, DMG, PC, LABEL } from "./shared.js?v=9";
+import OBR, { buildText } from "./obr-sdk.js?v=10";
+import { ID, DMG, PC, LABEL } from "./shared.js?v=10";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -53,7 +53,12 @@ function addTool() {
       const t = await tokenOf(event.target);
       if (t) bump(t.id, event.shiftKey ? -1 : 1);
     },
-    onToolClick: () => false,             // don't select or move the token
+    // A click on empty map (not a token) means you're done hitting things: switch back to the move tool.
+    // The damage numbers stay on the tokens.
+    onToolClick: async (context, event) => {
+      if (!(await tokenOf(event.target))) await OBR.tool.activateTool("rodeo.owlbear.tool/move");
+      return false;                       // don't select or move the token
+    },
     onToolDoubleClick: () => false,
   });
   OBR.tool.createAction({
