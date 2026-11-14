@@ -48,6 +48,9 @@ input{width:100%;font:inherit;padding:7px 9px;border-radius:6px;border:1px solid
 .lk{font-size:12.5px;margin:-6px 0 10px;color:var(--muted)}.lkb{border:0;background:none;color:var(--text);font:12.5px inherit;font-family:inherit;cursor:pointer;padding:0;text-decoration:underline dotted}.lkb i,.lk i{color:var(--muted);font-style:normal}
 .pickl{display:flex;flex-wrap:wrap;gap:5px;margin:-4px 0 10px}.pickl button{border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font:12.5px inherit;font-family:inherit;padding:2px 9px;cursor:pointer}.pickl .clr{border-style:dashed;color:var(--muted)}
 .unm{margin:-4px 0 8px}
+.nm{display:flex;align-items:center;gap:8px}.tub{position:relative;margin-left:auto;font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:12px;padding:2px 9px;cursor:default;color:var(--text)}
+.tub:hover,.tub:focus{background:rgba(255,255,255,.14)}.tub .tip{right:0;left:auto;top:calc(100% + 6px);bottom:auto;width:250px;font-weight:400}.tub:hover .tip,.tub:focus .tip{display:block}
+.tut{display:block;margin:3px 0 6px}.tur{display:flex;justify-content:space-between;font-size:12.5px;line-height:1.5}.tur span{color:var(--text)}.tun{display:block;color:var(--muted);font-size:11.5px;line-height:1.4}
 .ctl{display:flex;align-items:center;gap:8px;margin:0 0 10px}.rnd{font-weight:700;margin-left:auto}.ctl #startcb{margin-left:auto}
 .sw{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--text);font:600 13px inherit;font-family:inherit;padding:5px 9px;cursor:pointer}
 .sw .pill{width:32px;height:18px;border-radius:9px;background:rgba(255,255,255,.25);position:relative;transition:background .15s}.sw .pill::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
@@ -162,6 +165,24 @@ function weaponHTML(c) {
     <button class="bless" id="bless" aria-pressed="${!!bl}" title="Bless: +1 to attack rolls">${bl ? "Blessed +1" + (left !== null ? ` · ${left} rd` : "") : "Bless"}</button></div>`;
 }
 
+// ---------- turning undead: PHB Table 61 (p. 103), shown when pointing at the button on a cleric's or paladin's card ----------
+// Clerics use their level; paladins turn as a priest two levels lower, starting at 3rd level (PHB). Druids can't turn undead.
+const TU_COLS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10-11", "12-13", "14+"], N_ = "—";
+const TU_ROWS = [["Skeleton or 1 HD",["10","7","4","T","T","D","D","D*","D*","D*","D*","D*"]],["Zombie",["13","10","7","4","T","T","D","D","D*","D*","D*","D*"]],["Ghoul or 2 HD",["16","13","10","7","4","T","T","D","D","D*","D*","D*"]],["Shadow or 3-4 HD",["19","16","13","10","7","4","T","T","D","D","D*","D*"]],["Wight or 5 HD",["20","19","16","13","10","7","4","T","T","D","D","D*"]],["Ghast",[N_,"20","19","16","13","10","7","4","T","T","D","D"]],["Wraith or 6 HD",[N_,N_,"20","19","16","13","10","7","4","T","T","D"]],["Mummy or 7 HD",[N_,N_,N_,"20","19","16","13","10","7","4","T","T"]],["Spectre or 8 HD",[N_,N_,N_,N_,"20","19","16","13","10","7","4","T"]],["Vampire or 9 HD",[N_,N_,N_,N_,N_,"20","19","16","13","10","7","4"]],["Ghost or 10 HD",[N_,N_,N_,N_,N_,N_,"20","19","16","13","10","7"]],["Lich or 11+ HD",[N_,N_,N_,N_,N_,N_,N_,"20","19","16","13","10"]],["Special*",[N_,N_,N_,N_,N_,N_,N_,N_,"20","19","16","13"]]];
+function turnHTML(c) {
+  const cls = String(c.cls || "").split("/").map((x) => x.trim().toLowerCase()), lv = String(c.level || "").split("/").map((x) => parseInt(x, 10));
+  let i = cls.findIndex((x) => /cleric|priest/.test(x) && !/druid/.test(x)), pal = false;
+  if (i < 0) { i = cls.findIndex((x) => /paladin/.test(x)); pal = i >= 0; }
+  if (i < 0) return "";
+  const level = lv[i] || lv[0] || 1, eff = pal ? level - 2 : level;
+  const body = eff < 1 ? `<span>Paladins turn undead from 3rd level.</span>` : (() => {
+    const col = eff >= 14 ? 11 : eff >= 12 ? 10 : eff >= 10 ? 9 : eff - 1;
+    return `<span class="tut">${TU_ROWS.map(([n, v]) => `<span class="tur"><span>${n}</span><b>${v[col] === N_ ? "—" : v[col]}</b></span>`).join("")}</span>
+      <span class="tun">Number: roll that or higher on a d20. T: turned, D: destroyed, D*: destroyed, plus 2d4 more turned. —: can’t turn.${pal ? ` As a ${ord(eff)}-level priest.` : ""} PHB Table 61.</span>`; })();
+  return `<span class="tub" tabindex="0">Turn undead<span class="tip tuw"><b>Turning undead, ${pal ? "paladin" : "cleric"} level ${level}</b>${body}</span></span>`;
+}
+const ord = (n) => n + (["th", "st", "nd", "rd"][n % 10 > 3 || Math.floor(n / 10) % 10 === 1 ? 0 : n % 10]);
+
 function cardHTML(c) {
   const hp = hpPend && hpPend.id === c.id ? hpPend.v : hpOf(c);
   const sub = [c.race, [c.cls, c.level].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
@@ -174,7 +195,7 @@ function cardHTML(c) {
   const lk = linkOf(c);
   const linkLine = `<div class="lk"><span class="k2">In Owlbear:</span> <button class="lkb" id="pick" title="Who plays this character in Owlbear (for the THAC0 Helper)">${lk ? `${esc(lk.name)}${lk.auto ? " <i>(matched by name)</i>" : ""}${lk.here ? "" : " <i>(not here)</i>"}` : "<i>not matched, pick</i>"} ▾</button></div>
     ${picking ? `<div class="pickl">${people.map((p) => `<button data-obr="${esc(p.name)}">${esc(p.name)}</button>`).join("") || `<span class="hint">No players in the room right now.</span>`}${c.obr ? `<button data-obr="" class="clr">Clear (match by name)</button>` : ""}</div>` : ""}`;
-  return `<div class="card"><p class="nm">${esc(c.name || "Unnamed character")}</p><p class="sub">${esc(sub)}${c.player ? ` · played by ${esc(c.player)}` : ""}</p>${linkLine}
+  return `<div class="card"><div class="nm">${esc(c.name || "Unnamed character")}${turnHTML(c)}</div><p class="sub">${esc(sub)}${c.player ? ` · played by ${esc(c.player)}` : ""}</p>${linkLine}
     <div class="big">
       <div><span class="k">AC</span><span class="v">${esc(c.ac || "—")}</span></div>
       <div><span class="k">THAC0</span><span class="v">${esc(c.thac0 || "—")}</span></div>
