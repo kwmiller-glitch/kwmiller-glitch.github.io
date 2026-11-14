@@ -13,7 +13,7 @@ async function toggle() {
   try { vw = await OBR.viewport.getWidth(); vh = await OBR.viewport.getHeight(); } catch (e) {}
   const width = 420, height = Math.max(420, vh - 110);
   await OBR.popover.open({
-    id: PANEL, url: `/party-sheets/panel.html?v=8&mh=${height}`, width, height,
+    id: PANEL, url: `/party-sheets/panel.html?v=9&mh=${height}`, width, height,
     anchorReference: "POSITION", anchorPosition: { left: vw - 76, top: 66 },
     anchorOrigin: { horizontal: "RIGHT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" },
   });

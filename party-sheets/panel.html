@@ -48,6 +48,10 @@ input{width:100%;font:inherit;padding:7px 9px;border-radius:6px;border:1px solid
 .lk{font-size:12.5px;margin:-6px 0 10px;color:var(--muted)}.lkb{border:0;background:none;color:var(--text);font:12.5px inherit;font-family:inherit;cursor:pointer;padding:0;text-decoration:underline dotted}.lkb i,.lk i{color:var(--muted);font-style:normal}
 .pickl{display:flex;flex-wrap:wrap;gap:5px;margin:-4px 0 10px}.pickl button{border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font:12.5px inherit;font-family:inherit;padding:2px 9px;cursor:pointer}.pickl .clr{border-style:dashed;color:var(--muted)}
 .unm{margin:-4px 0 8px}
+.ctl{display:flex;align-items:center;gap:8px;margin:0 0 10px}.rnd{font-weight:700;margin-left:auto}.ctl #startcb{margin-left:auto}
+.sw{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--text);font:600 13px inherit;font-family:inherit;padding:5px 9px;cursor:pointer}
+.sw .pill{width:32px;height:18px;border-radius:9px;background:rgba(255,255,255,.25);position:relative;transition:background .15s}.sw .pill::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.sw[aria-pressed=true] .pill{background:#4caf50}.sw[aria-pressed=true] .pill::after{left:16px}
 .blessbar{display:flex;gap:6px;margin:-2px 0 10px}.gbtn.bl.on{background:var(--gold);border-color:var(--gold);color:#222}
 .svh{display:flex;align-items:center;gap:6px}.svh .gbtn{margin-left:auto;white-space:nowrap;text-transform:none;letter-spacing:0;padding:2px 9px;font-size:12px}
 .grp{margin-top:2px}.gbtn{border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.08);color:var(--text);font:600 12.5px inherit;font-family:inherit;padding:4px 10px;cursor:pointer}.gbtn:disabled{opacity:.5;cursor:default}
@@ -193,7 +197,8 @@ function draw() {
   if (!chars.length) { app.innerHTML = err ? `<p class="err">${esc(err)}</p><button class="link" id="relink">Use a different party link</button>` : `<p class="hint">Loading the party…</p>`; return; }
   if (!list.some((c) => c.id === sel)) sel = list[0] && list[0].id;
   const c = list.find((x) => x.id === sel);
-  app.innerHTML = `<div class="who">${list.map((x) => `<button data-sel="${esc(x.id)}" aria-pressed="${x.id === sel}">${esc(x.name || "Unnamed")}</button>`).join("")}${playing.length && playing.length < live.length ? `<button class="more" id="all">${showAll ? "Only in play" : "+ Not in play"}</button>` : ""}</div>
+  app.innerHTML = `<div class="ctl"><button class="sw" id="acsw" aria-pressed="${!!tset.on}" title="When on, every d20 a player rolls shows the Armor Class it hits"><span>AC calculator ${tset.on ? "on" : "off"}</span><span class="pill"></span></button>${tset.round ? `<span class="rnd">Round ${tset.round}</span><button class="gbtn" id="endcb" title="Combat over: hide the round from everyone’s screen and clear Bless">End combat</button>` : `<button class="gbtn" id="startcb" title="Shows the round and whose turn it is at the top of everyone’s screen">Start combat</button>`}</div>
+    <div class="who">${list.map((x) => `<button data-sel="${esc(x.id)}" aria-pressed="${x.id === sel}">${esc(x.name || "Unnamed")}</button>`).join("")}${playing.length && playing.length < live.length ? `<button class="more" id="all">${showAll ? "Only in play" : "+ Not in play"}</button>` : ""}</div>
     <div class="blessbar">${(() => { const names = list.map((x) => x.name).filter(Boolean), on = names.filter((n) => (tset.bless || {})[n]);
       return `<button class="gbtn bl${on.length ? " on" : ""}" id="blessall" title="Bless: +1 to attack rolls for everyone listed above (untick anyone on their own card)">${on.length === names.length && names.length ? "Everyone blessed +1" : "Bless everyone"}</button>${on.length ? `<button class="gbtn" id="blessnone">End Bless</button>` : ""}`; })()}</div>
     ${(() => { const un = people.filter((p) => !live.some((x) => { const l = linkOf(x); return l && norm(l.name) === norm(p.name); })); return un.length ? `<p class="hint unm">Not matched to a sheet: ${un.map((p) => esc(p.name)).join(", ")}</p>` : ""; })()}
@@ -225,6 +230,13 @@ app.addEventListener("click", (ev) => {
   if (b.id === "gdone") { group = null; draw(); OBR.room.setMetadata({ [GROUP_KEY]: undefined }).catch(() => {}); return; }
   if (b.dataset.w !== undefined) { const c = chars.find((x) => x.id === sel); if (!c) return; c.wact = +b.dataset.w; draw();
     api.update(c.id, { wact: +b.dataset.w }).catch(() => { err = "Couldn’t save the weapon."; draw(); }); return; }
+  if (b.id === "acsw" || b.id === "startcb" || b.id === "endcb") {   // the THAC0 Helper's switch and combat start/end, kept in its room settings
+    const id = b.id;
+    OBR.room.getMetadata().then((m) => { const t = { ...(m[TKEY] || {}) };
+      if (id === "acsw") t.on = !t.on;
+      if (id === "startcb") { t.round = 1; t.turn = ""; t.first = ""; t.hist = []; const bl = { ...(t.bless || {}) }; for (const n in bl) if (bl[n] === true) bl[n] = 1; t.bless = bl; }
+      if (id === "endcb") { t.round = 0; t.turn = ""; t.first = ""; t.hist = []; t.bless = {}; }
+      tset = t; draw(); return OBR.room.setMetadata({ [TKEY]: t }); }).catch(() => {}); return; }
   if (b.id === "blessall" || b.id === "blessnone") {
     const live = chars.filter((x) => !x.binned && !x.hidden), pl = live.filter(inPlay), names = ((showAll || !pl.length) ? live : pl).map((x) => x.name).filter(Boolean);
     OBR.room.getMetadata().then((m) => { const t = m[TKEY] || {}; const bless = b.id === "blessnone" ? {} : { ...(t.bless || {}) };
@@ -253,6 +265,6 @@ OBR.onReady(async () => { { const m = await OBR.room.getMetadata(); called = m[S
   const who = (ps) => { people = ps.filter((p) => p.role !== "GM").map((p) => ({ id: p.id, name: p.name })); draw(); };
   who(await OBR.party.getPlayers()); OBR.party.onChange(who);
   OBR.room.onMetadataChange((m) => { const v = m[SAVE_KEY] || null, t = m[TKEY] || {}, g = m[GROUP_KEY] || null;
-    if (JSON.stringify(v) !== JSON.stringify(called) || JSON.stringify(g) !== JSON.stringify(group) || JSON.stringify([t.bless, t.round]) !== JSON.stringify([tset.bless, tset.round])) { called = v; tset = t; group = g; draw(); } }); });
+    if (JSON.stringify(v) !== JSON.stringify(called) || JSON.stringify(g) !== JSON.stringify(group) || JSON.stringify([t.bless, t.round, t.on]) !== JSON.stringify([tset.bless, tset.round, tset.on])) { called = v; tset = t; group = g; draw(); } }); });
 draw(); if (party) connect();
 </script></body></html>
