@@ -1,0 +1,153 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Party Sheets</title>
+<style>
+:root{--text:#fff;--muted:#b8bfcc;--line:rgba(255,255,255,.16);--box:rgba(255,255,255,.06);--gold:#e0b84f}
+html,body{margin:0;background:#1f2333;color:var(--text);font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+*{box-sizing:border-box}
+header{display:flex;align-items:center;gap:8px;padding:10px 12px 8px}
+header h1{flex:1;margin:0;font-size:16px}
+.x{border:0;background:none;color:var(--text);font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
+main{padding:0 12px 12px}
+.who{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.who button{border:1px solid var(--line);border-radius:14px;background:transparent;color:var(--text);font:13px inherit;font-family:inherit;padding:3px 10px;cursor:pointer}
+.who button[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#222;font-weight:700}
+.who .more{border-style:dashed;color:var(--muted)}
+.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.nm{font-size:18px;font-weight:700;margin:0}
+.sub{color:var(--muted);font-size:13px;margin:1px 0 10px}
+.big{display:grid;grid-template-columns:1fr 1fr 1.6fr 1fr;gap:6px}
+.big div{background:var(--box);border-radius:8px;padding:6px 4px;text-align:center}
+.k{display:block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.v{display:block;font-size:22px;font-weight:700;line-height:1.2}
+.hp{display:flex;align-items:center;justify-content:center;gap:6px}
+.hp .v{font-size:22px}.hp small{font-size:14px;color:var(--muted);font-weight:600}
+.arr{display:flex;flex-direction:column;gap:1px}
+.arr button{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:4px;width:24px;height:17px;line-height:13px;font-size:10px;cursor:pointer;padding:0}
+.arr button:hover{background:rgba(255,255,255,.14)}
+h2{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px}
+.sv{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.sv div,.ab div{background:var(--box);border-radius:8px;padding:5px 2px;text-align:center}
+.sv .v,.ab .v{font-size:18px}
+.sv .k{font-size:9.5px;letter-spacing:.02em;text-transform:none;line-height:1.15;min-height:22px;display:flex;align-items:center;justify-content:center}
+.ab{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.ab div{position:relative;cursor:default}
+.ab div:hover{background:rgba(255,255,255,.14)}
+.tip{display:none;position:absolute;bottom:calc(100% + 5px);z-index:5;width:210px;background:#0f1117;border:1px solid var(--line);border-radius:8px;padding:7px 9px;text-align:left;font-size:12.5px;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.ab div:hover .tip{display:block}
+.ab div:nth-child(-n+3) .tip{left:0}.ab div:nth-child(n+4) .tip{right:0}
+.tip b{display:block;margin-bottom:2px}.tip span{color:var(--muted)}
+.th{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:13px}
+.th span:nth-child(even){font-weight:700;text-align:right}
+.hint{color:var(--muted);font-size:12.5px}
+.link{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font:12px inherit;font-family:inherit;padding:0}
+input{width:100%;font:inherit;padding:7px 9px;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--text)}
+.btn{margin-top:8px;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.08);color:var(--text);font:600 13px inherit;font-family:inherit;padding:6px 12px;cursor:pointer}
+.foot{margin-top:10px;text-align:right}
+.err{color:#ef9a9a}
+</style></head><body>
+<header><h1>Party Sheets</h1><button class="x" id="x" title="Close (Esc)" aria-label="Close">✕</button></header>
+<main id="app"><p class="hint">Loading…</p></main>
+<script src="/tracker-config.js"></script>
+<script type="module">
+import OBR from "./obr-sdk.js?v=1";
+import { num, sg, adjCells, ABNAME, THIEF } from "./rules.js?v=1";
+
+const app = document.getElementById("app");
+const LS = { get: (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+             set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const SAVES = [["sv1", "Paralyze, poison, death"], ["sv2", "Rod, staff, wand"], ["sv3", "Petrify, polymorph"], ["sv4", "Breath weapon"], ["sv5", "Spell"]];
+// Same rule as the tracker: the "In play" tick decides; never ticked or unticked yet = in play if it has XP.
+const inPlay = (c) => (typeof c.inplay === "boolean" ? c.inplay : +String(c.xp || "").replace(/[^0-9]/g, "") > 0);
+
+let party = LS.get("ps-party", null), chars = [], sel = LS.get("ps-sel", null), showAll = false, api = null, err = "";
+
+// ---------- closing: ✕, Esc, and a click outside (Owlbear) ----------
+const close = () => { try { new BroadcastChannel("party-sheets").postMessage("closed"); } catch (e) {} OBR.popover.close("party-sheets/panel"); };
+document.getElementById("x").addEventListener("click", close);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !(e.target.tagName === "INPUT" && e.target.value)) close(); });
+addEventListener("pagehide", () => { try { new BroadcastChannel("party-sheets").postMessage("closed"); } catch (e) {} });
+
+// ---------- the party's characters, live from the tracker's Firebase database ----------
+async function connect() {
+  const cfg = window.TRACKER_CONFIG;
+  if (!cfg) { err = "Couldn’t load the tracker’s settings file."; draw(); return; }
+  const B = "https://www.gstatic.com/firebasejs/10.12.2/";
+  const [{ initializeApp }, F] = await Promise.all([import(B + "firebase-app.js"), import(B + "firebase-firestore.js")]);
+  const db = F.getFirestore(initializeApp(cfg.firebase));
+  api = { update: (id, p) => F.updateDoc(F.doc(db, "parties", party, "characters", id), p) };
+  F.onSnapshot(F.collection(db, "parties", party, "characters"),
+    (s) => { chars = s.docs.map((d) => ({ id: d.id, ...d.data() })); err = ""; draw(); },
+    () => { err = "Couldn’t read the party. Check the link is your party’s link."; draw(); });
+}
+
+// ---------- hit points: the number moves at once; saved a moment after the clicking stops ----------
+let hpPend = null, hpT = null;
+const hpOf = (c) => { const v = num(c.hp); return v === null ? num(c.hpmax) : v; };
+function bumpHP(c, d) {
+  const base = hpPend && hpPend.id === c.id ? hpPend.v : hpOf(c) ?? 0;
+  hpPend = { id: c.id, v: base + d }; draw();
+  clearTimeout(hpT); hpT = setTimeout(async () => { const p = hpPend; hpPend = null; try { await api.update(p.id, { hp: String(p.v) }); } catch (e) { err = "Couldn’t save the hit points."; draw(); } }, 450);
+}
+
+function setupHTML() {
+  return `<p>Paste your party’s link (the one you share with players), and this panel will remember it.</p>
+    <input id="plink" placeholder="https://kwmiller-glitch.github.io/party-tracker.html#party=…" autocomplete="off">
+    <button class="btn" id="save">Use this link</button>${err ? `<p class="err">${esc(err)}</p>` : ""}`;
+}
+
+function cardHTML(c) {
+  const hp = hpPend && hpPend.id === c.id ? hpPend.v : hpOf(c);
+  const sub = [c.race, [c.cls, c.level].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
+  const abil = ["str", "dex", "con", "int", "wis", "cha"].map((k) => {
+    const s = num(c[k]), shown = s === null ? "—" : k === "str" && s === 18 && c.strx ? `18/${esc(c.strx)}` : s;
+    const adj = adjCells(k, c);
+    return `<div><span class="k">${k.toUpperCase()}</span><span class="v">${shown}</span>${adj.length ? `<span class="tip"><b>${ABNAME[k]} ${shown}</b>${adj.map(([a, b]) => `${a}: <span>${esc(b)}</span>`).join("<br>")}</span>` : ""}</div>`;
+  }).join("");
+  const thief = THIEF.filter(([k]) => String(c[k] ?? "").trim());
+  return `<div class="card"><p class="nm">${esc(c.name || "Unnamed character")}</p><p class="sub">${esc(sub)}${c.player ? ` · played by ${esc(c.player)}` : ""}</p>
+    <div class="big">
+      <div><span class="k">AC</span><span class="v">${esc(c.ac || "—")}</span></div>
+      <div><span class="k">THAC0</span><span class="v">${esc(c.thac0 || "—")}</span></div>
+      <div><span class="k">Hit points</span><span class="hp"><span class="arr"><button data-hp="1" title="Up 1" aria-label="Hit points up 1">▲</button><button data-hp="-1" title="Down 1" aria-label="Hit points down 1">▼</button></span><span class="v">${hp ?? "—"}</span><small>/ ${esc(c.hpmax || "—")}</small></span></div>
+      <div><span class="k">Move</span><span class="v">${esc(c.move || "—")}</span></div>
+    </div>
+    <h2>Saving throws</h2><div class="sv">${SAVES.map(([k, l]) => `<div><span class="k">${l}</span><span class="v">${esc(c[k] || "—")}</span></div>`).join("")}</div>
+    <h2>Abilities <span style="text-transform:none;letter-spacing:0;font-weight:400">(point at one for its bonuses)</span></h2><div class="ab">${abil}</div>
+    ${thief.length ? `<h2>Thief skills</h2><div class="th">${thief.map(([k, l]) => `<span>${l}</span><span>${esc(c[k])}${/%$/.test(String(c[k]).trim()) ? "" : "%"}</span>`).join("")}</div>` : ""}
+  </div>`;
+}
+
+function draw() {
+  if (!party) { app.innerHTML = setupHTML(); return; }
+  const live = chars.filter((c) => !c.binned && !c.hidden).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  const playing = live.filter(inPlay), list = showAll || !playing.length ? live : playing;
+  if (!chars.length) { app.innerHTML = err ? `<p class="err">${esc(err)}</p><button class="link" id="relink">Use a different party link</button>` : `<p class="hint">Loading the party…</p>`; return; }
+  if (!list.some((c) => c.id === sel)) sel = list[0] && list[0].id;
+  const c = list.find((x) => x.id === sel);
+  app.innerHTML = `<div class="who">${list.map((x) => `<button data-sel="${esc(x.id)}" aria-pressed="${x.id === sel}">${esc(x.name || "Unnamed")}</button>`).join("")}${playing.length && playing.length < live.length ? `<button class="more" id="all">${showAll ? "Only in play" : "+ Not in play"}</button>` : ""}</div>
+    ${c ? cardHTML(c) : ""}${err ? `<p class="err">${esc(err)}</p>` : ""}
+    <div class="foot"><button class="link" id="relink">Use a different party link</button></div>`;
+}
+
+app.addEventListener("click", (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  if (b.id === "save") { const m = (document.getElementById("plink").value || "").match(/party=([A-Za-z0-9]{16,40})/);
+    if (!m) { err = "That doesn’t look like a party link: it should contain “#party=”."; draw(); return; }
+    party = m[1]; LS.set("ps-party", party); err = ""; draw(); connect(); return; }
+  if (b.id === "relink") { party = null; LS.set("ps-party", null); chars = []; location.reload(); return; }
+  if (b.id === "all") { showAll = !showAll; draw(); return; }
+  if (b.dataset.sel) { sel = b.dataset.sel; LS.set("ps-sel", sel); draw(); return; }
+  if (b.dataset.hp) { const c = chars.find((x) => x.id === sel); if (c) bumpHP(c, +b.dataset.hp); }
+});
+
+// ---------- size: only as tall as what's showing (up to the screen's height) ----------
+const MH = +new URLSearchParams(location.search).get("mh") || 0; let curH = 0, queued = false;
+const fit = async () => { queued = false; if (!MH) return; await new Promise((r) => requestAnimationFrame(r));
+  const h = Math.min(MH, Math.ceil(document.querySelector("header").offsetHeight + app.scrollHeight + 16));
+  if (Math.abs(h - curH) > 2) { curH = h; try { await OBR.popover.setHeight("party-sheets/panel", h); } catch (e) {} } };
+const soon = () => { if (!queued) { queued = true; requestAnimationFrame(() => (OBR.isReady ? fit() : OBR.onReady(fit))); } };
+new MutationObserver(soon).observe(app, { childList: true, subtree: true }); new ResizeObserver(soon).observe(app);
+addEventListener("resize", soon); setTimeout(soon, 400); setTimeout(soon, 1200);
+
+draw(); if (party) connect();
+</script></body></html>

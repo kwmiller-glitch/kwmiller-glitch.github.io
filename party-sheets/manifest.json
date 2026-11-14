@@ -1,0 +1,9 @@
+{
+  "name": "Party Sheets",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "author": "kwmiller",
+  "description": "A short version of the party tracker's character sheets in a side panel, for the GM: AC, THAC0, HP, saves, abilities.",
+  "icon": "/party-sheets/icon.svg",
+  "background_url": "/party-sheets/background.html"
+}
