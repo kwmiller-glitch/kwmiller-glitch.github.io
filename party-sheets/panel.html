@@ -48,7 +48,8 @@ input{width:100%;font:inherit;padding:7px 9px;border-radius:6px;border:1px solid
 .lk{font-size:12.5px;margin:-6px 0 10px;color:var(--muted)}.lkb{border:0;background:none;color:var(--text);font:12.5px inherit;font-family:inherit;cursor:pointer;padding:0;text-decoration:underline dotted}.lkb i,.lk i{color:var(--muted);font-style:normal}
 .pickl{display:flex;flex-wrap:wrap;gap:5px;margin:-4px 0 10px}.pickl button{border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font:12.5px inherit;font-family:inherit;padding:2px 9px;cursor:pointer}.pickl .clr{border-style:dashed;color:var(--muted)}
 .unm{margin:-4px 0 8px}
-.gcall{margin:0 0 8px}.gbtn{border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.08);color:var(--text);font:600 12.5px inherit;font-family:inherit;padding:4px 10px;cursor:pointer}.gbtn:disabled{opacity:.5;cursor:default}
+.svh{display:flex;align-items:center;gap:6px}.svh .gbtn{margin-left:auto;white-space:nowrap;text-transform:none;letter-spacing:0;padding:2px 9px;font-size:12px}
+.grp{margin-top:2px}.gbtn{border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.08);color:var(--text);font:600 12.5px inherit;font-family:inherit;padding:4px 10px;cursor:pointer}.gbtn:disabled{opacity:.5;cursor:default}
 .grp{border:1px solid var(--gold);border-radius:10px;padding:8px 10px;margin:0 0 10px;background:rgba(224,184,79,.07)}.gtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .gtypes{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}.gtypes button{border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font:12px inherit;font-family:inherit;padding:2px 8px;cursor:pointer}.gtypes button[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#222;font-weight:700}
 .gwho{display:flex;flex-wrap:wrap;gap:4px 12px;margin:2px 0 8px;font-size:13px}.gwho label{display:flex;align-items:center;gap:4px;cursor:pointer}.gwho .dim{opacity:.5}.gbtn.go{width:100%}
@@ -134,9 +135,9 @@ function groupHTML(cands) {
     const res = g.results || {};
     return `<div class="grp"><div class="gtop"><b>Party save vs. ${esc(g.label)}</b><button class="gbtn" id="gdone">${g.done ? "Close" : "Done"}</button></div>
       <div class="glist">${g.members.map((m) => { const r = res[m.id];
-        return `<span class="${r ? (r.ok ? "gok" : "gbad") : "gwait"}">${esc(m.name)} ${r ? (r.ok ? "saved" : "failed") + ` (${r.total} vs ${m.need})` : "waiting…"}</span>`; }).join("")}</div></div>`;
+        return `<span class="${r ? (r.ok ? "gok" : "gbad") : "gwait"}">${esc(m.name)} ${r ? (r.ok ? "saved" : "failed") + ` (${r.total} vs ${m.need})` : "waiting"}</span>`; }).join("")}</div></div>`;
   }
-  if (!gForm) return `<div class="gcall"><button class="gbtn" id="gopen">Party save…</button></div>`;
+  if (!gForm) return "";
   return `<div class="grp"><div class="gtop"><b>Party save</b><button class="gbtn" id="gcancel">Cancel</button></div>
     <div class="gtypes">${SAVES.map(([k, l]) => `<button data-gk="${k}" aria-pressed="${gForm.k === k}">${l}</button>`).join("")}</div>
     <div class="gwho">${cands.map((c) => { const n = num(c[gForm.k || "sv1"]); return `<label class="${n === null ? "dim" : ""}"><input type="checkbox" data-gc="${esc(c.id)}"${gForm.ticked.has(c.id) && n !== null ? " checked" : ""}${n === null ? " disabled" : ""}> ${esc(c.name || "Unnamed")}${gForm.k && n !== null ? ` <span class="hint">${n}</span>` : ""}</label>`; }).join("")}</div>
@@ -176,8 +177,9 @@ function cardHTML(c) {
       <div><span class="k">Move</span><span class="v">${esc(c.move || "—")}</span></div>
     </div>
     ${weaponHTML(c)}
-    <h2>Saving throws <span style="text-transform:none;letter-spacing:0;font-weight:400">(click one to call it; their next d20 is the save)</span></h2><div class="sv">${SAVES.map(([k, l, full]) => { const on = callFor(c, k);
-      return `<button class="svb${on ? " on" : ""}" data-save="${k}" ${num(c[k]) === null ? "disabled" : ""} title="${on ? "Waiting for the roll. Click to cancel." : `Call a save vs. ${full}`}"><span class="k">${l}</span><span class="v">${esc(c[k] || "—")}</span>${on ? `<span class="wait">waiting…</span>` : ""}</button>`; }).join("")}</div>
+    <h2 class="svh"><span>Saving throws <span style="text-transform:none;letter-spacing:0;font-weight:400">(click one to call it)</span></span>${group || gForm ? "" : `<button class="gbtn" id="gopen" title="Several characters save at once: breath weapon, sleep, hold person">Party save</button>`}</h2>
+    ${(() => { const live = chars.filter((x) => !x.binned && !x.hidden), pl = live.filter(inPlay); return groupHTML(pl.length ? pl : live); })()}<div class="sv">${SAVES.map(([k, l, full]) => { const on = callFor(c, k);
+      return `<button class="svb${on ? " on" : ""}" data-save="${k}" ${num(c[k]) === null ? "disabled" : ""} title="${on ? "Waiting for the roll. Click to cancel." : `Call a save vs. ${full}`}"><span class="k">${l}</span><span class="v">${esc(c[k] || "—")}</span>${on ? `<span class="wait">waiting</span>` : ""}</button>`; }).join("")}</div>
     <h2>Abilities <span style="text-transform:none;letter-spacing:0;font-weight:400">(point at one for its bonuses)</span></h2><div class="ab">${abil}</div>
     ${thief.length ? `<h2>Thief skills</h2><div class="th">${thief.map(([k, l]) => `<span>${l}</span><span>${esc(c[k])}${/%$/.test(String(c[k]).trim()) ? "" : "%"}</span>`).join("")}</div>` : ""}
   </div>`;
@@ -190,7 +192,7 @@ function draw() {
   if (!chars.length) { app.innerHTML = err ? `<p class="err">${esc(err)}</p><button class="link" id="relink">Use a different party link</button>` : `<p class="hint">Loading the party…</p>`; return; }
   if (!list.some((c) => c.id === sel)) sel = list[0] && list[0].id;
   const c = list.find((x) => x.id === sel);
-  app.innerHTML = groupHTML(playing.length ? playing : live) + `<div class="who">${list.map((x) => `<button data-sel="${esc(x.id)}" aria-pressed="${x.id === sel}">${esc(x.name || "Unnamed")}</button>`).join("")}${playing.length && playing.length < live.length ? `<button class="more" id="all">${showAll ? "Only in play" : "+ Not in play"}</button>` : ""}</div>
+  app.innerHTML = `<div class="who">${list.map((x) => `<button data-sel="${esc(x.id)}" aria-pressed="${x.id === sel}">${esc(x.name || "Unnamed")}</button>`).join("")}${playing.length && playing.length < live.length ? `<button class="more" id="all">${showAll ? "Only in play" : "+ Not in play"}</button>` : ""}</div>
     ${(() => { const un = people.filter((p) => !live.some((x) => { const l = linkOf(x); return l && norm(l.name) === norm(p.name); })); return un.length ? `<p class="hint unm">Not matched to a sheet: ${un.map((p) => esc(p.name)).join(", ")}</p>` : ""; })()}
     ${c ? cardHTML(c) : ""}${err ? `<p class="err">${esc(err)}</p>` : ""}
     <div class="foot"><button class="link" id="relink">Use a different party link</button></div>`;
