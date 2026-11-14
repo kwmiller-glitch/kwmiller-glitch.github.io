@@ -1,7 +1,7 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave, sameCharacter } from "./shared.js?v=18";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave } from "./shared.js?v=19";
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
@@ -42,7 +42,7 @@ async function showBanner() {
   if (phone) { try { vh = await OBR.viewport.getHeight(); } catch (e) {} }
   const low = phone && vh > 300;
   await OBR.popover.open({
-    id: BANNER, url: "/thac0-helper/banner.html?v=18#" + encodeURIComponent(JSON.stringify(lines)), width, height,
+    id: BANNER, url: "/thac0-helper/banner.html?v=19#" + encodeURIComponent(JSON.stringify(lines)), width, height,
     anchorReference: "POSITION", anchorPosition: { left, top: low ? vh - 84 : bannerTop(phone) },
     anchorOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -75,15 +75,12 @@ function consider(player) {
   lines.push(entry); showBanner();
 }
 
-// Which roll answers a called save: the matching character's player if they're here, otherwise the next player to roll.
+// Which roll answers a called save: simply the next d20 anyone rolls, the DM included. The DM picked the character
+// by clicking their sheet, so whoever rolls (the player, or someone standing in for them) is rolling for that character.
 let pendingSave = null; const usedSaves = new Set();
 function saveFor(player, who) {
   const sv = pendingSave;
-  if (!sv || !sv.need || usedSaves.has(sv.at) || Date.now() - sv.at > SAVE_TTL || player.role === "GM") return null;
-  // Matched by the character's name or by the player's name on the sheet ("Patty" playing Thomasina).
-  const mine = (n) => sameCharacter(n, sv.name) || (sv.player && sameCharacter(n, sv.player));
-  const owners = partyNow.filter((p) => p.role !== "GM" && (mine(p.name) || mine(canon(settings, p))));
-  if (owners.length) return owners.some((p) => p.id === player.id) ? sv : null;
+  if (!sv || !sv.need || usedSaves.has(sv.at) || Date.now() - sv.at > SAVE_TTL) return null;
   return sv;
 }
 
@@ -98,7 +95,7 @@ async function showTurn() {
   await OBR.popover.close(TURN);
   if (!want) return;
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html?v=18#" + encodeURIComponent(want), width: 340, height: 38,
+    id: TURN, url: "/thac0-helper/turn.html?v=19#" + encodeURIComponent(want), width: 340, height: 38,
     anchorReference: "POSITION", anchorPosition: { left, top: pillTop() },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -113,7 +110,7 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/thac0-helper/icon.svg", label: "THAC0 Helper", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=18", width: 340, height: 480, anchorElementId: elementId,
+      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=19", width: 340, height: 480, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },

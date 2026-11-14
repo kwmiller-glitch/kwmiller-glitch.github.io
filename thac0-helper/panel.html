@@ -50,7 +50,7 @@ details.move button{margin-top:4px;border:1px solid var(--line);border-radius:6p
 </style></head><body><main id="app"><p class="hint">Loading…</p></main>
 <script type="module">
 import OBR from "./obr-sdk.js";
-import { KEY, ID, readSettings, activeWeapon, acText, rollText, esc, LOG_KEY, blessLeft, turnText, nextRound, undo, canUndo, setFirst, stepTurn, other, canon } from "./shared.js?v=18";
+import { KEY, ID, readSettings, activeWeapon, acText, rollText, esc, LOG_KEY, blessLeft, turnText, nextRound, undo, canUndo, setFirst, stepTurn, other, canon } from "./shared.js?v=19";
 const app = document.getElementById("app");
 let role = "PLAYER", myName = "", myId = "", settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "", first: "", hist: [] }, players = [], log = [], adding = null, renaming = null, moveMsg = "";
 const saveSettings = (s) => OBR.room.setMetadata({ [KEY]: s });
