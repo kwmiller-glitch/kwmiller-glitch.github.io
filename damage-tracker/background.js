@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=17";
-import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=17";
+import OBR, { buildText } from "./obr-sdk.js?v=18";
+import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=18";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -176,7 +176,7 @@ async function addFx(tokens, f) {
 async function openFx(t) {
   let left = 600, top = 300;
   try { const p = await OBR.viewport.inverseTransformPoint(t.position); left = Math.round(p.x); top = Math.round(p.y); } catch (e) {}
-  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=17&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
+  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=18&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
     anchorPosition: { left, top: top + 40 }, anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
 }
 let lastRound = null;
@@ -225,7 +225,7 @@ async function syncFx() {
 // ---------- typing a monster's hit points ----------
 const asked = new Set();
 async function openSetHP(ms, elementId) {
-  const url = "/damage-tracker/sethp.html?v=17&ids=" + ms.map((t) => t.id).join(",");
+  const url = "/damage-tracker/sethp.html?v=18&ids=" + ms.map((t) => t.id).join(",");
   if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
     anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
   let left = 600, top = 300;                                  // next to the token on screen
@@ -326,6 +326,8 @@ OBR.onReady(async () => {
   { const m = await OBR.room.getMetadata(); lastRound = ((m["thac0-helper/settings"] || {}).round) || 0; }
   OBR.room.onMetadataChange((m) => onRound(((m["thac0-helper/settings"] || {}).round) || 0));
   addTool(); connectSheets();
+  // Every time the damage tool is picked, it starts in Damage mode, even if it was left on Effects last time.
+  OBR.tool.onToolChange((id) => { if (id === TOOL) OBR.tool.getActiveToolMode().then((m) => { if (m !== MODE) OBR.tool.activateMode(TOOL, MODE); }).catch(() => {}); });
   OBR.player.onChange((p) => onMyRoll(p.metadata || {}));
   let unsub = null;
   const start = () => { if (unsub) unsub(); unsub = OBR.scene.items.onChange(() => sync()); sync(); };
