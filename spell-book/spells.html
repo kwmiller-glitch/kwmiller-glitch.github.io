@@ -65,7 +65,10 @@ body.obr .ld .det{position:sticky;top:52px;max-height:calc(var(--maxh,100vh) - 6
 body.obr .ld:not(:has(.det)){grid-template-columns:1fr}body.obr .ld:not(:has(.det)) .side{display:none}
 body.obr main{padding-bottom:12px}
 body.obr .ld .side{display:block}
-body.obr footer{font-size:.8rem}body.obr footer p+p,body.obr .bar label{display:none}
+body.obr footer{font-size:.8rem}
+.nback{display:none}
+/* A narrow panel (a phone): the list, or the open spell full width with a way back; never squeezed side by side */
+@media(max-width:560px){body.obr .ld{grid-template-columns:1fr}body.obr .ld:has(.det) .names{display:none}body.obr .ld .det{position:static;max-height:none}body.obr .nback{display:block;margin:0 0 6px;font-size:.95rem}}body.obr footer p+p,body.obr .bar label{display:none}
 </style></head><body>
 <header><h1>Spell Dictionary</h1><button class="obrx" id="obrx" title="Close (Esc)" aria-label="Close">✕</button><small>Advanced Dungeons &amp; Dragons, 2nd Edition: every spell in the Player’s Handbook</small></header>
 <main>
@@ -109,8 +112,9 @@ const q=$("#q"),cs=$("#c"),ls=$("#l"),ss=$("#s");
 const kindName=k=>k[0]==="W"?"Wizard":"Priest";
 function stat(k){ return SPELLDESC[k][0].split(/;\s*/).filter(Boolean).map(p=>{ const m=p.match(/^(Range|Components?|Duration|Casting Time|Area|Save)\s+(.*)$/); return m?`<div><span class="k">${m[1]==="Save"?"Saving throw":m[1]==="Component"?"Components":m[1]}</span><span class="v">${esc(m[2])}</span></div>`:`<div><span class="k">Note</span><span class="v">${esc(p.charAt(0).toUpperCase()+p.slice(1))}</span></div>`; }).join(""); }
 function starBtn(k){ const on=mine.includes(k); return `<button class="star${on?" on":""}" data-star="${esc(k)}" title="${on?"Remove from":"Add to"} My spells" aria-label="${on?"Remove from":"Add to"} My spells" aria-pressed="${on}">${on?"★":"☆"}</button>`; }
+let noAuto=null;
 function detail(k,list){ const e=SPELLDESC[k], i=list.indexOf(k);
-  return `<div class="det" id="det"><h2><span>${starBtn(k)} ${esc(k.slice(2))}</span><button class="link x" data-close="1" title="Close" aria-label="Close">✕</button></h2><div class="sub">${kindName(k)} spell, ${ord(e[2])} level · ${esc(e[3])}${e[4]?" · sphere: "+esc(e[4]):""}</div><div class="stat">${stat(k)}</div><p class="txt">${esc(e[1])}</p>
+  return `<div class="det" id="det"><button class="link nback" data-close="1">← Back to the list</button><h2><span>${starBtn(k)} ${esc(k.slice(2))}</span><button class="link x" data-close="1" title="Close" aria-label="Close">✕</button></h2><div class="sub">${kindName(k)} spell, ${ord(e[2])} level · ${esc(e[3])}${e[4]?" · sphere: "+esc(e[4]):""}</div><div class="stat">${stat(k)}</div><p class="txt">${esc(e[1])}</p>
   <div class="nav2">${i>0?`<button class="link" data-pick="${esc(list[i-1])}">← ${esc(list[i-1].slice(2))}</button>`:"<span></span>"}${i<list.length-1?`<button class="link" data-pick="${esc(list[i+1])}">${esc(list[i+1].slice(2))} →</button>`:""}</div></div>`; }
 function fill(){ const c=SPHERES[cs.value]?"P":cs.value, cur=ss.value; let h='<option value="">Any</option>'; if(c!=="P") h+='<optgroup label="Wizard schools">'+Object.keys(SPELLS.wiz).sort().map(g=>`<option value="W|${esc(g)}">${esc(g)}</option>`).join("")+"</optgroup>"; if(c!=="W") h+='<optgroup label="Priest spheres">'+Object.keys(SPELLS.pri).sort().map(g=>`<option value="P|${esc(g)}">${esc(g)}</option>`).join("")+"</optgroup>"; ss.innerHTML=h; ss.value=cur; if(ss.value!==cur) ss.value=""; }
 function hitsNow(){ const s=q.value.trim().toLowerCase(), who=SPHERES[cs.value]?cs.value:"", c=who?"P":cs.value, l=+ls.value, g=ss.value, SP=who&&SPHERES[who];
@@ -125,7 +129,7 @@ function draw(){
     const cols=[col("W"),col("P")].filter(Boolean);
     $("#view").innerHTML=`<div class="idx${cols.length<2?" one":""}">${cols.join("")}</div>`; $("#count").textContent=note+`${hits.length} spells. Pick a level, or search.`; sel=null; return; }
   if(!hits.length){ $("#view").innerHTML=`<p>${onlyMine&&!mine.length?(OBRMODE?"Type a spell name above. Press ☆ beside a spell to keep it here, under My spells.":"No spells in My spells yet. Press ☆ beside a spell to add it."):"No spell matches."}</p>`; $("#count").textContent=note; return; }
-  if(!hits.includes(sel)) sel=hits.length===1?hits[0]:null;
+  if(!hits.includes(sel)) sel=hits.length===1&&noAuto!==q.value.trim()?hits[0]:null;
   const oneLevel=new Set(hits.map(k=>k[0]+SPELLDESC[k][2])).size===1;
   const title=onlyMine?"My spells":oneLevel?`${kindName(hits[0])} spells, ${ord(SPELLDESC[hits[0]][2])} level`:"Matching spells";
   let names="", last="";
@@ -138,7 +142,7 @@ function goBack(){ preSearch=null; q.value=""; ls.value=""; ss.value=""; onlyMin
 $("#view").addEventListener("click",ev=>{ const b=ev.target.closest("button"); if(!b) return;
   if(b.dataset.lv){ const [c,n]=b.dataset.lv.split("|"); if(!(c==="P"&&SPHERES[cs.value])) cs.value=c; ls.value=n; fill(); draw(); window.scrollTo({top:0}); return; }
   if(b.id==="back"){ onlyMine?closeMine():goBack(); return; }
-  if(b.dataset.close){ sel=null; draw(); return; }
+  if(b.dataset.close){ sel=null; noAuto=q.value.trim(); draw(); return; }   // closing a lone match doesn't reopen it
   if(b.dataset.pick){ sel=b.dataset.pick; draw(); const d=$("#det"); if(d.getBoundingClientRect().top<0) d.scrollIntoView({behavior:"smooth",block:"start"}); return; }
   if(b.dataset.star){ const k=b.dataset.star; mine=mine.includes(k)?mine.filter(x=>x!==k):mine.concat(k); store(); draw(); } });
 let prev=null;

@@ -13,11 +13,12 @@ async function toggle() {
   if (open) { open = false; await OBR.popover.close(PANEL); return; }   // in case Owlbear doesn't count the toolbar as "outside"
   let vw = 1400, vh = 900;
   try { vw = await OBR.viewport.getWidth(); vh = await OBR.viewport.getHeight(); } catch (e) {}
-  const width = Math.round(Math.min(900, Math.max(560, vw * 0.5))), height = Math.max(420, vh - 110);
+  // On a phone-sized screen the panel takes the screen's width (centred), instead of half of it.
+  const phone = vw < 700, width = phone ? vw - 16 : Math.round(Math.min(900, Math.max(560, vw * 0.5))), height = Math.max(420, vh - 110);
   await OBR.popover.open({
-    id: PANEL, url: `/spell-book/spells.html?obr=1&v=8&mw=${width}&mh=${height}`, width, height,   // opens full size; the page then shrinks it to fit (if that fails, it stays usable)
-    anchorReference: "POSITION", anchorPosition: { left: vw - 76, top: 66 },
-    anchorOrigin: { horizontal: "RIGHT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" },
+    id: PANEL, url: `/spell-book/spells.html?obr=1&v=9&mw=${width}&mh=${height}`, width, height,   // opens full size; the page then shrinks it to fit (if that fails, it stays usable)
+    anchorReference: "POSITION", anchorPosition: phone ? { left: Math.round(vw / 2), top: 60 } : { left: vw - 76, top: 66 },
+    anchorOrigin: { horizontal: phone ? "CENTER" : "RIGHT", vertical: "TOP" }, transformOrigin: { horizontal: phone ? "CENTER" : "RIGHT", vertical: "TOP" },
   });
   open = true;
 }
