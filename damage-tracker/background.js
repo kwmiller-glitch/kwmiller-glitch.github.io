@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=16";
-import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=16";
+import OBR, { buildText } from "./obr-sdk.js?v=17";
+import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=17";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -176,7 +176,7 @@ async function addFx(tokens, f) {
 async function openFx(t) {
   let left = 600, top = 300;
   try { const p = await OBR.viewport.inverseTransformPoint(t.position); left = Math.round(p.x); top = Math.round(p.y); } catch (e) {}
-  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=16&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
+  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=17&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
     anchorPosition: { left, top: top + 40 }, anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
 }
 let lastRound = null;
@@ -209,10 +209,11 @@ async function syncFx() {
     const add = []; let dpi = 150; try { dpi = await OBR.scene.grid.getDpi(); } catch (e) {}
     for (const t of tokens) {
       if (have.has(t.id)) continue;
-      // Under the token, below its name label.
-      const cell = dpi * Math.abs((t.scale && t.scale.y) || 1), fs = Math.max(8, Math.round(cell * 0.13)), w = want.get(t.id), wd = Math.round(cell * 3);
+      // Above the token, just over its hit points (Owlbear's name label underneath would cover it, as its size varies).
+      const cell = dpi * Math.abs((t.scale && t.scale.y) || 1), fs = Math.max(8, Math.round(cell * 0.14)), hpFs = Math.max(8, Math.round(cell * 0.15));
+      const w = want.get(t.id), wd = Math.round(cell * 3);
       add.push(buildText().textType("PLAIN").plainText(w.text).width(wd).height(Math.round(fs * 1.4))
-        .position({ x: t.position.x - wd / 2, y: t.position.y + cell / 2 + fs * 1.5 }).textAlign("CENTER").textAlignVertical("TOP")
+        .position({ x: t.position.x - wd / 2, y: t.position.y - cell / 2 - hpFs * 0.85 - fs * 1.3 }).textAlign("CENTER").textAlignVertical("TOP")
         .fontSize(fs).fontWeight(700).fillColor(w.color).strokeColor("#0b0d12").strokeWidth(Math.max(2, Math.round(fs * 0.16)))
         .attachedTo(t.id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true).metadata({ [FXL]: t.id }).build());
     }
@@ -224,7 +225,7 @@ async function syncFx() {
 // ---------- typing a monster's hit points ----------
 const asked = new Set();
 async function openSetHP(ms, elementId) {
-  const url = "/damage-tracker/sethp.html?v=16&ids=" + ms.map((t) => t.id).join(",");
+  const url = "/damage-tracker/sethp.html?v=17&ids=" + ms.map((t) => t.id).join(",");
   if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
     anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
   let left = 600, top = 300;                                  // next to the token on screen
