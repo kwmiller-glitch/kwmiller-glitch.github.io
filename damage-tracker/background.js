@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=23";
-import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=23";
+import OBR, { buildText } from "./obr-sdk.js?v=24";
+import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=24";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -55,11 +55,11 @@ async function tokenOf(item) {
   return null;
 }
 function addTool() {
-  // J picks the tool from the keyboard (Owlbear's own tools use keys like W for move).
-  OBR.tool.create({ id: TOOL, icons: [{ icon: "/damage-tracker/icon.svg", label: "Damage (click a monster)", filter: { roles: ["GM"] } }], defaultMode: MODE, shortcut: "J" });
+  // A ("attack") picks the tool from the keyboard, beside Owlbear's W for move and our E for effects.
+  OBR.tool.create({ id: TOOL, icons: [{ icon: "/damage-tracker/icon.svg", label: "Damage (click a monster)", filter: { roles: ["GM"] } }], defaultMode: MODE, shortcut: "A" });
   OBR.tool.createMode({
     id: MODE,
-    icons: [{ icon: "/damage-tracker/down.svg", label: "Damage (J) · Click: 1 damage · Shift + click: take one back · Alt + click: type a monster’s hit points", filter: { activeTools: [TOOL] } }],
+    icons: [{ icon: "/damage-tracker/down.svg", label: "Damage (A) · Click: 1 damage · Shift + click: take one back · Alt + click: type a monster’s hit points", filter: { activeTools: [TOOL] } }],
     cursors: [{ cursor: "pointer", filter: { target: [onToken] } }, { cursor: "default" }],
     preventDrag: { target: [onToken] },
     // Counted on each press (not each click), so rapid clicking is never mistaken for a double-click and lost.
@@ -98,7 +98,7 @@ function addTool() {
     onToolClick: async (context, event) => { if (!(await tokenOf(event.target))) await OBR.tool.activateTool("rodeo.owlbear.tool/move"); return false; },
     onToolDoubleClick: () => false,
     shortcut: "E",                                          // E: Effects mode (while the damage tool is picked)
-    onKeyDown: (context, event) => { if (/^[jJ]$/.test(event.key)) OBR.tool.activateMode(TOOL, MODE); },   // J: back to Damage
+    onKeyDown: (context, event) => { if (/^[aA]$/.test(event.key)) OBR.tool.activateMode(TOOL, MODE); },   // A: back to Damage
   });
   OBR.tool.createAction({
     id: ID + "/clearall",
@@ -198,7 +198,7 @@ async function endAllFx(t) {
 async function openFx(t, at) {
   let left = 600, top = 300;
   try { const p = await toScreen(at || t.position); left = p.x; top = p.y; } catch (e) {}
-  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=23&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
+  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=24&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
     anchorPosition: { left: left + 28, top: top - 30 }, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" } });
 }
 let lastRound = null;
@@ -247,7 +247,7 @@ async function syncFx() {
 // ---------- typing a monster's hit points ----------
 const asked = new Set();
 async function openSetHP(ms, elementId, at) {
-  const url = "/damage-tracker/sethp.html?v=23&ids=" + ms.map((t) => t.id).join(",");
+  const url = "/damage-tracker/sethp.html?v=24&ids=" + ms.map((t) => t.id).join(",");
   if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
     anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
   let left = 600, top = 300;                                  // next to the token on screen
