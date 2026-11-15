@@ -15,8 +15,8 @@ input{font:inherit;padding:4px 7px;border-radius:6px;border:1px solid rgba(255,2
 .cur{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}.cur button{border-color:#b98cff;color:#e6d6ff}
 </style></head><body><main id="app"></main>
 <script type="module">
-import OBR from "./obr-sdk.js?v=21";
-import { ID, FX } from "./shared.js?v=21";
+import OBR from "./obr-sdk.js?v=22";
+import { ID, FX } from "./shared.js?v=22";
 // Add an effect to one token, or end one early. Quick picks, or type a name; rounds blank = until you remove it.
 const PICKS = ["Held", "Asleep", "Webbed", "Entangled", "Charmed", "Slowed"];
 const id = new URLSearchParams(location.search).get("id"), app = document.getElementById("app");
@@ -30,7 +30,7 @@ function draw() {
     ${fx.length ? `<div class="cur">${fx.map((f, i) => `<button data-end="${i}" title="End this effect now">${f.n}${f.left ? " " + f.left : ""} ✕</button>`).join("")}</div>` : ""}
     <div class="chips">${PICKS.map((p) => `<button data-pick="${p}" aria-pressed="${pick === p}">${p}</button>`).join("")}</div>
     <form class="row" id="f"><input id="name" placeholder="or type one" autocomplete="off" value="${PICKS.includes(pick) ? "" : pick}"><input id="rounds" placeholder="rds" inputmode="numeric" autocomplete="off"><button class="go">Add</button></form>
-    <div class="hint">Rounds count down with the round pill. Blank = until you remove it. Shift + click another token for the same effect.</div>`;
+    <div class="hint">Rounds count down with the round pill. Blank = until you remove it. Shift + click another token: same effect. Alt + click a token: end all its effects.</div>`;
   const r = document.getElementById("rounds"); if (pick) r.focus(); else document.getElementById("name").focus();
 }
 app.addEventListener("click", async (e) => {

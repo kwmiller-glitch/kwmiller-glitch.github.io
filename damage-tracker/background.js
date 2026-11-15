@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=21";
-import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=21";
+import OBR, { buildText } from "./obr-sdk.js?v=22";
+import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=22";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -72,6 +72,7 @@ function addTool() {
       if (!c && (event.altKey || (!(+t.metadata[MAX] > 0) && !asked.has(t.id)))) { asked.add(t.id); openSetHP([t], null, event.pointerPosition); return; }
       if (c) bumpHP(c, event.shiftKey ? -1 : 1, t.id);      // a PC: straight off their hit points on the sheet
       else bump(t.id, event.shiftKey ? -1 : 1);
+      if (!event.shiftKey) wake(t);                         // a sleeper who takes damage wakes up
     },
     // A click on empty map (not a token) means you're done hitting things: switch back to the move tool.
     // The damage numbers stay on the tokens.
@@ -84,12 +85,13 @@ function addTool() {
   // Second mode: effects (Held, Asleep, Webbed, …) with a number of rounds, shown under the token to everyone.
   OBR.tool.createMode({
     id: MODE_FX,
-    icons: [{ icon: "/damage-tracker/fx.svg", label: "Effects · Click: add or end an effect · Shift + click: the same effect again", filter: { activeTools: [TOOL] } }],
+    icons: [{ icon: "/damage-tracker/fx.svg", label: "Effects · Click: add or end an effect · Shift + click: the same effect again · Alt + click: end all its effects", filter: { activeTools: [TOOL] } }],
     cursors: [{ cursor: "pointer", filter: { target: [onToken] } }, { cursor: "default" }],
     preventDrag: { target: [onToken] },
     onToolDown: async (context, event) => {
       const t = await tokenOf(event.target); if (!t) return;
       let last = null; try { last = JSON.parse(localStorage.getItem("dt-lastfx") || "null"); } catch (e) {}
+      if (event.altKey) { endAllFx(t); return; }            // Alt + click: end every effect on this token
       if (event.shiftKey && last && last.n) addFx([t], last); else openFx(t, event.pointerPosition);
     },
     onToolClick: async (context, event) => { if (!(await tokenOf(event.target))) await OBR.tool.activateTool("rodeo.owlbear.tool/move"); return false; },
@@ -181,10 +183,19 @@ async function addFx(tokens, f) {
     list.push({ n: f.n, left: Number.isInteger(f.left) && f.left > 0 ? f.left : null }); d.metadata[FX] = list; } });
 }
 // The box opens just to the right of where you clicked, its top a little above the click, so your eyes don't travel.
+// Sleep (PHB): slapping or wounding a sleeper wakes them, so damage on a token removes "Asleep".
+async function wake(t) {
+  if (!fxOf(t).some((f) => /^asleep$/i.test(f.n))) return;
+  await OBR.scene.items.updateItems([t], (ds) => { for (const d of ds) { const l = (d.metadata[FX] || []).filter((f) => !/^asleep$/i.test(f.n)); if (l.length) d.metadata[FX] = l; else delete d.metadata[FX]; } });
+}
+async function endAllFx(t) {
+  if (!fxOf(t).length) return;
+  await OBR.scene.items.updateItems([t], (ds) => { for (const d of ds) delete d.metadata[FX]; });
+}
 async function openFx(t, at) {
   let left = 600, top = 300;
   try { const p = await toScreen(at || t.position); left = p.x; top = p.y; } catch (e) {}
-  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=21&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
+  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=22&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
     anchorPosition: { left: left + 28, top: top - 30 }, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" } });
 }
 let lastRound = null;
@@ -233,7 +244,7 @@ async function syncFx() {
 // ---------- typing a monster's hit points ----------
 const asked = new Set();
 async function openSetHP(ms, elementId, at) {
-  const url = "/damage-tracker/sethp.html?v=21&ids=" + ms.map((t) => t.id).join(",");
+  const url = "/damage-tracker/sethp.html?v=22&ids=" + ms.map((t) => t.id).join(",");
   if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
     anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
   let left = 600, top = 300;                                  // next to the token on screen
