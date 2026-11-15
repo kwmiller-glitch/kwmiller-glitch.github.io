@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=20";
-import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=20";
+import OBR, { buildText } from "./obr-sdk.js?v=21";
+import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=21";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -164,10 +164,11 @@ async function sync() {
   if (again) { again = false; sync(); }
 }
 
-// A point on the map → where it is on screen: map position × zoom + how far the view has been moved.
+// A point on the map → where it is on screen. Owlbear's transformPoint goes map → screen (as its own
+// initiative tracker uses it); the earlier versions had it the wrong way round.
 async function toScreen(pt) {
-  const [scale, pos] = await Promise.all([OBR.viewport.getScale(), OBR.viewport.getPosition()]);
-  return { x: Math.round(pt.x * scale + pos.x), y: Math.round(pt.y * scale + pos.y) };
+  const p = await OBR.viewport.transformPoint(pt);
+  return { x: Math.round(p.x), y: Math.round(p.y) };
 }
 
 // ---------- effects on tokens (everyone sees them) ----------
@@ -183,7 +184,7 @@ async function addFx(tokens, f) {
 async function openFx(t, at) {
   let left = 600, top = 300;
   try { const p = await toScreen(at || t.position); left = p.x; top = p.y; } catch (e) {}
-  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=20&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
+  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=21&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
     anchorPosition: { left: left + 28, top: top - 30 }, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" } });
 }
 let lastRound = null;
@@ -232,7 +233,7 @@ async function syncFx() {
 // ---------- typing a monster's hit points ----------
 const asked = new Set();
 async function openSetHP(ms, elementId, at) {
-  const url = "/damage-tracker/sethp.html?v=20&ids=" + ms.map((t) => t.id).join(",");
+  const url = "/damage-tracker/sethp.html?v=21&ids=" + ms.map((t) => t.id).join(",");
   if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
     anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
   let left = 600, top = 300;                                  // next to the token on screen
