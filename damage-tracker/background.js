@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=18";
-import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=18";
+import OBR, { buildText } from "./obr-sdk.js?v=19";
+import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=19";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -69,7 +69,7 @@ function addTool() {
       const c = charFor(t);
       // A monster with no hit points yet: the first click asks for them (a small box by the token), instead of counting
       // damage. Alt + click asks again any time. Press Esc in the box to skip, and later clicks just count damage.
-      if (!c && (event.altKey || (!(+t.metadata[MAX] > 0) && !asked.has(t.id)))) { asked.add(t.id); openSetHP([t]); return; }
+      if (!c && (event.altKey || (!(+t.metadata[MAX] > 0) && !asked.has(t.id)))) { asked.add(t.id); openSetHP([t], null, event.pointerPosition); return; }
       if (c) bumpHP(c, event.shiftKey ? -1 : 1, t.id);      // a PC: straight off their hit points on the sheet
       else bump(t.id, event.shiftKey ? -1 : 1);
     },
@@ -90,7 +90,7 @@ function addTool() {
     onToolDown: async (context, event) => {
       const t = await tokenOf(event.target); if (!t) return;
       let last = null; try { last = JSON.parse(localStorage.getItem("dt-lastfx") || "null"); } catch (e) {}
-      if (event.shiftKey && last && last.n) addFx([t], last); else openFx(t);
+      if (event.shiftKey && last && last.n) addFx([t], last); else openFx(t, event.pointerPosition);
     },
     onToolClick: async (context, event) => { if (!(await tokenOf(event.target))) await OBR.tool.activateTool("rodeo.owlbear.tool/move"); return false; },
     onToolDoubleClick: () => false,
@@ -173,11 +173,12 @@ async function addFx(tokens, f) {
     const list = (Array.isArray(d.metadata[FX]) ? d.metadata[FX] : []).filter((x) => x.n.toLowerCase() !== f.n.toLowerCase());
     list.push({ n: f.n, left: Number.isInteger(f.left) && f.left > 0 ? f.left : null }); d.metadata[FX] = list; } });
 }
-async function openFx(t) {
+// The box opens just to the right of where you clicked, its top a little above the click, so your eyes don't travel.
+async function openFx(t, at) {
   let left = 600, top = 300;
-  try { const p = await OBR.viewport.inverseTransformPoint(t.position); left = Math.round(p.x); top = Math.round(p.y); } catch (e) {}
-  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=18&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
-    anchorPosition: { left, top: top + 40 }, anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
+  try { const p = await OBR.viewport.inverseTransformPoint(at || t.position); left = Math.round(p.x); top = Math.round(p.y); } catch (e) {}
+  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=19&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
+    anchorPosition: { left: left + 28, top: top - 30 }, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" } });
 }
 let lastRound = null;
 async function onRound(round) {
@@ -224,14 +225,14 @@ async function syncFx() {
 
 // ---------- typing a monster's hit points ----------
 const asked = new Set();
-async function openSetHP(ms, elementId) {
-  const url = "/damage-tracker/sethp.html?v=18&ids=" + ms.map((t) => t.id).join(",");
+async function openSetHP(ms, elementId, at) {
+  const url = "/damage-tracker/sethp.html?v=19&ids=" + ms.map((t) => t.id).join(",");
   if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
     anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
   let left = 600, top = 300;                                  // next to the token on screen
-  try { const p = await OBR.viewport.inverseTransformPoint(ms[0].position); left = Math.round(p.x); top = Math.round(p.y); } catch (e) {}
-  return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorReference: "POSITION", anchorPosition: { left, top: top + 40 },
-    anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
+  try { const p = await OBR.viewport.inverseTransformPoint(at || ms[0].position); left = Math.round(p.x); top = Math.round(p.y); } catch (e) {}
+  return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorReference: "POSITION", anchorPosition: { left: left + 28, top: top - 28 },
+    anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" } });
 }
 
 // ---------- monsters' hit points from the dice tray ----------
