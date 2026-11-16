@@ -40,13 +40,16 @@ async function syncHP() {
       const c = chars.find((c) => norm(c.name) === norm(tokenName(t))) || chars.find((c) => sameName(tokenName(t), c.name));
       if (!c) continue;
       const max = numOf(c.hpmax), hp = numOf(c.hp) ?? max;
-      want.set(t.id, { text: hp + "/" + max, color: hp <= 0 ? "#ff5a5a" : hp * 2 <= max ? "#ffc94d" : "#8ff09a" });
+      const ac = String(c.ac ?? "").trim();                    // AC from the sheet goes first: "AC 4 · 8/11"
+      want.set(t.id, { text: (ac ? "AC " + ac + " · " : "") + hp + "/" + max, color: hp <= 0 ? "#ff5a5a" : hp * 2 <= max ? "#ffc94d" : "#8ff09a" });
     }
     const labels = await OBR.scene.local.getItems((i) => i.metadata[HPL] !== undefined);
     const have = new Map(labels.map((l) => [l.metadata[HPL], l]));
-    const gone = labels.filter((l) => !want.has(l.metadata[HPL])).map((l) => l.id);
+    // Labels from before AC was added are too narrow for "AC 4 · 8/11": replace them.
+    const gone = labels.filter((l) => !want.has(l.metadata[HPL]) || l.metadata[HPL + "w"] !== 2).map((l) => l.id);
+    for (const l of labels) if (gone.includes(l.id)) have.delete(l.metadata[HPL]);
     if (gone.length) await OBR.scene.local.deleteItems(gone);
-    const stale = labels.filter((l) => { const w = want.get(l.metadata[HPL]); return w && (l.text.plainText !== w.text || (l.text.style || {}).fillColor !== w.color); });
+    const stale = labels.filter((l) => { const w = !gone.includes(l.id) && want.get(l.metadata[HPL]); return w && (l.text.plainText !== w.text || (l.text.style || {}).fillColor !== w.color); });
     if (stale.length) await OBR.scene.local.updateItems(stale, (ds) => { for (const d of ds) { const w = want.get(d.metadata[HPL]); d.text.plainText = w.text; if (d.text.style) d.text.style.fillColor = w.color; } });
     const add = []; let dpi = 150; try { dpi = await OBR.scene.grid.getDpi(); } catch (e) {}
     for (const [id, w] of want) {
@@ -54,11 +57,11 @@ async function syncHP() {
       // Centred just above the token's grid square, measured from where the token stands rather than from its picture
       // (a picture with empty space above the figure would otherwise push the number far up), so every number lines up.
       const t = tokens.find((x) => x.id === id), cell = dpi * Math.abs((t.scale && t.scale.y) || 1);
-      const fs = Math.max(8, Math.round(cell * 0.15)), w5 = Math.round(fs * 5);
+      const fs = Math.max(8, Math.round(cell * 0.15)), w5 = Math.round(fs * 8);
       add.push(buildText().textType("PLAIN").plainText(w.text).width(w5).height(Math.round(fs * 1.4))
         .position({ x: t.position.x - w5 / 2, y: t.position.y - cell / 2 - fs * 0.85 }).textAlign("CENTER").textAlignVertical("TOP")
         .fontSize(fs).fontWeight(800).fillColor(w.color).strokeColor("#0b0d12").strokeWidth(Math.max(2, Math.round(fs * 0.16)))
-        .attachedTo(id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true).metadata({ [HPL]: id }).build());
+        .attachedTo(id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true).metadata({ [HPL]: id, [HPL + "w"]: 2 }).build());
     }
     if (add.length) await OBR.scene.local.addItems(add);
   } catch (e) { console.warn("Party Sheets:", e); }

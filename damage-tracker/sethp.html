@@ -3,23 +3,35 @@
 html,body{margin:0;background:#1f2333;color:#fff;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;overflow:hidden}
 form{display:flex;align-items:center;gap:8px;padding:10px 12px}
 label{font-weight:600;white-space:nowrap}
-input{width:58px;font:700 18px inherit;font-family:inherit;text-align:center;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.3);color:#fff}
+input{width:50px;font:700 18px inherit;font-family:inherit;text-align:center;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.3);color:#fff}
 button{border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(255,255,255,.1);color:#fff;font:600 13px inherit;font-family:inherit;padding:5px 10px;cursor:pointer}
 </style></head><body>
-<form id="f"><label for="n" id="lab">Hit points</label><input id="n" inputmode="numeric" autocomplete="off" required><button>Set</button></form>
+<form id="f"><label for="n" id="lab">HP</label><input id="n" inputmode="numeric" autocomplete="off"><label for="a">AC</label><input id="a" autocomplete="off"><button>Set</button></form>
 <script type="module">
-import OBR from "./obr-sdk.js?v=24";
-import { ID, DMG, MAX } from "./shared.js?v=24";
-// Type the hit points you have in mind for the selected monster(s). Enter sets them (and clears any damage); Esc cancels.
+import OBR from "./obr-sdk.js?v=25";
+import { ID, DMG, MAX, AC } from "./shared.js?v=25";
+// Type the hit points and armour class for the selected monster(s). Enter sets them; Esc cancels.
+// A changed HP number starts the monster fresh (damage cleared); leaving HP as it was keeps its damage, so you can add an AC mid-fight.
 const ids = (new URLSearchParams(location.search).get("ids") || "").split(",").filter(Boolean);
-const n = document.getElementById("n"); setTimeout(() => n.focus(), 50);
-if (ids.length > 1) document.getElementById("lab").textContent = `HP, each of ${ids.length}`;
+const n = document.getElementById("n"), a = document.getElementById("a"); setTimeout(() => { n.focus(); n.select(); }, 50);
+if (ids.length > 1) document.getElementById("lab").textContent = `Each of ${ids.length}: HP`;
 const close = () => OBR.popover.close(ID + "/sethp");
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
 document.getElementById("f").addEventListener("submit", async (e) => {
-  e.preventDefault(); const v = parseInt(n.value.replace(/[^\d]/g, ""), 10); if (!v) return;
+  e.preventDefault();
+  const v = parseInt(n.value.replace(/[^\d]/g, ""), 10);
+  const ac = parseInt(a.value.replace(/[−–]/g, "-").replace(/[^\d-]/g, ""), 10);
+  if (!v && isNaN(ac) && a.value.trim()) return;
   const items = await OBR.scene.items.getItems(ids);
-  await OBR.scene.items.updateItems(items, (ds) => { for (const d of ds) { d.metadata[MAX] = v; delete d.metadata[DMG]; } });
+  await OBR.scene.items.updateItems(items, (ds) => { for (const d of ds) {
+    if (v > 0 && d.metadata[MAX] !== v) { d.metadata[MAX] = v; delete d.metadata[DMG]; }
+    if (!isNaN(ac)) d.metadata[AC] = ac; else if (ids.length === 1) delete d.metadata[AC]; } });
   close();
 });
+// One monster: show what it has now, so a correction only needs the number that was wrong.
+OBR.onReady(async () => { if (ids.length !== 1) return;
+  const [t] = await OBR.scene.items.getItems(ids); if (!t) return;
+  if (t.metadata[MAX] > 0) n.value = t.metadata[MAX];
+  if (Number.isInteger(t.metadata[AC])) a.value = t.metadata[AC];
+  n.select(); });
 </script></body></html>

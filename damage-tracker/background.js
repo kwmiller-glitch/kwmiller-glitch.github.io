@@ -1,5 +1,5 @@
-import OBR, { buildText } from "./obr-sdk.js?v=24";
-import { ID, DMG, PC, LABEL, MAX, FX, FXL } from "./shared.js?v=24";
+import OBR, { buildText } from "./obr-sdk.js?v=25";
+import { ID, DMG, PC, LABEL, MAX, FX, FXL, AC } from "./shared.js?v=25";
 
 // ▼ ▲ and Clear on the token menu, for the GM only, on tokens (the CHARACTER layer) not marked as PCs.
 const notPC = { key: ["metadata", PC], value: true, operator: "!=" };
@@ -139,29 +139,34 @@ async function sync() {
   try {
     const dmgOf = (i) => Math.max(0, (+i.metadata[DMG] || 0) + delta(i.id));
     const maxOf = (i) => (Number.isInteger(i.metadata[MAX]) && i.metadata[MAX] > 0 ? i.metadata[MAX] : 0);
-    const tokens = (await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && (dmgOf(i) > 0 || maxOf(i) > 0)));
+    const acOf = (i) => (Number.isInteger(i.metadata[AC]) ? i.metadata[AC] : null);
+    const tokens = (await OBR.scene.items.getItems((i) => i.layer === "CHARACTER" && (dmgOf(i) > 0 || maxOf(i) > 0 || acOf(i) !== null)));
     // With hit points rolled: "8/11", green above half, amber at half or below, red at 0 or less. Without: "−3" in red.
-    const look = (t) => { const d = dmgOf(t), m = maxOf(t);
-      if (!m) return { text: "−" + d, color: "#ff4a4a" };
-      const hp = m - d; return { text: hp + "/" + m, color: hp <= 0 ? "#ff5a5a" : hp * 2 <= m ? "#ffc94d" : "#8ff09a" }; };
+    // With an AC typed in, it goes first: "AC 5 · 8/11" (or just "AC 5" before any damage or hit points).
+    const look = (t) => { const d = dmgOf(t), m = maxOf(t), ac = acOf(t), pre = ac === null ? "" : "AC " + ac;
+      const w = !m ? (d ? { text: "−" + d, color: "#ff4a4a" } : { text: "", color: "#e8ecf4" })
+        : { text: (m - d) + "/" + m, color: m - d <= 0 ? "#ff5a5a" : (m - d) * 2 <= m ? "#ffc94d" : "#8ff09a" };
+      return { text: [pre, w.text].filter(Boolean).join(" · "), color: w.color }; };
     const labels = await OBR.scene.local.getItems((i) => i.metadata[LABEL] !== undefined);
     const want = new Map(tokens.map((t) => [t.id, look(t)]));
     const have = new Map(labels.map((l) => [l.metadata[LABEL], l]));
-    const gone = labels.filter((l) => !want.has(l.metadata[LABEL])).map((l) => l.id);
+    // Labels from before AC was added are too narrow for "AC 5 · 8/11": replace them.
+    const gone = labels.filter((l) => !want.has(l.metadata[LABEL]) || l.metadata[LABEL + "w"] !== 2).map((l) => l.id);
+    for (const l of labels) if (gone.includes(l.id)) have.delete(l.metadata[LABEL]);
     if (gone.length) await OBR.scene.local.deleteItems(gone);
-    const stale = labels.filter((l) => { const w = want.get(l.metadata[LABEL]); return w && (l.text.plainText !== w.text || (l.text.style || {}).fillColor !== w.color); });
+    const stale = labels.filter((l) => { const w = !gone.includes(l.id) && want.get(l.metadata[LABEL]); return w && (l.text.plainText !== w.text || (l.text.style || {}).fillColor !== w.color); });
     if (stale.length) await OBR.scene.local.updateItems(stale, (ds) => { for (const d of ds) { const w = want.get(d.metadata[LABEL]); d.text.plainText = w.text; if (d.text.style) d.text.style.fillColor = w.color; } });
     const add = []; let dpi = 150; try { dpi = await OBR.scene.grid.getDpi(); } catch (e) {}
     for (const t of tokens) {
       if (have.has(t.id)) continue;
       // Centred just above the token's grid square, like the PCs' hit points, drawn as part of the map
       // (so it keeps its size relative to the token at every zoom). Only on the GM's screen.
-      const cell = dpi * Math.abs((t.scale && t.scale.y) || 1), fs = Math.max(8, Math.round(cell * 0.15)), w5 = Math.round(fs * 5), w = want.get(t.id);
+      const cell = dpi * Math.abs((t.scale && t.scale.y) || 1), fs = Math.max(8, Math.round(cell * 0.15)), w5 = Math.round(fs * 8), w = want.get(t.id);
       add.push(buildText().textType("PLAIN").plainText(w.text).width(w5).height(Math.round(fs * 1.4))
         .position({ x: t.position.x - w5 / 2, y: t.position.y - cell / 2 - fs * 0.85 }).textAlign("CENTER").textAlignVertical("TOP")
         .fontSize(fs).fontWeight(800).fillColor(w.color).strokeColor("#0b0d12").strokeWidth(Math.max(2, Math.round(fs * 0.16)))
         .attachedTo(t.id).layer("ATTACHMENT").locked(true).disableHit(true).visible(true)
-        .metadata({ [LABEL]: t.id }).build());
+        .metadata({ [LABEL]: t.id, [LABEL + "w"]: 2 }).build());
     }
     if (add.length) await OBR.scene.local.addItems(add);
   } catch (e) { console.warn("Damage Tracker:", e); }
@@ -198,7 +203,7 @@ async function endAllFx(t) {
 async function openFx(t, at) {
   let left = 600, top = 300;
   try { const p = await toScreen(at || t.position); left = p.x; top = p.y; } catch (e) {}
-  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=24&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
+  OBR.popover.open({ id: ID + "/fx", url: "/damage-tracker/fx.html?v=25&id=" + t.id, width: 330, height: 190, anchorReference: "POSITION",
     anchorPosition: { left: left + 28, top: top - 30 }, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" } });
 }
 let lastRound = null;
@@ -247,12 +252,12 @@ async function syncFx() {
 // ---------- typing a monster's hit points ----------
 const asked = new Set();
 async function openSetHP(ms, elementId, at) {
-  const url = "/damage-tracker/sethp.html?v=24&ids=" + ms.map((t) => t.id).join(",");
-  if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorElementId: elementId,
+  const url = "/damage-tracker/sethp.html?v=25&ids=" + ms.map((t) => t.id).join(",");
+  if (elementId) return OBR.popover.open({ id: ID + "/sethp", url, width: 300, height: 56, anchorElementId: elementId,
     anchorOrigin: { horizontal: "CENTER", vertical: "BOTTOM" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" } });
   let left = 600, top = 300;                                  // next to the token on screen
   try { const p = await toScreen(at || ms[0].position); left = p.x; top = p.y; } catch (e) {}
-  return OBR.popover.open({ id: ID + "/sethp", url, width: 270, height: 56, anchorReference: "POSITION", anchorPosition: { left: left + 28, top: top - 28 },
+  return OBR.popover.open({ id: ID + "/sethp", url, width: 300, height: 56, anchorReference: "POSITION", anchorPosition: { left: left + 28, top: top - 28 },
     anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" } });
 }
 
@@ -309,7 +314,7 @@ async function showHP(c, tokenId) {
   const color = hp <= 0 ? "#ff5a5a" : max && hp * 2 <= max ? "#ffc94d" : "#8ff09a";
   try {
     const ls = await OBR.scene.local.getItems((i) => i.metadata["party-sheets/hp"] === tokenId);
-    if (ls.length) await OBR.scene.local.updateItems(ls, (ds) => { for (const x of ds) { x.text.plainText = hp + "/" + max; if (x.text.style) x.text.style.fillColor = color; } });
+    if (ls.length) await OBR.scene.local.updateItems(ls, (ds) => { for (const x of ds) { x.text.plainText = x.text.plainText.replace(/-?\d+\/\S*$/, hp + "/" + max); if (x.text.style) x.text.style.fillColor = color; } });
   } catch (e) {}
 }
 async function flushHP() {
