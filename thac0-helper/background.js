@@ -1,7 +1,7 @@
 // Runs quietly for everyone in the room. Watches Owlbear's Dice for finished d20 rolls and,
 // when the DM has switched the helper on, shows the Armor Class hit in a banner at the top of the screen.
 import OBR from "./obr-sdk.js";
-import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave, sameCharacter } from "./shared.js?v=23";
+import { KEY, DICE, ID, readSettings, d20Result, rollKey, describe, activeWeapon, LOG_KEY, canUndo, canon, linkPlayers, SAVE_KEY, SAVE_TTL, describeSave, sameCharacter } from "./shared.js?v=24";
 
 const BANNER = ID + "/banner", TURN = ID + "/turn";
 let shownTurn = "";
@@ -14,7 +14,7 @@ let lowered = false; // true while this person has a tool with an options bar pi
 // The banner sits just under the pill during combat, and takes the pill's place at the top when there's no combat.
 const pillTop = () => (lowered ? 64 : 14), bannerTop = (phone) => (phone ? 58 : pillTop() + (shownTurn ? 50 : 0));
 const seen = new Set();
-let settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, round: 0, turn: "", first: "", hist: [] }, lines = [], hideTimer = null, ready = false, role = "PLAYER", myId = "", onPhone = false;
+let settings = { on: false, thac0: {}, weapons: {}, active: {}, bless: {}, curse: {}, round: 0, turn: "", first: "", hist: [] }, lines = [], hideTimer = null, ready = false, role = "PLAYER", myId = "", onPhone = false;
 const channel = new BroadcastChannel(ID + "/log");
 // When this person clicks the banner away, forget those lines so the next roll doesn't bring them back.
 new BroadcastChannel(ID + "/dismiss").onmessage = () => { lines = []; clearTimeout(hideTimer); };
@@ -42,7 +42,7 @@ async function showBanner() {
   if (phone) { try { vh = await OBR.viewport.getHeight(); } catch (e) {} }
   const low = phone && vh > 300;
   await OBR.popover.open({
-    id: BANNER, url: "/thac0-helper/banner.html?v=23#" + encodeURIComponent(JSON.stringify(lines)), width, height,
+    id: BANNER, url: "/thac0-helper/banner.html?v=24#" + encodeURIComponent(JSON.stringify(lines)), width, height,
     anchorReference: "POSITION", anchorPosition: { left, top: low ? vh - 84 : bannerTop(phone) },
     anchorOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: low ? "BOTTOM" : "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -79,7 +79,7 @@ function consider(player) {
   if (!settings.on) return;                                 // the AC calculator is off
   const t = settings.thac0[who];
   if (t === undefined || t === null || t === "" || isNaN(+t)) return;   // only characters the DM has given a THAC0
-  const entry = describe(who, r, +t, activeWeapon(settings, who), !!settings.bless[who]); entry.k = key;
+  const entry = describe(who, r, +t, activeWeapon(settings, who), !!settings.bless[who], !!(settings.curse || {})[who]); entry.k = key;
   remember(entry);
   if (onPhone && player.id !== myId) return;               // on a phone, only your own rolls pop up, to save space
   lines.push(entry); showBanner();
@@ -128,7 +128,7 @@ async function showTurn() {
   await OBR.popover.close(TURN);
   if (!want) return;
   await OBR.popover.open({
-    id: TURN, url: "/thac0-helper/turn.html?v=23#" + encodeURIComponent(want), width: 340, height: 38,
+    id: TURN, url: "/thac0-helper/turn.html?v=24#" + encodeURIComponent(want), width: 340, height: 38,
     anchorReference: "POSITION", anchorPosition: { left, top: pillTop() },
     anchorOrigin: { horizontal: "CENTER", vertical: "TOP" }, transformOrigin: { horizontal: "CENTER", vertical: "TOP" },
     disableClickAway: true, hidePaper: true, marginThreshold: 0,
@@ -143,7 +143,7 @@ function addButton() {
     id: ID + "/button",
     icons: [{ icon: "/thac0-helper/icon.svg", label: "THAC0 Helper", filter: { roles: ["GM"] } }],
     onClick: async (context, elementId) => {
-      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=23", width: 340, height: 480, anchorElementId: elementId,
+      await OBR.popover.open({ id: PANEL, url: "/thac0-helper/panel.html?v=24", width: 340, height: 480, anchorElementId: elementId,
         anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "RIGHT", vertical: "TOP" } });
       return false;
     },
@@ -170,7 +170,7 @@ function applySheets(s, players) {
   const live = sheetChars.filter((c) => !c.binned && !c.hidden && c.name && String(c.thac0 || "").trim() !== "" && !isNaN(+c.thac0));
   let changed = false; const flags = {};
   const move = (from, to) => {                               // carry weapons and Bless typed under the old name over, once
-    for (const k of ["weapons", "active", "bless"]) if (s[k][from] !== undefined) { if (s[k][to] === undefined) s[k][to] = s[k][from]; delete s[k][from]; }
+    for (const k of ["weapons", "active", "bless", "curse"]) if (s[k][from] !== undefined) { if (s[k][to] === undefined) s[k][to] = s[k][from]; delete s[k][from]; }
     delete s.thac0[from]; for (const id in s.ids) if (s.ids[id] === from) delete s.ids[id];
     changed = true;
   };

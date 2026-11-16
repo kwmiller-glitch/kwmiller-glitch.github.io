@@ -55,7 +55,7 @@ input{width:100%;font:inherit;padding:7px 9px;border-radius:6px;border:1px solid
 .sw{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--text);font:600 13px inherit;font-family:inherit;padding:5px 9px;cursor:pointer}
 .sw .pill{width:32px;height:18px;border-radius:9px;background:rgba(255,255,255,.25);position:relative;transition:background .15s}.sw .pill::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
 .sw[aria-pressed=true] .pill{background:#4caf50}.sw[aria-pressed=true] .pill::after{left:16px}
-.blessbar{display:flex;gap:6px;margin:-2px 0 10px}.gbtn.bl.on{background:var(--gold);border-color:var(--gold);color:#222}
+.blessbar{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 10px}.gbtn.bl.on{background:var(--gold);border-color:var(--gold);color:#222}
 .svh{display:flex;align-items:center;gap:6px}.svh .gbtn{margin-left:auto;white-space:nowrap;text-transform:none;letter-spacing:0;padding:2px 9px;font-size:12px}
 .grp{margin-top:2px}.gbtn{border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.08);color:var(--text);font:600 12.5px inherit;font-family:inherit;padding:4px 10px;cursor:pointer}.gbtn:disabled{opacity:.5;cursor:default}
 .grp{border:1px solid var(--gold);border-radius:10px;padding:8px 10px;margin:0 0 10px;background:rgba(224,184,79,.07)}.gtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
@@ -64,7 +64,7 @@ input{width:100%;font:inherit;padding:7px 9px;border-radius:6px;border:1px solid
 .glist{display:flex;flex-direction:column;gap:2px;font-size:13px}.gok{color:#81c784}.gbad{color:#ef9a9a}.gwait{color:var(--muted)}
 .wch{display:flex;flex-wrap:wrap;gap:5px;align-items:center}.wch button{border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font:12.5px inherit;font-family:inherit;padding:3px 10px;cursor:pointer}
 .wch button[aria-pressed=true]{background:#4caf50;border-color:#4caf50;color:#fff;font-weight:700}.wch .wb{opacity:.8;font-size:11.5px}.wch .sp{font-size:10px;font-weight:700;padding:0 4px;border-radius:3px;background:rgba(255,255,255,.2)}
-.wch .bless{margin-left:auto}.wch .bless[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#222}
+.wch .bc{margin-left:auto;display:flex;gap:inherit}.blessbar .pair{display:flex;gap:6px}.wch .bless[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#222}.wch .curse[aria-pressed=true],.gbtn.cu.on{background:#b0413e;border-color:#b0413e;color:#fff}
 .err{color:#ef9a9a}
 </style></head><body>
 <header><h1>Party Sheets</h1><button class="x" id="x" title="Close (Esc)" aria-label="Close">✕</button></header>
@@ -155,14 +155,16 @@ function groupHTML(cands) {
 // ---------- weapon in use and Bless: read by the THAC0 Helper for the attack banner ----------
 // Weapons come from the sheet's Weapons box; the one picked here is saved on the sheet (wact: 1-3, 0 = none).
 // Bless is kept with the THAC0 Helper's room settings, as before (+1 to hit; counts down 6 rounds in combat).
+// Curse (Bless reversed, cast by an enemy priest, PHB): −1 to hit, also 6 rounds; kept beside Bless the same way.
 const TKEY = "thac0-helper/settings"; let tset = {};
 const wlist = (c) => [1, 2, 3].map((i) => ({ i, n: String(c["w" + i + "n"] || "").trim(), b: String(c["w" + i + "b"] || "").trim(), s: !!c["w" + i + "s"] })).filter((w) => w.n);
 function weaponHTML(c) {
-  const ws = wlist(c), act = Number.isInteger(c.wact) ? c.wact : 0, bl = (tset.bless || {})[c.name];
-  const left = Number.isInteger(bl) && tset.round ? bl + 6 - tset.round : null;
+  const ws = wlist(c), act = Number.isInteger(c.wact) ? c.wact : 0, bl = (tset.bless || {})[c.name], cu = (tset.curse || {})[c.name];
+  const left = Number.isInteger(bl) && tset.round ? bl + 6 - tset.round : null, cleft = Number.isInteger(cu) && tset.round ? cu + 6 - tset.round : null;
   const bonus = (w) => { const v = parseInt(w.b.replace(/[^\d-]/g, ""), 10) || 0; return v ? ` <span class="wb">${v > 0 ? "+" : "−"}${Math.abs(v)}</span>` : ""; };
   return `<h2>Attacking with</h2><div class="wch">${ws.length ? `<button data-w="0" aria-pressed="${act === 0}">None</button>${ws.map((w) => `<button data-w="${w.i}" aria-pressed="${act === w.i}">${esc(w.n)}${bonus(w)}${w.s ? ` <span class="sp">SPEC</span>` : ""}</button>`).join("")}` : `<span class="hint">No weapons on the sheet yet (Weapons box, under the ability scores).</span>`}
-    <button class="bless" id="bless" aria-pressed="${!!bl}" title="Bless: +1 to attack rolls">${bl ? "Blessed +1" + (left !== null ? ` · ${left} rd` : "") : "Bless"}</button></div>`;
+    <span class="bc"><button class="bless" id="bless" aria-pressed="${!!bl}" title="Bless: +1 to attack rolls">${bl ? "Blessed +1" + (left !== null ? ` · ${left} rd` : "") : "Bless"}</button>
+    <button class="curse" id="curse" aria-pressed="${!!cu}" title="Curse (cast by an enemy): −1 to attack rolls">${cu ? "Cursed −1" + (cleft !== null ? ` · ${cleft} rd` : "") : "Curse"}</button></span></div>`;
 }
 
 // ---------- turning undead: PHB Table 61 (p. 103), shown when pointing at the button on a cleric's or paladin's card ----------
@@ -218,10 +220,11 @@ function draw() {
   if (!chars.length) { app.innerHTML = err ? `<p class="err">${esc(err)}</p><button class="link" id="relink">Use a different party link</button>` : `<p class="hint">Loading the party…</p>`; return; }
   if (!list.some((c) => c.id === sel)) sel = list[0] && list[0].id;
   const c = list.find((x) => x.id === sel);
-  app.innerHTML = `<div class="ctl"><button class="sw" id="acsw" aria-pressed="${!!tset.on}" title="When on, every d20 a player rolls shows the Armor Class it hits"><span>AC calculator ${tset.on ? "on" : "off"}</span><span class="pill"></span></button>${tset.round ? `<span class="rnd">Round ${tset.round}</span><button class="gbtn" id="endcb" title="Combat over: hide the round from everyone’s screen and clear Bless">End combat</button>` : `<button class="gbtn" id="startcb" title="Shows the round and whose turn it is at the top of everyone’s screen">Start combat</button>`}</div>
+  app.innerHTML = `<div class="ctl"><button class="sw" id="acsw" aria-pressed="${!!tset.on}" title="When on, every d20 a player rolls shows the Armor Class it hits"><span>AC calculator ${tset.on ? "on" : "off"}</span><span class="pill"></span></button>${tset.round ? `<span class="rnd">Round ${tset.round}</span><button class="gbtn" id="endcb" title="Combat over: hide the round from everyone’s screen and clear Bless and Curse">End combat</button>` : `<button class="gbtn" id="startcb" title="Shows the round and whose turn it is at the top of everyone’s screen">Start combat</button>`}</div>
     <div class="who">${list.map((x) => `<button data-sel="${esc(x.id)}" aria-pressed="${x.id === sel}">${esc(x.name || "Unnamed")}</button>`).join("")}${playing.length && playing.length < live.length ? `<button class="more" id="all">${showAll ? "Only in play" : "+ Not in play"}</button>` : ""}</div>
     <div class="blessbar">${(() => { const names = list.map((x) => x.name).filter(Boolean), on = names.filter((n) => (tset.bless || {})[n]);
-      return `<button class="gbtn bl${on.length ? " on" : ""}" id="blessall" title="Bless: +1 to attack rolls for everyone listed above (untick anyone on their own card)">${on.length === names.length && names.length ? "Everyone blessed +1" : "Bless everyone"}</button>${on.length ? `<button class="gbtn" id="blessnone">End Bless</button>` : ""}`; })()}</div>
+      return `<span class="pair"><button class="gbtn bl${on.length ? " on" : ""}" id="blessall" title="Bless: +1 to attack rolls for everyone listed above (untick anyone on their own card)">${on.length === names.length && names.length ? "Everyone blessed +1" : "Bless everyone"}</button>${on.length ? `<button class="gbtn" id="blessnone">End Bless</button>` : ""}</span>`; })()}${(() => { const names = list.map((x) => x.name).filter(Boolean), on = names.filter((n) => (tset.curse || {})[n]);
+      return `<span class="pair"><button class="gbtn cu${on.length ? " on" : ""}" id="curseall" title="Curse (cast by an enemy): −1 to attack rolls for everyone listed above (untick anyone on their own card)">${on.length === names.length && names.length ? "Everyone cursed −1" : "Curse everyone"}</button>${on.length ? `<button class="gbtn" id="cursenone">End Curse</button>` : ""}</span>`; })()}</div>
     ${(() => { const un = people.filter((p) => !live.some((x) => { const l = linkOf(x); return l && norm(l.name) === norm(p.name); })); return un.length ? `<p class="hint unm">Not matched to a sheet: ${un.map((p) => esc(p.name)).join(", ")}</p>` : ""; })()}
     ${c ? cardHTML(c) : ""}${err ? `<p class="err">${esc(err)}</p>` : ""}
     <div class="foot"><button class="link" id="relink">Use a different party link</button></div>`;
@@ -255,18 +258,19 @@ app.addEventListener("click", (ev) => {
     const id = b.id;
     OBR.room.getMetadata().then((m) => { const t = { ...(m[TKEY] || {}) };
       if (id === "acsw") t.on = !t.on;
-      if (id === "startcb") { t.round = 1; t.turn = ""; t.first = ""; t.hist = []; const bl = { ...(t.bless || {}) }; for (const n in bl) if (bl[n] === true) bl[n] = 1; t.bless = bl; }
-      if (id === "endcb") { t.round = 0; t.turn = ""; t.first = ""; t.hist = []; t.bless = {}; }
+      if (id === "startcb") { t.round = 1; t.turn = ""; t.first = ""; t.hist = []; for (const k of ["bless", "curse"]) { const bl = { ...(t[k] || {}) }; for (const n in bl) if (bl[n] === true) bl[n] = 1; t[k] = bl; } }
+      if (id === "endcb") { t.round = 0; t.turn = ""; t.first = ""; t.hist = []; t.bless = {}; t.curse = {}; }
       tset = t; draw(); return OBR.room.setMetadata({ [TKEY]: t }); }).catch(() => {}); return; }
-  if (b.id === "blessall" || b.id === "blessnone") {
+  const grp = /^(bless|curse)(all|none)$/.exec(b.id || "");   // Bless/Curse everyone, End Bless/Curse
+  if (grp) { const k = grp[1];
     const live = chars.filter((x) => !x.binned && !x.hidden), pl = live.filter(inPlay), names = ((showAll || !pl.length) ? live : pl).map((x) => x.name).filter(Boolean);
-    OBR.room.getMetadata().then((m) => { const t = m[TKEY] || {}; const bless = b.id === "blessnone" ? {} : { ...(t.bless || {}) };
-      if (b.id === "blessall") names.forEach((n) => { if (!bless[n]) bless[n] = t.round || true; });
-      tset = { ...t, bless }; draw(); return OBR.room.setMetadata({ [TKEY]: tset }); }).catch(() => {}); return; }
-  if (b.id === "bless") { const c = chars.find((x) => x.id === sel); if (!c || !c.name) return;
-    OBR.room.getMetadata().then((m) => { const t = m[TKEY] || {}; const bless = { ...(t.bless || {}) };
-      if (bless[c.name]) delete bless[c.name]; else bless[c.name] = t.round || true;
-      tset = { ...t, bless }; draw(); return OBR.room.setMetadata({ [TKEY]: tset }); }).catch(() => {}); return; }
+    OBR.room.getMetadata().then((m) => { const t = m[TKEY] || {}; const on = grp[2] === "none" ? {} : { ...(t[k] || {}) };
+      if (grp[2] === "all") names.forEach((n) => { if (!on[n]) on[n] = t.round || true; });
+      tset = { ...t, [k]: on }; draw(); return OBR.room.setMetadata({ [TKEY]: tset }); }).catch(() => {}); return; }
+  if (b.id === "bless" || b.id === "curse") { const k = b.id, c = chars.find((x) => x.id === sel); if (!c || !c.name) return;
+    OBR.room.getMetadata().then((m) => { const t = m[TKEY] || {}; const on = { ...(t[k] || {}) };
+      if (on[c.name]) delete on[c.name]; else on[c.name] = t.round || true;
+      tset = { ...t, [k]: on }; draw(); return OBR.room.setMetadata({ [TKEY]: tset }); }).catch(() => {}); return; }
   if (b.id === "pick") { picking = !picking; draw(); return; }
   if (b.dataset.obr !== undefined) { const c = chars.find((x) => x.id === sel); picking = false;
     if (c) { c.obr = b.dataset.obr; draw(); api.update(c.id, { obr: b.dataset.obr }).catch(() => { err = "Couldn’t save that."; draw(); }); } return; }
@@ -286,6 +290,6 @@ OBR.onReady(async () => { { const m = await OBR.room.getMetadata(); called = m[S
   const who = (ps) => { people = ps.filter((p) => p.role !== "GM").map((p) => ({ id: p.id, name: p.name })); draw(); };
   who(await OBR.party.getPlayers()); OBR.party.onChange(who);
   OBR.room.onMetadataChange((m) => { const v = m[SAVE_KEY] || null, t = m[TKEY] || {}, g = m[GROUP_KEY] || null;
-    if (JSON.stringify(v) !== JSON.stringify(called) || JSON.stringify(g) !== JSON.stringify(group) || JSON.stringify([t.bless, t.round, t.on]) !== JSON.stringify([tset.bless, tset.round, tset.on])) { called = v; tset = t; group = g; draw(); } }); });
+    if (JSON.stringify(v) !== JSON.stringify(called) || JSON.stringify(g) !== JSON.stringify(group) || JSON.stringify([t.bless, t.curse, t.round, t.on]) !== JSON.stringify([tset.bless, tset.curse, tset.round, tset.on])) { called = v; tset = t; group = g; draw(); } }); });
 draw(); if (party) connect();
 </script></body></html>
