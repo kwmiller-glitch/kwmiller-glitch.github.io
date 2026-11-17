@@ -57,6 +57,9 @@ details.more>summary{font-family:var(--head);font-size:1rem;cursor:pointer;color
 article.enc{border:1px solid #000;margin:0 0 20px;background:#fff}
 article.enc>h3{margin:0;background:var(--blue);color:#fff;padding:7px 12px;font-size:1.12rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 article.enc>h3 span.when{font-family:var(--ui);font-size:.74rem;font-weight:400;opacity:.9;align-self:center}
+.nname{cursor:text;border-bottom:1px dashed transparent}.nname:hover{border-bottom-color:currentColor}
+.nedit{font:inherit;font-weight:700;color:#222;width:11em;padding:0 4px;border-radius:4px;border:0}
+.nre{border:0;background:none;color:inherit;opacity:.55;cursor:pointer;font-size:.85em;padding:0 2px}.nre:hover{opacity:1}.nsex{font-weight:400;opacity:.8;font-size:.9em}
 article.enc.none>h3{background:#6d727a}
 table.steps{width:100%;border-collapse:collapse;font-size:.92rem}
 table.steps td{padding:6px 10px;vertical-align:top;border-bottom:1px solid #d6d9dd}
@@ -685,6 +688,7 @@ nav.tabs button.ref{padding:6px 6px 5px}
   <tr><td>NPC: magical items and treasure</td><td>For each kind of item the class may have, a 5% chance per level; a cursed or unusable result is rolled again once. Paladins and rangers use the fighter’s column, druids the cleric’s, bards the thief’s, and specialists the wizard’s (the book lists only the four basic classes). Rolled armor, shields, plain swords and plain weapons are worked into the Armor Class and attack lines; other items are not. “Any” class and race, and the carried treasure types, come from the same pages.</td><td>Monstrous Manual, Human (Adventurer) and NPC parties</td><td><span class="status site">Site</span></td></tr>
   <tr><td>NPC: equipment, spells, skills, alignment</td><td>The books give no roll for these, so this page chooses. Armor follows the Monstrous Manual’s remarks (scale or chain at 1st level, banded or plate after, plate mail and shield from 4th; rangers studded leather; thieves, bards and druids leather). Weapons, alignment and memorised spells are picked at random from what the class allows; wizards are limited by Intelligence and specialists by their opposition schools. Thief and bard skill points are spread at random within the book’s limits. Change anything that does not suit your NPC.</td><td>My choices</td><td><span class="status mine">Judgment</span></td></tr>
   <tr><td>NPC: personality</td><td>One general trait on 1d20, one of its five specific traits, and one more characteristic on percentile dice, as in the book’s example. The book stresses that the DM should choose where possible and drop combinations that make no sense.</td><td>DMG Table 70, p. 114</td><td><span class="status book">Book</span></td></tr>
+  <tr><td>NPC: name and sex</td><td>The books give no roll for these. Man or woman is 1d2 unless you choose; the name is built from syllables chosen for each race’s sound (my own invention, not from any book), with a family name built the same way. A half-elf takes each name from either the elf or the human syllables. Odd names are kept on purpose; only real slurs and obscenities are rolled again. ↻ beside the name rolls another without changing anything else; clicking the name lets you type your own.</td><td>—</td><td><span class="status mine">Judgment</span></td></tr>
   <tr><td>NPC: left out</td><td>Multi-class and dual-class characters, proficiencies, languages, age, height and weight, followers, spell books, and the saving throw bonuses noted in each NPC’s list (they are stated but not added to the numbers). Rings of protection and similar items are listed but not added to Armor Class.</td><td></td><td><span class="status mine">Not included</span></td></tr>
   <tr><td>Item descriptions</td><td>The text under each magical item is a condensed summary of its description in Appendix 3, written for this page by an AI reader working from images of your book. It is not the book’s wording, and numbers can be wrong or missing. Where the book has a sub-table (which giant, how many charges) the summary gives it but the page does not roll it. Check the book before a ruling that matters.</td><td>DMG pp. 141–186 (summary)</td><td><span class="status mine">Summary</span></td></tr>
   <tr><td>Gem names</td><td>The names and colours are the book’s lists for each class of stone. The book gives no roll for them, so one is picked at random; you can turn this off.</td><td>DMG p. 134</td><td><span class="status mine">Judgment</span></td></tr>
@@ -1744,10 +1748,52 @@ const MMITEMS=[["Armor","FC"],["Shield","FCT"],["Sword","FT"],["Misc. weapon","F
 const MMTREASURE={F:"L, M",C:"J, K, M",W:"L, N, Q",T:"J, N, Q"};
 // DMG Table 70: general trait (d20) and its five specific traits (d100 in fives)
 const T70=[["Argumentative",["Garrulous","Hot-tempered","Overbearing","Articulate","Antagonistic"]],["Arrogant",["Haughty","Elitist","Proud","Rude","Aloof"]],["Capricious",["Mischievous","Impulsive","Lusty","Irreverent","Madcap"]],["Careless",["Thoughtless","Absent-minded","Dreamy","Lacking common sense","Insensitive"]],["Courage",["Brave","Craven","Shy","Fearless","Obsequious"]],["Curious",["Inquisitive","Prying","Intellectual","Perceptive","Keen"]],["Exacting",["Perfectionist","Stern","Harsh","Punctual","Driven"]],["Friendly",["Trusting","Kind-hearted","Forgiving","Easy-going","Compassionate"]],["Greedy",["Miserly","Hard-hearted","Covetous","Avaricious","Thrifty"]],["Generous",["Wastrel","Spendthrift","Extravagant","Kind","Charitable"]],["Moody",["Gloomy","Morose","Compulsive","Irritable","Vengeful"]],["Naive",["Honest","Truthful","Innocent","Gullible","Hick"]],["Opinionated",["Bigoted","Biased","Narrow-minded","Blustering","Hide-bound"]],["Optimistic",["Cheerful","Happy","Diplomatic","Pleasant","Foolhardy"]],["Pessimistic",["Fatalistic","Depressing","Cynical","Sarcastic","Realistic"]],["Quiet",["Laconic","Soft-spoken","Secretive","Retiring","Mousy"]],["Sober",["Practical","Level-headed","Dull","Reverent","Ponderous"]],["Suspicious",["Scheming","Paranoid","Cautious","Deceitful","Nervous"]],["Uncivilized",["Uncultured","Boorish","Barbaric","Graceless","Crude"]],["Violent",["Cruel","Sadistic","Immoral","Jealous","Warlike"]]];
-const NDEF={race:"Human",cls:"Fighter",level:"1",magic:true,traits:true,method:"V",maxhp:false};
+const NDEF={race:"Human",cls:"Fighter",level:"1",magic:true,traits:true,method:"V",maxhp:false,sex:"Any"};
 // when scores are arranged, which ability gets the best roll, the next best, and so on (0 Str, 1 Dex, 2 Con, 3 Int, 4 Wis, 5 Cha)
 const NPRIO={Fighter:[0,2,1,4,5,3],Paladin:[5,0,2,4,1,3],Ranger:[0,2,1,4,3,5],Mage:[3,1,2,4,5,0],Cleric:[4,2,0,1,5,3],Druid:[4,5,2,1,0,3],Thief:[1,2,0,3,5,4],Bard:[5,1,3,2,0,4]};
 const pick=a=>a[Math.floor(RNG()*a.length)];
+// ---------- NPC names: built from syllables, each race with its own sound (not from the books; my own invention) ----------
+// A name is a beginning, sometimes a middle syllable, and an ending for a man or a woman; a family name is built the same way
+// from its own pieces. A half-elf takes each name from either the elf or the human pieces. Odd results are kept on purpose.
+const NAMESYL={
+ Dwarf:{st:["Bar","Dur","Thra","Gor","Kaz","Brom","Dag","Hur","Mor","Bel","Thor","Grun","Dor","Ul","Bal","Nor","Vor","Kil","Ard","Rur","Os","Tor","Har","Gim","Bof","Dw","Skor","Brak","Frer","Ruk"],
+  mid:["a","o","u","i","ar","or","un","ek","dra","gri","ka"],
+  m:["in","ak","im","ur","ok","grim","ri","dek","rin","bur","kin","f","nar","gus","ald","rak","om","dain","li","mek"],
+  f:["a","is","dis","ra","run","hild","wyn","ga","ka","rid","nis","bera","li"],
+  fam:{st:["Kaz","Thor","Grom","Dur","Bal","Khar","Mor","Ung","Rag","Thrun","Dol","Hel","Bar","Gund"],mid:["a","o","u","ra","ga","um"],end:["dun","rak","gor","drim","zad","bek","nar","mund","kul","dor","grun","az"]}},
+ Elf:{st:["Ael","Il","Sil","Cael","Fen","Thal","Er","Lor","Ny","Ar","Gal","El","Vael","Sha","Mir","Tae","Lia","Fae","Ith","Quel","Rho","Syl","Ae","Na","Yl","Elo"],
+  mid:["a","e","i","an","or","ia","ae","el","ith","ilo","ra"],
+  m:["ion","as","or","ith","an","ael","ir","on","eth","ros","dil","iel","en","ar"],
+  f:["iel","wyn","ra","ae","ia","eth","is","ana","lith","yn","ara","eli","isse"],
+  fam:{st:["Ama","Ilu","Sil","Ael","Gala","Thia","Nai","Lo","Vae","Myr","Eri","Cel"],mid:["la","ri","the","na","ve","li","dra"],end:["nor","thas","lis","ndal","sar","wen","dhel","ion","thiel","ryn"]}},
+ Gnome:{st:["Bim","Fon","Pip","Zook","Wren","Nim","Glim","Tob","Dob","Fizz","Bop","Kel","Orl","Quip","Sni","Wob","Jeb","Mur","Gim","Tib","Pel","Zan","Bel","Dim"],
+  mid:["a","i","o","ab","eb","ib","er","ul","in","oo"],
+  m:["ble","bo","wick","ip","o","en","ix","bin","dle","ock","ner","pin","ri","zle"],
+  f:["a","i","ella","ina","ie","wyn","bie","ly","ra","ette","sy","ka"],
+  fam:{st:["Bom","Tink","Gar","Fiz","Wob","Nack","Pud","Zim","Bur","Glan","Dun","Snor"],mid:["a","e","i","o","er","le"],end:["wick","bun","ster","nock","dle","pip","gim","ble","kin","zzle"]}},
+ Halfling:{st:["Tob","Mer","Wil","Ros","Dod","Bun","Lob","Mil","Per","Fos","Hal","Cob","Tam","Lin","Pod","Sam","Ned","Wen","Bel","Hob","Dill","Lul","Nob","Rob","Pim"],
+  mid:["a","e","i","o","er","ol","in","le"],
+  m:["bin","o","ry","win","ard","by","ric","ias","mond","ey","wise","bert","go"],
+  f:["a","ie","y","ella","ina","sy","wyn","ly","mira","etta","ise","ra"],
+  fam:{st:["Bur","Tun","Mer","Hil","Bram","Fos","Lin","Cot","Gam","Brock","Pot","Hay"],mid:["a","e","i","o","er","le"],end:["row","wick","by","ford","dle","ton","more","ing","well","hen","dock","ley"]}},
+ Human:{st:["Al","Bren","Cor","Ed","Gar","Hal","Jor","Ker","Lan","Mar","Os","Per","Rod","Ser","Tav","Ul","Wal","Ber","Dag","Fel","Gil","Hen","Isa","Ly","Mal","Ros","Ter","Val","Ad","Emm","Ag","Cath","Aud","Gwen","Ot","Rand"],
+  mid:["a","e","i","o","an","er","il","or","ri","el"],
+  m:["ric","an","on","mund","ard","win","ert","ald","as","et","os","ulf","hard","bert","ram","ian","ek","red"],
+  f:["a","ia","wen","ine","el","eth","is","lin","da","ora","ys","ette","wyn","hild","ena"],
+  fam:{st:["Ash","Bal","Cor","Dun","Fal","Har","Mar","Ren","Thorn","Vel","Wyn","Ald","Bro","Gal","Kes","Mor","Ost","Pell","Rav","Stan","Tal"],mid:["a","e","i","o","er","an","en"],end:["mere","by","ton","ric","wick","ley","dane","ham","ford","more","vane","win","ell","ard","gate","ock"]}},
+};
+const NM_OKV=/^(ae|ia|ie|ea|ai|ei|io|au|oa|ue)$/, NM_V=/[aeiouy]/;
+const NM_BAD=/n[i1y]gg|fag|kike|spic|chink|cunt|fuck|shit|rape|nazi|coon|dyke|trann|slut|whore|wank|twat|cock|dick|piss/;   // real slurs and obscenities only: rerolled
+function nmTidy(n){ n=n.toLowerCase().replace(/([aeiou])\1\1+/g,"$1$1").replace(/([^aeiou])\1\1+/g,"$1$1").replace(/([aeiouy])([aeiouy])([aeiouy])/g,"$1$3"); return n[0].toUpperCase()+n.slice(1); }
+function nmJoin(a,b){ if(!b) return a; const x=a.slice(-1).toLowerCase(), y=b[0].toLowerCase();
+  if(NM_V.test(x)&&NM_V.test(y)&&(x===y||!NM_OKV.test(x+y))) b=b.slice(1);          // two vowels meeting: keep only pairs that read naturally
+  if(a.slice(-2).toLowerCase()===b.slice(0,2).toLowerCase()) b=b.slice(2)||b;         // no stutter ("binbin")
+  return a+b; }
+function nmBuild(st,mid,end,pmid){ for(let t=0;t<40;t++){ let n=pick(st); if(RNG()<pmid) n=nmJoin(n,pick(mid)); n=nmTidy(nmJoin(n,pick(end))); if(n.length>=3&&n.length<=11&&!NM_BAD.test(n.toLowerCase())) return n; } return nmTidy(pick(st)+pick(end)); }
+function npcName(race,sex){ const k=sex==="Woman"?"f":"m";
+  const src=()=>race==="Half-Elf"?(RNG()<0.5?NAMESYL.Elf:NAMESYL.Human):NAMESYL[race]||NAMESYL.Human;
+  const a=src(), b=src(); return nmBuild(a.st,a.mid,a[k],0.28)+" "+nmBuild(b.fam.st,b.fam.mid,b.fam.end,0.35); }
+
 const sgn=n=>(n>0?"+":n<0?"−":"")+(n?Math.abs(n):"");
 const ordinal=n=>n+(["th","st","nd","rd"][n%10>3||Math.floor(n/10)%10===1?0:n%10]);
 
@@ -1780,6 +1826,8 @@ function genNPC(o){
   if(!raceCanBe(race,cls)&&o.cheat) notes.push(`Not a book combination: ${race} characters cannot normally be ${cls.toLowerCase()}s (DMG Table 7). Allowed here because you ticked the box.`);
   else if(!raceCanBe(race,cls)){ notes.push(`${race} characters cannot be ${cls.toLowerCase()}s (DMG Table 7), so this one is human.`); race="Human"; }
   const C=NCLASS[cls], G=NGROUP[C.g]; n.cls=cls; n.race=race; n.group=C.g;
+  if(o.sex==="Man"||o.sex==="Woman") n.sex=o.sex; else { const r=d(2); n.sex=r===1?"Man":"Woman"; steps.push({what:"Sex",html:`${tDie(2,r)} ${n.sex.toLowerCase()} (1 man, 2 woman)`,cite:"—"}); }
+  n.name=npcName(race,n.sex); steps.push({what:"Name",html:`Built from syllables for ${race==="Half-Elf"?"elves or humans":race.toLowerCase()+"s"} (↻ beside the name rolls another)`,cite:"Not from the books"});
   let level=parseLevel(o.level,steps); const lim=levelLimit(race,cls);
   if(o.cheat){ if(lim>0&&level>lim) notes.push(`Level ${level} is above the ${race.toLowerCase()} limit of ${lim} for this class (DMG Table 7). Allowed here because you ticked the box.`); }
   else if(level>lim){ notes.push(`Level ${level} asked for, but the ${race.toLowerCase()} limit for this class is ${lim} (DMG Table 7; the optional bonus for high prime requisites is not applied).`); level=lim; }
@@ -1946,7 +1994,7 @@ function weaponLine(n,w,missile){
 function npcHTML(n){
   const strTxt=n.pct!==null?`18/${n.pct===100?"00":String(n.pct).padStart(2,"0")}`:n.ab[0];
   const row=(k,v)=>v?`<div><dt>${k}</dt><dd>${v}</dd></div>`:"";
-  let h=`<article class="enc npc" data-nid="${n.id}"><h3><span>Level ${n.level} ${tEsc(n.race)} ${tEsc(n.cls)}</span><span class="when">NPC</span></h3><dl class="npcd">`;
+  let h=`<article class="enc npc" data-nid="${n.id}"><h3><span>${n.name?`<b class="nname" title="Click to type a name" tabindex="0">${tEsc(n.name)}</b> <button class="nre" data-n="rename" title="Another name (keeps everything else)" aria-label="Another name">↻</button> <span class="nsex">(${n.sex==="Woman"?"woman":"man"})</span> · `:""}Level ${n.level} ${tEsc(n.race)} ${tEsc(n.cls)}</span><span class="when">NPC</span></h3><dl class="npcd">`;
   h+=row("Armor Class",`<b>${n.ac}</b> (${tEsc(n.acNote)})`)+row("Hit points",`<b>${n.hp}</b>`)+row("THAC0",`<b>${n.thac0}</b>`);
   h+=row("Attacks",tEsc(weaponLine(n,n.melee,false))+(n.missile?`<br>or ${tEsc(weaponLine(n,n.missile,true))}`:"")+`<br><span class="hint">damage against small–medium / large targets</span>`);
   h+=row("Movement",n.move)+row("Saves",`Paralyzation/poison/death <b>${n.saves[0]}</b>, rod/staff/wand <b>${n.saves[1]}</b>, petrification/polymorph <b>${n.saves[2]}</b>, breath <b>${n.saves[3]}</b>, spell <b>${n.saves[4]}</b>`);
@@ -1963,7 +2011,7 @@ function npcHTML(n){
   return h+"</article>";
 }
 function npcText(n){
-  const L=[`Level ${n.level} ${n.race} ${n.cls} (NPC)`,`Armor Class ${n.ac} (${n.acNote})`,`Hit Points ${n.hp}`,`Attacks ${weaponLine(n,n.melee,false)}${n.missile?" or "+weaponLine(n,n.missile,true):""}`,`THAC0 ${n.thac0}`,`Movement ${n.move}`,`Saves PPD ${n.saves[0]} RSW ${n.saves[1]} PP ${n.saves[2]} BW ${n.saves[3]} Sp ${n.saves[4]}`,`Alignment ${n.align}`,
+  const L=[`${n.name?n.name+" ("+(n.sex==="Woman"?"woman":"man")+"), level":"Level"} ${n.level} ${n.race} ${n.cls} (NPC)`,`Armor Class ${n.ac} (${n.acNote})`,`Hit Points ${n.hp}`,`Attacks ${weaponLine(n,n.melee,false)}${n.missile?" or "+weaponLine(n,n.missile,true):""}`,`THAC0 ${n.thac0}`,`Movement ${n.move}`,`Saves PPD ${n.saves[0]} RSW ${n.saves[1]} PP ${n.saves[2]} BW ${n.saves[3]} Sp ${n.saves[4]}`,`Alignment ${n.align}`,
    `STR ${n.pct!==null?"18/"+(n.pct===100?"00":String(n.pct).padStart(2,"0")):n.ab[0]} DEX ${n.ab[1]} CON ${n.ab[2]} INT ${n.ab[3]} WIS ${n.ab[4]} CHA ${n.ab[5]}`];
   if(n.spells) n.spells.forEach(s=>L.push(`Spells ${ordinal(s.lv)}: ${s.spells.join(", ")}`));
   if(n.skills) L.push("Skills "+n.skills.map(s=>`${s[0]} ${s[1]}%`).join(", "));
@@ -1981,6 +2029,7 @@ function renderNPCPanel(){
   const lim=!o.cheat&&o.race!=="Any"&&o.cls!=="Any"?levelLimit(o.race,o.cls):99;
   $("#npc-panel").innerHTML=`
   <div class="row2"><div class="field"><label for="np-race">Race</label>${sel("np-race",["Any"].concat(NRACES),o.race)}</div><div class="field"><label for="np-cls">Class</label>${sel("np-cls",["Any"].concat(classes),o.cls)}</div></div>
+  <div class="field"><label for="np-sex">Man or woman</label>${sel("np-sex",["Any","Man","Woman"],o.sex)}</div>
   <div class="field"><label for="np-level">Level</label><input type="text" id="np-level" value="${tEsc(o.level)}"><div class="hint">A number, or dice such as 1d6 or 1d4+3.${lim<99?` ${o.race} ${o.cls.toLowerCase()}s stop at level ${lim}.`:""} “Any” class uses the Monstrous Manual’s mix; “Any” race is 20% demihuman.</div></div>
   <div class="field"><label for="np-method">Ability scores</label><select id="np-method">${[["V","4d6, drop the lowest, arranged to suit the class (Method V)"],["IV","3d6 twelve times, best six, arranged (Method IV)"],["III","3d6 six times, arranged (Method III)"],["I","3d6 in order, as they fall (Method I)"]].map(([v,l])=>`<option value="${v}"${v===o.method?" selected":""}>${l}</option>`).join("")}</select></div>
   <label class="check"><input type="checkbox" id="np-magic"${o.magic?" checked":""}> Roll for magical items: 5% per level for each kind the class can have</label>
@@ -1992,10 +2041,18 @@ function renderNPCPanel(){
 function renderNLog(){ $("#npc-log").innerHTML=NLOG.length?NLOG.map(npcHTML).join(""):`<div class="empty">No one yet. Pick a race, class and level, then press “Create”.</div>`; }
 function initNPC(){
   if(!$("#npc-panel")) return; renderNPCPanel(); renderNLog(); const pn=$("#npc-panel");
-  const read=()=>{ const o=nOpt(); o.race=$("#np-race").value; o.cls=$("#np-cls").value; o.level=$("#np-level").value.trim()||"1"; o.method=$("#np-method").value; o.magic=$("#np-magic").checked; o.traits=$("#np-traits").checked; o.cheat=$("#np-cheat").checked; o.maxhp=$("#np-maxhp").checked; save(); return o; };
+  const read=()=>{ const o=nOpt(); o.race=$("#np-race").value; o.cls=$("#np-cls").value; o.level=$("#np-level").value.trim()||"1"; o.method=$("#np-method").value; o.magic=$("#np-magic").checked; o.traits=$("#np-traits").checked; o.cheat=$("#np-cheat").checked; o.maxhp=$("#np-maxhp").checked; o.sex=$("#np-sex").value; save(); return o; };
   pn.addEventListener("change",ev=>{ read(); if(ev.target.id==="np-race"||ev.target.id==="np-cls"||ev.target.id==="np-cheat") renderNPCPanel(); });
   pn.addEventListener("click",ev=>{ if(!ev.target.closest("button[data-n=make]")) return; const n=genNPC(read()); n.id=++NSEQ; NLOG.unshift(n); if(NLOG.length>30) NLOG.pop(); renderNLog(); showNewest("#npc-log"); });
   $("#npc-clear").addEventListener("click",()=>{NLOG.length=0;renderNLog();});
+  // Click the name to type one of your own: Enter or clicking away keeps it, Esc goes back. A blank box keeps the old name.
+  const editName=nm=>{ const n=NLOG.find(x=>x.id===+nm.closest("article[data-nid]").dataset.nid); if(!n) return;
+    const inp=document.createElement("input"); inp.className="nedit"; inp.value=n.name; inp.setAttribute("aria-label","Name"); nm.replaceWith(inp); inp.focus(); inp.select();
+    let done=false; const finish=keep=>{ if(done) return; done=true; const v=inp.value.replace(/\s+/g," ").trim().slice(0,60); if(keep&&v) n.name=v; renderNLog(); };
+    inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); finish(true); } if(e.key==="Escape"){ e.preventDefault(); finish(false); } });
+    inp.addEventListener("blur",()=>finish(true)); inp.addEventListener("click",e=>e.stopPropagation()); };
+  $("#npc-log").addEventListener("click",ev=>{ const nm=ev.target.closest(".nname"); if(nm){ editName(nm); return; } });
+  $("#npc-log").addEventListener("keydown",ev=>{ const nm=ev.target.closest&&ev.target.closest(".nname"); if(nm&&ev.key==="Enter"){ ev.preventDefault(); editName(nm); } });
   $("#npc-log").addEventListener("click",ev=>{ const b=ev.target.closest("button[data-n]"); if(!b) return; const n=NLOG.find(x=>x.id===+b.closest("article[data-nid]").dataset.nid); if(!n) return;
     if(b.dataset.n==="book"){ const spec=SPEC[n.cls]; const opp=spec?spec[3]:[], school=spec?spec[0]:null; let rolls="", total=0;
       const levels=n.spells.map(s=>{ const lv=s.lv; const seen={}; Object.keys(SPELLS.wiz).forEach(sc=>SPELLS.wiz[sc].forEach(([nm,l])=>{ if(l===lv&&nm!=="Cantrip") (seen[nm]=seen[nm]||[]).push(sc); }));
@@ -2003,8 +2060,9 @@ function initNPC(){
         while(got.length<want){ const a=pool.filter(q=>!got.includes(q)); got.push(a[Math.floor(RNG()*a.length)]); }
         rolls+=`${rolls?"; ":""}${ordinal(lv)} level: ${base} memorized + 1d3 ${tDie(3,x)} = ${got.length}`; total+=got.length; return {lv,spells:got.sort(),own:school?pool.filter(nm=>seen[nm].includes(school)):[]}; });
       n.book={level:n.level,cls:n.cls,school,opp,levels,rolls,total}; renderNLog(); }
-    if(b.dataset.n==="tre"){ const P=parseTreasure(n.treasure); n.tre=[]; n.tre.push(rollTreasure(P.parts.map(p=>Object.assign({},p,{times:1})),tOpt(),`${n.cls}, carried`)); renderNLog(); }
-    else { const t=npcText(n); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{b.textContent="Copied";},()=>{ const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy"); b.textContent="Copied";}catch(e){} ta.remove(); }); } });
+    else if(b.dataset.n==="rename"){ n.name=npcName(n.race,n.sex); renderNLog(); }
+    else if(b.dataset.n==="tre"){ const P=parseTreasure(n.treasure); n.tre=[]; n.tre.push(rollTreasure(P.parts.map(p=>Object.assign({},p,{times:1})),tOpt(),`${n.cls}, carried`)); renderNLog(); }
+    else if(b.dataset.n==="copy"){ const t=npcText(n); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{b.textContent="Copied";},()=>{ const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy"); b.textContent="Copied";}catch(e){} ta.remove(); }); } });
 }
 if(typeof document!=="undefined") document.addEventListener("DOMContentLoaded",initNPC);
 if(typeof module!=="undefined") Object.assign(module.exports,{genNPC,npcHTML,npcText,raceCanBe,levelLimit,NCLASS,NRACES,saveRow});
