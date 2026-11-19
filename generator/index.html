@@ -57,6 +57,7 @@ details.more>summary{font-family:var(--head);font-size:1rem;cursor:pointer;color
 article.enc{border:1px solid #000;margin:0 0 20px;background:#fff}
 article.enc>h3{margin:0;background:var(--blue);color:#fff;padding:7px 12px;font-size:1.12rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 article.enc>h3 span.when{font-family:var(--ui);font-size:.74rem;font-weight:400;opacity:.9;align-self:center}
+.nslot{display:inline-block;min-width:11.5em}   /* room for any rolled name, so ↻ stays put while you reroll */
 .nname{cursor:text;border-bottom:1px dashed transparent}.nname:hover{border-bottom-color:currentColor}
 .nedit{font:inherit;font-weight:700;color:#222;width:11em;padding:0 4px;border-radius:4px;border:0}
 .nre{border:0;background:none;color:inherit;opacity:.55;cursor:pointer;font-size:.85em;padding:0 2px}.nre:hover{opacity:1}.nsex{font-weight:400;opacity:.8;font-size:.9em}
@@ -1994,7 +1995,7 @@ function weaponLine(n,w,missile){
 function npcHTML(n){
   const strTxt=n.pct!==null?`18/${n.pct===100?"00":String(n.pct).padStart(2,"0")}`:n.ab[0];
   const row=(k,v)=>v?`<div><dt>${k}</dt><dd>${v}</dd></div>`:"";
-  let h=`<article class="enc npc" data-nid="${n.id}"><h3><span>${n.name?`<b class="nname" title="Click to type a name" tabindex="0">${tEsc(n.name)}</b> <button class="nre" data-n="rename" title="Another name (keeps everything else)" aria-label="Another name">↻</button> <span class="nsex">(${n.sex==="Woman"?"woman":"man"})</span> · `:""}Level ${n.level} ${tEsc(n.race)} ${tEsc(n.cls)}</span><span class="when">NPC</span></h3><dl class="npcd">`;
+  let h=`<article class="enc npc" data-nid="${n.id}"><h3><span>${n.name?`<span class="nslot"><b class="nname" title="Click to type a name" tabindex="0">${tEsc(n.name)}</b></span><button class="nre" data-n="rename" title="Another name (keeps everything else)" aria-label="Another name">↻</button> <span class="nsex">(${n.sex==="Woman"?"woman":"man"})</span> · `:""}Level ${n.level} ${tEsc(n.race)} ${tEsc(n.cls)}</span><span class="when">NPC</span></h3><dl class="npcd">`;
   h+=row("Armor Class",`<b>${n.ac}</b> (${tEsc(n.acNote)})`)+row("Hit points",`<b>${n.hp}</b>`)+row("THAC0",`<b>${n.thac0}</b>`);
   h+=row("Attacks",tEsc(weaponLine(n,n.melee,false))+(n.missile?`<br>or ${tEsc(weaponLine(n,n.missile,true))}`:"")+`<br><span class="hint">damage against small–medium / large targets</span>`);
   h+=row("Movement",n.move)+row("Saves",`Paralyzation/poison/death <b>${n.saves[0]}</b>, rod/staff/wand <b>${n.saves[1]}</b>, petrification/polymorph <b>${n.saves[2]}</b>, breath <b>${n.saves[3]}</b>, spell <b>${n.saves[4]}</b>`);
