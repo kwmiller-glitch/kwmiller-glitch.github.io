@@ -689,7 +689,7 @@ nav.tabs button.ref{padding:6px 6px 5px}
   <tr><td>NPC: magical items and treasure</td><td>For each kind of item the class may have, a 5% chance per level; a cursed or unusable result is rolled again once. Paladins and rangers use the fighter’s column, druids the cleric’s, bards the thief’s, and specialists the wizard’s (the book lists only the four basic classes). Rolled armor, shields, plain swords and plain weapons are worked into the Armor Class and attack lines; other items are not. “Any” class and race, and the carried treasure types, come from the same pages.</td><td>Monstrous Manual, Human (Adventurer) and NPC parties</td><td><span class="status site">Site</span></td></tr>
   <tr><td>NPC: equipment, spells, skills, alignment</td><td>The books give no roll for these, so this page chooses. Armor follows the Monstrous Manual’s remarks (scale or chain at 1st level, banded or plate after, plate mail and shield from 4th; rangers studded leather; thieves, bards and druids leather). Weapons, alignment and memorised spells are picked at random from what the class allows; wizards are limited by Intelligence and specialists by their opposition schools. Thief and bard skill points are spread at random within the book’s limits. Change anything that does not suit your NPC.</td><td>My choices</td><td><span class="status mine">Judgment</span></td></tr>
   <tr><td>NPC: personality</td><td>One general trait on 1d20, one of its five specific traits, and one more characteristic on percentile dice, as in the book’s example. The book stresses that the DM should choose where possible and drop combinations that make no sense.</td><td>DMG Table 70, p. 114</td><td><span class="status book">Book</span></td></tr>
-  <tr><td>NPC: name and sex</td><td>The books give no roll for these. Man or woman is 1d2 unless you choose; the name is built from syllables chosen for each race’s sound (my own invention, not from any book), with a family name built the same way. A half-elf takes each name from either the elf or the human syllables. Odd names are kept on purpose; only real slurs and obscenities are rolled again. ↻ beside the name rolls another without changing anything else; clicking the name lets you type your own.</td><td>—</td><td><span class="status mine">Judgment</span></td></tr>
+  <tr><td>NPC: name and sex</td><td>The books give no roll for these. Man or woman is 1d2 unless you choose; the name is built from syllables modelled on a real language for each race (my own invention, not from any book): dwarves Old Norse, elves Welsh, gnomes Dutch, halflings rustic Middle English, humans Old English with Norman “Fitz” names. A half-elf mixes elf and human. Odd names are kept on purpose; only real slurs and obscenities are rolled again. ↻ beside the name rolls another without changing anything else; clicking the name lets you type your own.</td><td>—</td><td><span class="status mine">Judgment</span></td></tr>
   <tr><td>NPC: left out</td><td>Multi-class and dual-class characters, proficiencies, languages, age, height and weight, followers, spell books, and the saving throw bonuses noted in each NPC’s list (they are stated but not added to the numbers). Rings of protection and similar items are listed but not added to Armor Class.</td><td></td><td><span class="status mine">Not included</span></td></tr>
   <tr><td>Item descriptions</td><td>The text under each magical item is a condensed summary of its description in Appendix 3, written for this page by an AI reader working from images of your book. It is not the book’s wording, and numbers can be wrong or missing. Where the book has a sub-table (which giant, how many charges) the summary gives it but the page does not roll it. Check the book before a ruling that matters.</td><td>DMG pp. 141–186 (summary)</td><td><span class="status mine">Summary</span></td></tr>
   <tr><td>Gem names</td><td>The names and colours are the book’s lists for each class of stone. The book gives no roll for them, so one is picked at random; you can turn this off.</td><td>DMG p. 134</td><td><span class="status mine">Judgment</span></td></tr>
@@ -1753,47 +1753,63 @@ const NDEF={race:"Human",cls:"Fighter",level:"1",magic:true,traits:true,method:"
 // when scores are arranged, which ability gets the best roll, the next best, and so on (0 Str, 1 Dex, 2 Con, 3 Int, 4 Wis, 5 Cha)
 const NPRIO={Fighter:[0,2,1,4,5,3],Paladin:[5,0,2,4,1,3],Ranger:[0,2,1,4,3,5],Mage:[3,1,2,4,5,0],Cleric:[4,2,0,1,5,3],Druid:[4,5,2,1,0,3],Thief:[1,2,0,3,5,4],Bard:[5,1,3,2,0,4]};
 const pick=a=>a[Math.floor(RNG()*a.length)];
-// ---------- NPC names: built from syllables, each race with its own sound (not from the books; my own invention) ----------
-// A name is a beginning, sometimes a middle syllable, and an ending for a man or a woman; a family name is built the same way
-// from its own pieces. A half-elf takes each name from either the elf or the human pieces. Odd results are kept on purpose.
-const NAMESYL={
- Dwarf:{st:["Bar","Dur","Thra","Gor","Kaz","Brom","Dag","Hur","Mor","Bel","Thor","Grun","Dor","Ul","Bal","Nor","Vor","Kil","Ard","Rur","Os","Tor","Har","Gim","Bof","Dw","Skor","Brak","Frer","Ruk"],
-  mid:["a","o","u","i","ar","or","un","ek","dra","gri","ka"],
-  m:["in","ak","im","ur","ok","grim","ri","dek","rin","bur","kin","f","nar","gus","ald","rak","om","dain","li","mek"],
-  f:["a","is","dis","ra","run","hild","wyn","ga","ka","rid","nis","bera","li"],
-  fam:{st:["Kaz","Thor","Grom","Dur","Bal","Khar","Mor","Ung","Rag","Thrun","Dol","Hel","Bar","Gund"],mid:["a","o","u","ra","ga","um"],end:["dun","rak","gor","drim","zad","bek","nar","mund","kul","dor","grun","az"]}},
- Elf:{st:["Ael","Il","Sil","Cael","Fen","Thal","Er","Lor","Ny","Ar","Gal","El","Vael","Sha","Mir","Tae","Lia","Fae","Ith","Quel","Rho","Syl","Ae","Na","Yl","Elo"],
-  mid:["a","e","i","an","or","ia","ae","el","ith","ilo","ra"],
-  m:["ion","as","or","ith","an","ael","ir","on","eth","ros","dil","iel","en","ar"],
-  f:["iel","wyn","ra","ae","ia","eth","is","ana","lith","yn","ara","eli","isse"],
-  fam:{st:["Ama","Ilu","Sil","Ael","Gala","Thia","Nai","Lo","Vae","Myr","Eri","Cel"],mid:["la","ri","the","na","ve","li","dra"],end:["nor","thas","lis","ndal","sar","wen","dhel","ion","thiel","ryn"]}},
- Gnome:{st:["Bim","Fon","Pip","Zook","Wren","Nim","Glim","Tob","Dob","Fizz","Bop","Kel","Orl","Quip","Sni","Wob","Jeb","Mur","Gim","Tib","Pel","Zan","Bel","Dim"],
-  mid:["a","i","o","ab","eb","ib","er","ul","in","oo"],
-  m:["ble","bo","wick","ip","o","en","ix","bin","dle","ock","ner","pin","ri","zle"],
-  f:["a","i","ella","ina","ie","wyn","bie","ly","ra","ette","sy","ka"],
-  fam:{st:["Bom","Tink","Gar","Fiz","Wob","Nack","Pud","Zim","Bur","Glan","Dun","Snor"],mid:["a","e","i","o","er","le"],end:["wick","bun","ster","nock","dle","pip","gim","ble","kin","zzle"]}},
- Halfling:{st:["Tob","Mer","Wil","Ros","Dod","Bun","Lob","Mil","Per","Fos","Hal","Cob","Tam","Lin","Pod","Sam","Ned","Wen","Bel","Hob","Dill","Lul","Nob","Rob","Pim"],
-  mid:["a","e","i","o","er","ol","in","le"],
-  m:["bin","o","ry","win","ard","by","ric","ias","mond","ey","wise","bert","go"],
-  f:["a","ie","y","ella","ina","sy","wyn","ly","mira","etta","ise","ra"],
-  fam:{st:["Bur","Tun","Mer","Hil","Bram","Fos","Lin","Cot","Gam","Brock","Pot","Hay"],mid:["a","e","i","o","er","le"],end:["row","wick","by","ford","dle","ton","more","ing","well","hen","dock","ley"]}},
- Human:{st:["Al","Bren","Cor","Ed","Gar","Hal","Jor","Ker","Lan","Mar","Os","Per","Rod","Ser","Tav","Ul","Wal","Ber","Dag","Fel","Gil","Hen","Isa","Ly","Mal","Ros","Ter","Val","Ad","Emm","Ag","Cath","Aud","Gwen","Ot","Rand"],
-  mid:["a","e","i","o","an","er","il","or","ri","el"],
-  m:["ric","an","on","mund","ard","win","ert","ald","as","et","os","ulf","hard","bert","ram","ian","ek","red"],
-  f:["a","ia","wen","ine","el","eth","is","lin","da","ora","ys","ette","wyn","hild","ena"],
-  fam:{st:["Ash","Bal","Cor","Dun","Fal","Har","Mar","Ren","Thorn","Vel","Wyn","Ald","Bro","Gal","Kes","Mor","Ost","Pell","Rav","Stan","Tal"],mid:["a","e","i","o","er","an","en"],end:["mere","by","ton","ric","wick","ley","dane","ham","ford","more","vane","win","ell","ard","gate","ock"]}},
-};
-const NM_OKV=/^(ae|ia|ie|ea|ai|ei|io|au|oa|ue)$/, NM_V=/[aeiouy]/;
-const NM_BAD=/n[i1y]gg|fag|kike|spic|chink|cunt|fuck|shit|rape|nazi|coon|dyke|trann|slut|whore|wank|twat|cock|dick|piss/;   // real slurs and obscenities only: rerolled
-function nmTidy(n){ n=n.toLowerCase().replace(/([aeiou])\1\1+/g,"$1$1").replace(/([^aeiou])\1\1+/g,"$1$1").replace(/([aeiouy])([aeiouy])([aeiouy])/g,"$1$3"); return n[0].toUpperCase()+n.slice(1); }
-function nmJoin(a,b){ if(!b) return a; const x=a.slice(-1).toLowerCase(), y=b[0].toLowerCase();
-  if(NM_V.test(x)&&NM_V.test(y)&&(x===y||!NM_OKV.test(x+y))) b=b.slice(1);          // two vowels meeting: keep only pairs that read naturally
-  if(a.slice(-2).toLowerCase()===b.slice(0,2).toLowerCase()) b=b.slice(2)||b;         // no stutter ("binbin")
+// ---------- NPC names (not from the books; my own invention) ----------
+// Each race's syllables are modelled on a real language's sound, so the races read differently at a glance:
+// dwarves Old Norse (with -sson / -sdottir after the father's name), elves Welsh with soft family names,
+// gnomes Dutch (pet names in -je, -tje; Frisian family names, or "van"), halflings rustic Middle English pet names,
+// humans Old English given names with a Norman "Fitz" or an English place name. A half-elf mixes elf and human.
+// Odd results are kept on purpose; only real slurs and obscenities are rolled again.
+const NM_BAD=/n[i1y]gg|fag|kike|spic|chink|cunt|fuck|shit|rape|nazi|coon|dyke|trann|slut|whore|wank|twat|cock(?!$)|dick(?!$)|piss/i;
+const nmCh=p=>RNG()<p;
+const NM_OKV=/^(ae|ia|ie|ea|ai|ei|io|au|oa|ue|ui|oe|ij|ey|ay|oy)$/i, NM_V=/[aeiouyæ]/i;
+function nmJoin(a,b){ if(!b) return a; const x=a.slice(-1), y=b[0]; if(NM_V.test(x)&&NM_V.test(y)&&!NM_OKV.test(x+y)) b=b.slice(1);
+  if(a.slice(-2).toLowerCase()===b.slice(0,2).toLowerCase()) b=b.slice(2)||b;
+  if(b.length>=3&&a.toLowerCase().endsWith(b.slice(0,3).toLowerCase())) b=b.slice(3);   // no "Brockock"
   return a+b; }
-function nmBuild(st,mid,end,pmid){ for(let t=0;t<40;t++){ let n=pick(st); if(RNG()<pmid) n=nmJoin(n,pick(mid)); n=nmTidy(nmJoin(n,pick(end))); if(n.length>=3&&n.length<=11&&!NM_BAD.test(n.toLowerCase())) return n; } return nmTidy(pick(st)+pick(end)); }
+const nmCap=s=>s[0].toUpperCase()+s.slice(1);
+function nmBuild(st,mid,end,pm,nodbl){ for(let t=0;t<40;t++){ let n=pick(st); if(mid&&nmCh(pm)) n=nmJoin(n,pick(mid)); n=nmJoin(n,pick(end)); n=n.toLowerCase().replace(/(.)\1\1+/g,"$1$1");
+    n=n.replace(/c?kk/g,"k").replace(/ckc/g,"ck");
+    if(nodbl) n=n.replace(/([aeiouy])\1/g,"$1");
+    if(/[aeiouy]{3}|yi|iy|wy[aeiou]/.test(n)) continue;
+    if(n.length>=3&&n.length<=12&&!NM_BAD.test(n)) return nmCap(n);} return nmCap(pick(st)+pick(end)); }
+const NMLANG={
+ // Dwarves: Old Norse. Hard, short, closed; a father's name ending -sson / -sdottir.
+ Dwarf:{st:["Bjar","Grim","Hrol","Ulf","Sig","Hjal","Ein","Rag","Bryn","Hall","Orm","Kol","Skeg","Hauk","Thor","Ketil","Gunn","Ask","Bard","Torf","Vig","Ing","Arn","Sten","Frey","Hrafn","Gud","Svein","Odd","Eyv"],
+  m:["ar","ulf","ir","mund","geir","bjorn","kel","vald","rik","rod","grim","ald","stein","finn","olf"],
+  f:["dis","hild","run","vor","gerd","frid","ny","a","laug","veig","ey","borg","katla"],
+  fam(sex){ const f=nmBuild(this.st,null,this.m,0); return f.replace(/s$/,"")+(sex==="f"?"sdottir":"sson"); }},
+ // Elves: Welsh with a Finnish lilt. Soft and vowel-rich; family names in -nen or -la.
+ Elf:{st:["Aer","Cer","Eil","Gwyn","Ilm","Llew","Mai","Rhi","Sel","Tal","Teg","Ys","Ael","Bryth","Cad","Dyf","Eir","Lyr","Nes","Tuil","Ain","Sae","Hael","Rhyd","Myr","Ilv"],
+  mid:["a","e","i","y","ia","ri","li","na","el"],
+  m:["on","wyn","edd","ion","aeth","ri","yn","an","eryn","ydd","allt","ias"],
+  f:["eth","wen","ia","ed","ai","ny","aen","elle","ys","ara","wyn","ela","uli"],
+  fs:["Ilma","Tul","Al","Sar","Vel","Lumi","Hela","Kar","Sila","Ren","Eli","Mir","Ae","Ser","Lin"], fm:["i","a","ri","ve","li","ne"], fe:["nen","la","lia","lin","nen","rien","lia"], nodbl:true,
+  fam(){ return nmCh(0.35)?"":nmBuild(this.fs,this.fm,this.fe,0.3,true); }},
+ // Gnomes: Dutch. Snug little names in -je, -ke, -tje; family names Frisian -stra/-sma, or "van" something.
+ Gnome:{st:["Kees","Joop","Wim","Bram","Piet","Hen","Dirk","Teun","Floor","Lot","Mien","Jaap","Sjoerd","Wout","Rik","Fen","Sas","Tjal","Gerr","Hil","Ans","Bep","Truus","Door","Jel"],
+  m:["je","ke","tje","mus","bert","ius","kin","o","jan","pie","ert"],
+  f:["tje","je","ke","ina","ie","ske","ske","ientje","a","ma"],
+  fs:["Hoog","Klop","Vonk","Schim","Brak","Tuin","Wiel","Knot","Mol","Pruim","Kwak","Snip","Dop","Bolk","Riet","Spie"], fm:["er","el","en","e"], fe:["stra","sma","inga","huis","dijk","kamp","ink","man","er","hof","ema"],
+  fam(){ const n=nmBuild(this.fs,this.fm,this.fe,0.25); return nmCh(0.3)?(nmCh(0.5)?"van ":"van der ")+n:n; }},
+ // Halflings: rustic Middle English. Pet names (Hobkin, Watty), homely family names.
+ Halfling:{st:["Hob","Wat","Jem","Nat","Kit","Dob","Lob","Hodge","Jank","Perk","Wil","Rob","Daw","Hick","Sim","Tam","Gib","Col","Ned","Hal"],
+  stf:["Mab","Nell","Peg","Bess","Mol","Tibb","Mag","Jen","Ros","Cis","Mill","Dor","Em","Lett","Kat","Sib","Daisy","Hil"],
+  m:["kin","by","y","o","cock","et","ie","on","lin"],
+  f:["y","ie","et","kin","sey","a","ot","ina","ling"],
+  fs:["Pud","Hob","Tum","Mid","Brock","Cob","Fern","Hay","Mud","Bram","Lark","Gorse","Hum","Dimp","Nob","Tuck","Mallow","Puck"], fm:["ble","dle","er","ing"], fe:["ley","cott","wick","hay","thorpe","by","worth","ock","den","ham","stock"],
+  fam(){ return nmBuild(this.fs,this.fm,this.fe,0.25); }},
+ // Humans: Old English given names, with a Norman "Fitz" father's name or an English place name. Fits Saltbridge and Fitz Hubert.
+ Human:{st:["Æl","Ead","Os","Wulf","God","Leof","Sige","Cyne","Ælf","Beorn","Wig","Here","Æthel","Ord","Brih","Dun","Hun","Tun","Wil","Eald","Cuth","Ecg","Sæ"],
+  m:["ric","wine","stan","gar","mund","ward","red","wald","ferth","helm","wig","bert","noth","ulf"],
+  f:["gyth","fled","wynn","burh","hild","thryth","swith","ith","run","wen","giva"],
+  nor:["Hubert","Osbern","Waleran","Gilbert","Roger","Baldwin","Ranulf","Alan","Hamon","Payne","Warin","Robert","Gerald","Ivo","Rainald","Odo"],
+  fs:["Ash","Brad","Cran","Dun","Hal","Mar","Sal","Stan","Wey","Ald","Thorn","Brom","Hay","Clif","Elm","Fen","Long","Mor"], fe:["ton","ford","ley","ham","wick","stow","bury","den","worth","cote","field","more"],
+  fam(){ return nmCh(0.4)?"Fitz "+pick(this.nor):nmBuild(this.fs,null,this.fe,0); }},
+};
 function npcName(race,sex){ const k=sex==="Woman"?"f":"m";
-  const src=()=>race==="Half-Elf"?(RNG()<0.5?NAMESYL.Elf:NAMESYL.Human):NAMESYL[race]||NAMESYL.Human;
-  const a=src(), b=src(); return nmBuild(a.st,a.mid,a[k],0.28)+" "+nmBuild(b.fam.st,b.fam.mid,b.fam.end,0.35); }
+  const one=(r)=>{ const L=NMLANG[r]; return nmBuild(k==="f"&&L.stf?L.stf:L.st,L.mid,L[k],L.mid?0.25:0,L.nodbl); };
+  if(race==="Half-Elf"){ const a=nmCh(0.5)?"Elf":"Human", b=nmCh(0.5)?"Elf":"Human"; return one(a)+" "+(NMLANG[b].fam(k)||NMLANG.Human.fam(k)); }
+  const r=NMLANG[race]?race:"Human", f=NMLANG[r].fam(k); return f?one(r)+" "+f:one(r); }
 
 const sgn=n=>(n>0?"+":n<0?"−":"")+(n?Math.abs(n):"");
 const ordinal=n=>n+(["th","st","nd","rd"][n%10>3||Math.floor(n/10)%10===1?0:n%10]);
